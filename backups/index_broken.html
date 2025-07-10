@@ -1,0 +1,2480 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Sollyverse - Fase 1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/Tween.min.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:700,800&display=swap" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+</head>
+<body>
+    <div id="startscreen">
+        <h1>Welkom in de Sollyverse</h1>
+        <div class="info-box">
+            <b>Wat is de Sollyverse?</b><br>
+            De Sollyverse is een magisch 3D-universum vol Sollys, planeten en sterren. Ontdek, groei, kies je pad en beleef unieke avonturen. Jouw voortgang wordt straks zelfs een digitale coin!<br><br>
+            <b>Hoe werkt het?</b><br>
+            - Klik op "Start" om te beginnen.<br>
+            - Of importeer je SollyCoin-token om jouw persoonlijke universum te laden.<br>
+        </div>
+        <label for="import-file" style="margin-top: 18px; font-size: 1.1em; background: #8A2BE2; color: #fff; border: none; border-radius: 12px; padding: 12px 32px; box-shadow: 0 2px 12px #8A2BE288; cursor: pointer; display:inline-block;">Importeer je SollyCoin</label>
+        <input type="file" id="import-file" accept="application/json" style="display:none;">
+        <div id="import-error" style="color:#c00; font-weight:bold; margin-top:10px; display:none;"></div>
+        <button id="start-btn" style="margin-top: 24px;">Start</button>
+    </div>
+    <div id="starwars-intro" class="starwars-modal" style="display:none;">
+        <div class="starwars-crawl-container" id="starwars-crawl">
+            <h2>Lang lang geleden, in een Sollystelsel online...</h2>
+            <p>De Sollyverse is een mysterieuze 3D ruimte waar je doorheen kunt vliegen.<br>Als Solly ben je een bijzondere piramide die door de ruimte zweeft.<br>Ontdek alle geheimen en mogelijkheden in deze magische wereld!<br>Interacteren met andere Sollies, los raadsels op of geniet van het zweven.<br>Ontdek, kies en beleef jouw avontuur.</p>
+            <p>May the Solly move with you.</p>
+        </div>
+    </div>
+    <div id="solly-level-indicator" style="display:none; position:fixed; left:0; top:0; padding:32px 48px 16px 32px; color:#fff; font-size:1.5em; z-index:100; pointer-events:none; text-shadow:0 2px 8px #000, 0 0 2px #FFD700;"></div>
+    <button id="cta-info" class="cta-btn" title="Info">ℹ️</button>
+    <button id="cta-instructies" class="cta-btn" title="Instructies">📖</button>
+    <button id="cta-personaliseer" class="cta-btn" title="Personaliseer">🎨</button>
+    <script src="src/GameManager.js"></script>
+    <script src="src/UserInterface.js"></script>
+    <script>
+    // ===================================================================================
+    // ==                                                                             ==
+    // ==                             SOLLYVERSE - FASE 1                             ==
+    // ==                                 COMPLEET                                    ==
+    // ==                                                                             ==
+    // ==      Deze versie markeert de succesvolle voltooiing van de eerste fase.     ==
+    // ==      Alle kernfunctionaliteiten zijn geïmplementeerd en stabiel.            ==
+    // ==                                                                             ==
+    // ===================================================================================
+
+    // --- Startscherm en Star Wars intro ---
+    const startscreen = document.getElementById('startscreen');
+    const startBtn = document.getElementById('start-btn');
+    const starwarsIntro = document.getElementById('starwars-intro');
+    const starwarsCrawl = document.getElementById('starwars-crawl');
+    let starWarsIntroActive = false;
+    let sollyConfig = null;
+    let gameManager = null;
+    let userInterface = null;
+    let sollyverseInitialized = false; // FIX: Variabele was niet gedeclareerd
+
+    // Globale variabelen
+    let scene, camera, renderer, controls;
+    let miniSollys = [], redPlanets = [], blueSollys = [], whiteStars = [];
+    let solly1 = null, solly2 = null; // Nieuwe Solly1 en Solly2
+    let solly1Movement = { time: 0, amplitude: 2000, frequency: 0.05 }; // 50x sneller
+    let collisionDetected = false;
+    let shapeChoiceMade = false;
+    let shapeModalTimeout = null; // NIEUWE VARIABELE voor timeout
+    let canSollyMove = false; // Voorkomt dat Solly te vroeg beweegt
+    let isPaused = false; // PAUZEERT de animatie als een modal open is
+    let portalClicked = false;
+    let sollySun, sollySunGlow; // Globale referentie naar de zon
+    
+    // NIEUW: Gecentraliseerde state voor de camera-animatie
+    let cameraAnimationState = {
+        active: false,
+        startTime: 0,
+        startPosition: null,
+        zoomInDuration: 2500,
+        zoomInTargetOffset: new THREE.Vector3(0, 100, 350),
+        followDuration: 3500,
+        followStartOffset: new THREE.Vector3(0, 100, 350),
+        followEndOffset: new THREE.Vector3(0, 400, 1200)
+    };
+    
+    // --- PORTAL VARIABELEN ---
+    let portal = null;
+    let portalActive = false;
+    let portalScale = 1.0; // Schaal van de portal (zelfde als nieuwe Solly)
+    let portalMovement = { time: 0, radius: 8000, speed: 0.02 }; // Beweging langs randen
+    let portalAnimating = false;
+
+    document.getElementById('import-file').onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                const json = JSON.parse(evt.target.result);
+                function isValidSollyCoin(obj) {
+                    if (!obj || typeof obj !== 'object') return false;
+                    if (typeof obj.level !== 'string') return false;
+                    if (!obj.sterren || typeof obj.sterren.wit !== 'number') return false;
+                    if (!obj.planeten || typeof obj.planeten.rood !== 'number') return false;
+                    if (!obj.sollys || typeof obj.sollys !== 'object') return false;
+                    if (typeof obj.sollys.geel !== 'number') return false;
+                    if (typeof obj.sollys.blauw !== 'number') return false;
+                    if (typeof obj.sollys.pink !== 'number') return false;
+                    if (typeof obj.sollys.rood !== 'number') return false;
+                    return true;
+                }
+                if (!isValidSollyCoin(json)) {
+                    throw new Error('Structuur van het JSON-bestand klopt niet met de SollyCoin-specificatie.');
+                }
+                sollyConfig = json;
+                document.getElementById('import-error').style.display = 'none';
+                // Doe verder niks, pas bij start-btn klik ga je verder
+            } catch (err) {
+                document.getElementById('import-error').textContent = 'Ongeldig SollyCoin JSON-bestand! (' + err.message + ')';
+                document.getElementById('import-error').style.display = 'block';
+                startscreen.style.display = 'flex';
+                starwarsIntro.style.display = 'none';
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    document.getElementById('start-btn').onclick = function() {
+        startscreen.style.display = 'none';
+        starwarsIntro.style.display = 'flex';
+        setTimeout(() => {
+            starwarsCrawl.classList.add('starwars-crawl-animate');
+        }, 100);
+        setTimeout(() => {
+            starwarsIntro.style.display = 'none';
+            starWarsIntroActive = false;
+            initSollyverse();
+        }, 9000);
+        starWarsIntroActive = true;
+    };
+
+    async function loadDefaultConfig() {
+        try {
+            const response = await fetch('/coins/SollyCoin_default.json');
+            return await response.json();
+        } catch (error) {
+            console.error('❌ Error loading default config:', error);
+            return {
+                level: 'beginner',
+                shape: 'piramide',
+                sterren: { totaal: 4000, wit: 4000 },
+                planeten: { rood: 1000, groen: 1000 },
+                sollys: { geel: 1750, blauw: 1750, pink: 0, rood: 1500 }
+            };
+        }
+    }
+
+    async function initSollyverse() {
+        if (sollyverseInitialized) return;
+        // Initialize GameManager en UserInterface
+        gameManager = new GameManager();
+        userInterface = new UserInterface(gameManager);
+
+        // Probeer eerst opgeslagen voortgang te laden
+        const hasLoadedProgress = gameManager.loadProgress();
+        
+        if (hasLoadedProgress) {
+            console.log('📂 Opgeslagen voortgang geladen van localStorage');
+            userInterface.setStartedWithCoin(true); // User heeft opgeslagen voortgang
+        } else if (sollyConfig) {
+            // Import config als coin data
+            gameManager.loadCoinData(sollyConfig);
+            userInterface.setStartedWithCoin(true); // User started with coin
+        } else {
+            // Laad default coin data
+            const defaultCoin = await loadDefaultConfig();
+            gameManager.loadCoinData(defaultCoin);
+            userInterface.setStartedWithCoin(false); // User started with default
+        }
+
+        // Mark game as started - this will show the Load Coin button
+        userInterface.setGameStarted(true);
+
+        // Get current user data
+        const currentUser = gameManager.getCurrentUser();
+        sollyConfig = currentUser;
+
+        // Three.js setup
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
+        camera.position.set(0, 1000, 4000); // Aangepaste camera positie
+        
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000);
+        document.body.appendChild(renderer.domElement);
+
+        // Controls
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 20000; // Kleinere max afstand
+        controls.minDistance = 0; // GEWIJZIGD: Camera kan nu door het centrum vliegen
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(1000, 1000, 1000);
+        scene.add(directionalLight);
+
+        // Add galaxy shells and stars
+        addGalaxyShells(scene);
+        addGalaxyStars(scene);
+
+        // Add Solly sun
+        addSollySun(scene);
+
+        // Add planets and Sollys based on user data
+        addPlanets(scene);
+        addSollys(scene);
+
+        // Add white stars based on user data
+        addWhiteStars(scene);
+
+        // Add Solly1 and Solly2
+        addSolly1AndSolly2(scene);
+
+        // Plan de collision na 4 seconden
+        setTimeout(() => {
+            if (!collisionDetected) {
+                triggerCollision();
+            }
+        }, 4000);
+
+        // Koppel de klik-detectie aan het DOCUMENT om conflicten met OrbitControls te vermijden
+        document.addEventListener('mousedown', onPortalClick, false);
+        
+        // Start de animatie
+        animate();
+        window.addEventListener('resize', onWindowResize, false);
+        showLevelIndicator();
+        addPointerListener();
+
+        sollyverseInitialized = true;
+    }
+
+    // --- Sollys toevoegen ---
+    function addSollys(scene) {
+        const currentUser = gameManager.getCurrentUser();
+        
+        // Null check - gebruik default waarden als currentUser null is
+        if (!currentUser || !currentUser.sollys) {
+            console.warn('⚠️ currentUser of currentUser.sollys is null, gebruik default waarden');
+            const geel = 1750; // Default waarde
+            const blauw = 1750; // Default waarde
+            const pink = 0; // Default waarde
+            const rood = 1500; // Default waarde
+            
+            // Voeg default Sollys toe
+            addSollyToScene(geel, true, 0xFFD700, miniSollys);
+            addSollyToScene(blauw, false, 0x2196F3, blueSollys);
+            addSollyToScene(pink, false, 0xFF69B4, blueSollys);
+            addSollyToScene(rood, false, 0xFF0000, blueSollys);
+            return;
+        }
+        
+        const geel = currentUser.sollys.geel || 300;
+        const blauw = currentUser.sollys.blauw || 3500;
+        const pink = currentUser.sollys.pink || 0;
+        const rood = currentUser.sollys.rood || 20;
+
+        console.log('🟡 Gele Sollys:', geel);
+        console.log('🔵 Blauwe Sollys:', blauw);
+        console.log('🩷 Pink Sollys:', pink);
+        console.log('🔴 Rode Sollys:', rood);
+        console.log('📊 Volledige sollys data:', currentUser.sollys);
+
+        function addSollyToScene(count, isYellow, color, array) {
+            console.log(`Adding ${count} Sollys with color ${color}`);
+            for (let i = 0; i < count; i++) {
+                const solly = createSolly(24, isYellow, color); // Grotere basis size
+                const r = 1000 + Math.random() * 8000; // Kleinere afstand tot centrum
+                const phi = Math.acos(2 * Math.random() - 1);
+                const theta = 2 * Math.PI * Math.random();
+                solly.position.set(
+                    r * Math.sin(phi) * Math.cos(theta),
+                    r * Math.sin(phi) * Math.sin(theta),
+                    r * Math.cos(phi)
+                );
+                solly.rotation.y = Math.random() * Math.PI * 2;
+                solly.scale.set(1, 1, 1); // Grotere schaal
+                scene.add(solly);
+                array.push(solly);
+                
+                if (i === 0) {
+                    console.log(`First ${color.toString(16)} Solly position:`, solly.position);
+                }
+            }
+            console.log(`Added ${count} Sollys to scene`);
+        }
+
+        // Gele Sollys
+        addSollyToScene(geel, true, 0xFFD700, miniSollys);
+
+        // Blauwe Sollys
+        addSollyToScene(blauw, false, 0x2196F3, blueSollys);
+
+        // Pink Sollys
+        addSollyToScene(pink, false, 0xFF69B4, blueSollys);
+
+        // Rode Sollys
+        addSollyToScene(rood, false, 0xFF0000, blueSollys);
+
+        // Pink Sollys
+        for (let i = 0; i < pink; i++) {
+            const solly = createSolly(12, false, 0xFF69B4);
+            const r = 2000 + Math.random() * 18000;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const theta = 2 * Math.PI * Math.random();
+            solly.position.set(
+                r * Math.sin(phi) * Math.cos(theta),
+                r * Math.sin(phi) * Math.sin(theta),
+                r * Math.cos(phi)
+            );
+            solly.rotation.y = Math.random() * Math.PI * 2;
+            solly.scale.set(0.27, 0.27, 0.27);
+            scene.add(solly);
+            blueSollys.push(solly);
+        }
+
+        // Rode Sollys
+        for (let i = 0; i < rood; i++) {
+            const solly = createSolly(12, false, 0xFF0000);
+            const r = 2000 + Math.random() * 18000;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const theta = 2 * Math.PI * Math.random();
+            solly.position.set(
+                r * Math.sin(phi) * Math.cos(theta),
+                r * Math.sin(phi) * Math.sin(theta),
+                r * Math.cos(phi)
+            );
+            solly.rotation.y = Math.random() * Math.PI * 2;
+            solly.scale.set(0.27, 0.27, 0.27);
+            scene.add(solly);
+            blueSollys.push(solly);
+        }
+    }
+
+    // --- Witte sterren toevoegen ---
+    function addWhiteStars(scene) {
+        const currentUser = gameManager.getCurrentUser();
+        
+        // Null check - gebruik default waarde als currentUser null is
+        if (!currentUser || !currentUser.sterren) {
+            console.warn('⚠️ currentUser of currentUser.sterren is null, gebruik default waarde');
+            let wit = 4000; // Default waarde
+            
+            for (let i = 0; i < wit; i++) {
+                const r = 2000 + Math.random() * 18000;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const theta = 2 * Math.PI * Math.random();
+                const star = new THREE.Mesh(
+                    new THREE.SphereGeometry(5, 16, 16),
+                    new THREE.MeshBasicMaterial({ color: 0xffffff })
+                );
+                star.position.set(
+                    r * Math.sin(phi) * Math.cos(theta),
+                    r * Math.sin(phi) * Math.sin(theta),
+                    r * Math.cos(phi)
+                );
+                scene.add(star);
+                whiteStars.push(star);
+            }
+            return;
+        }
+        
+        let wit = currentUser.sterren.wit || 4000;
+        
+        for (let i = 0; i < wit; i++) {
+            const r = 2000 + Math.random() * 18000;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const theta = 2 * Math.PI * Math.random();
+            const star = new THREE.Mesh(
+                new THREE.SphereGeometry(5, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0xffffff })
+            );
+            star.position.set(
+                r * Math.sin(phi) * Math.cos(theta),
+                r * Math.sin(phi) * Math.sin(theta),
+                r * Math.cos(phi)
+            );
+            scene.add(star);
+            whiteStars.push(star);
+        }
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // --- Galaxy shells ---
+    function addGalaxyShells(scene) {
+        const shellRadii = [8000, 14000, 20000, 28000, 36000];
+        const shellColors = [0x8A2BE2, 0x3366ff, 0xffe066, 0x00ffff, 0xffffff];
+        shellRadii.forEach((radius, i) => {
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            for (let j = 0; j < 1200; j++) {
+                const phi = Math.acos(2 * Math.random() - 1);
+                const theta = 2 * Math.PI * Math.random();
+                const x = radius * Math.sin(phi) * Math.cos(theta);
+                const y = radius * Math.sin(phi) * Math.sin(theta);
+                const z = radius * Math.cos(phi);
+                positions.push(x, y, z);
+            }
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            const material = new THREE.PointsMaterial({ color: shellColors[i], size: 3 });
+            const stars = new THREE.Points(geometry, material);
+            scene.add(stars);
+        });
+    }
+
+    // --- Galaxy sterren ---
+    function addGalaxyStars(scene, count = 12000, radius = 36000) {
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        for (let i = 0; i < count; i++) {
+            const phi = Math.acos(2 * Math.random() - 1);
+            const theta = 2 * Math.PI * Math.random();
+            const r = (Math.random() < 0.2) ? (Math.random() * 0.7 + 0.1) * radius : radius * (0.96 + 0.04 * Math.random());
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi);
+            positions.push(x, y, z);
+        }
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const material = new THREE.PointsMaterial({ color: 0xffffff, size: 2 });
+        const stars = new THREE.Points(geometry, material);
+        scene.add(stars);
+    }
+
+    // --- Planeten ---
+    function addPlanets(scene) {
+        const currentUser = gameManager.getCurrentUser();
+        
+        // Null check - gebruik default waarden als currentUser null is
+        if (!currentUser || !currentUser.planeten) {
+            console.warn('⚠️ currentUser of currentUser.planeten is null, gebruik default waarden');
+            const rood = 1000; // Default waarde
+            const groen = 1000; // Default waarde
+            
+            // Rode planeten
+            for (let i = 0; i < rood; i++) {
+                const size = 9 + Math.random() * 11;
+                const r = 2000 + Math.random() * 18000;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const theta = 2 * Math.PI * Math.random();
+                const mesh = new THREE.Mesh(
+                    new THREE.SphereGeometry(size, 18, 18),
+                    new THREE.MeshPhongMaterial({ color: 0xff0000, shininess: 30, specular: 0x444444 })
+                );
+                mesh.position.set(
+                    r * Math.sin(phi) * Math.cos(theta),
+                    r * Math.sin(phi) * Math.sin(theta),
+                    r * Math.cos(phi)
+                );
+                scene.add(mesh);
+                redPlanets.push(mesh);
+            }
+
+            // Groene planeten
+            for (let i = 0; i < groen; i++) {
+                const size = 9 + Math.random() * 11;
+                const r = 2000 + Math.random() * 18000;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const theta = 2 * Math.PI * Math.random();
+                const mesh = new THREE.Mesh(
+                    new THREE.SphereGeometry(size, 18, 18),
+                    new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 30, specular: 0x444444 })
+                );
+                mesh.position.set(
+                    r * Math.sin(phi) * Math.cos(theta),
+                    r * Math.sin(phi) * Math.sin(theta),
+                    r * Math.cos(phi)
+                );
+                scene.add(mesh);
+                redPlanets.push(mesh);
+            }
+            return;
+        }
+        
+        const rood = currentUser.planeten.rood || 200;
+        const groen = currentUser.planeten.groen || 200;
+
+        // Rode planeten
+        for (let i = 0; i < rood; i++) {
+            const size = 9 + Math.random() * 11;
+            const r = 2000 + Math.random() * 18000;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const theta = 2 * Math.PI * Math.random();
+            const mesh = new THREE.Mesh(
+                new THREE.SphereGeometry(size, 18, 18),
+                new THREE.MeshPhongMaterial({ color: 0xff0000, shininess: 30, specular: 0x444444 })
+            );
+            mesh.position.set(
+                r * Math.sin(phi) * Math.cos(theta),
+                r * Math.sin(phi) * Math.sin(theta),
+                r * Math.cos(phi)
+            );
+            scene.add(mesh);
+            redPlanets.push(mesh);
+        }
+
+        // Groene planeten
+        for (let i = 0; i < groen; i++) {
+            const size = 9 + Math.random() * 11;
+            const r = 2000 + Math.random() * 18000;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const theta = 2 * Math.PI * Math.random();
+            const mesh = new THREE.Mesh(
+                new THREE.SphereGeometry(size, 18, 18),
+                new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 30, specular: 0x444444 })
+            );
+            mesh.position.set(
+                r * Math.sin(phi) * Math.cos(theta),
+                r * Math.sin(phi) * Math.sin(theta),
+                r * Math.cos(phi)
+            );
+            scene.add(mesh);
+            redPlanets.push(mesh);
+        }
+    }
+
+    // --- Solly maken ---
+    function createSolly(size = 36, isYellow = true, color = 0xFFD700) {
+        // Basis geometrie voor de Solly (piramide vorm met vierkante basis)
+        const geometry = new THREE.ConeGeometry(size/2, size, 4); // 4 segments = vierkante basis = echte piramide
+        
+        // Materiaal met glow effect
+        const material = new THREE.MeshPhongMaterial({ 
+            color: color,
+            shininess: 60,
+            transparent: true,
+            opacity: 0.9,
+            emissive: color,
+            emissiveIntensity: 0.2
+        });
+        
+        // Maak de mesh
+        const solly = new THREE.Mesh(geometry, material);
+        
+        // Voeg custom properties toe
+        solly.userData.isYellow = isYellow;
+        solly.userData.isSolly = true;
+        
+        // Roteer de piramide zodat de punt naar boven wijst
+        solly.rotation.x = 0;
+        
+        return solly;
+    }
+
+    // --- Animatie ---
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        // Gecentraliseerde camera-animatie heeft voorrang
+        if (cameraAnimationState.active) {
+            updateCameraAnimation();
+        } else {
+            // Alleen als er geen animatie is, mag de gebruiker de controls gebruiken
+            updateCameraControls();
+            controls.update();
+        }
+        
+        // PAUZEER beweging als een modal open is
+        if (!isPaused) {
+            // Gebruik verschillende beweging functies afhankelijk van collision state
+            if (collisionDetected) {
+                updateTransformedSollyMovement(); // Nieuwe Solly beweging na transformatie
+            } else {
+                updateSolly1Movement(); // Originele Solly1 beweging
+            }
+            
+            updateSolly2Movement(); // Solly2 jacht op Solly1
+            
+            // PORTAL BEWEGING EN ANIMATIE
+            updatePortalMovement();
+        } else {
+            // Debug logging voor pauze
+            if (Math.floor(Date.now() / 1000) % 5 === 0) {
+                console.log('⏸️ Animatie gepauzeerd - alleen camera controls actief');
+            }
+        }
+        
+        renderer.render(scene, camera);
+    }
+
+    // --- Key arrow/WASD bediening voor camera ---
+    let keyState = {};
+    document.addEventListener('keydown', (e) => { keyState[e.code] = true; });
+    document.addEventListener('keyup', (e) => { keyState[e.code] = false; });
+    
+    function updateCameraControls() {
+        if (!camera) return;
+        let moved = false;
+        const moveSpeed = 40;
+        const forward = new THREE.Vector3();
+        camera.getWorldDirection(forward);
+        forward.y = 0; forward.normalize();
+        const right = new THREE.Vector3();
+        right.crossVectors(camera.up, forward).normalize();
+        
+        if (keyState['ArrowUp'] || keyState['KeyW']) {
+            camera.position.addScaledVector(forward, moveSpeed);
+            moved = true;
+        }
+        if (keyState['ArrowDown'] || keyState['KeyS']) {
+            camera.position.addScaledVector(forward, -moveSpeed);
+            moved = true;
+        }
+        if (keyState['ArrowLeft'] || keyState['KeyA']) {
+            camera.position.addScaledVector(right, moveSpeed);
+            moved = true;
+        }
+        if (keyState['ArrowRight'] || keyState['KeyD']) {
+            camera.position.addScaledVector(right, -moveSpeed);
+            moved = true;
+        }
+        if (moved) {
+            camera.lookAt(0, 0, 0);
+        }
+    }
+
+    // --- Voeg een grote geel-gloeiende zon toe in het centrum ---
+    function addSollySun(scene) {
+        // Zon (Solly1): grote sphere met glow
+        const sunGeometry = new THREE.SphereGeometry(220, 64, 64);
+        const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700 });
+        sollySun = new THREE.Mesh(sunGeometry, sunMaterial);
+        sollySun.position.set(0, 0, 0);
+        sollySun.userData.isSollySun = true; // Maak klikbaar
+        scene.add(sollySun);
+        // Glow effect
+        const glowGeometry = new THREE.SphereGeometry(260, 64, 64);
+        const glowMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 0.18 });
+        sollySunGlow = new THREE.Mesh(glowGeometry, glowMaterial);
+        sollySunGlow.position.set(0, 0, 0);
+        sollySunGlow.userData.isSollySunGlow = true; // Maak klikbaar
+        scene.add(sollySunGlow);
+    }
+
+    // --- Pointer-cursor bij hover op gele Sollys en rode planeten ---
+    function handleMouseMove(e) {
+        if (!renderer) return;
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((e.clientX - rect.left) / rect.width) * 2 - 1,
+            -((e.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        let pointer = false;
+        
+        // Check voor zon
+        if (sollySun && sollySun.visible) {
+            const intersects = raycaster.intersectObject(sollySun);
+            if (intersects.length > 0) pointer = true;
+        }
+        
+        if (miniSollys.length) {
+            const intersects = raycaster.intersectObjects(miniSollys, false);
+            if (intersects.length > 0) pointer = true;
+        }
+        if (redPlanets.length) {
+            const intersects = raycaster.intersectObjects(redPlanets, false);
+            if (intersects.length > 0) pointer = true;
+        }
+        // Nieuwe check voor de portal
+        if (portal && portalActive && !portalClicked) {
+            const clickTarget = portal.children[2]; // Het onzichtbare klik-doelwit
+            if (clickTarget) {
+                const intersects = raycaster.intersectObject(clickTarget);
+                if (intersects.length > 0) {
+                    pointer = true;
+                }
+            }
+        }
+        document.body.style.cursor = pointer ? 'pointer' : 'default';
+    }
+
+    function addPointerListener() {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mousemove', handleMouseMove);
+        
+        // Zon click listener
+        document.removeEventListener('click', onSunClick);
+        document.addEventListener('click', onSunClick);
+    }
+    
+    function startDrag(solly) {
+        console.log('🚀 StartDrag aangeroepen met:', solly);
+        console.log('📍 Solly positie:', solly.position);
+        console.log('📐 Solly userData:', solly.userData);
+        
+        isDragging = true;
+        draggedSolly = solly;
+        originalSollyPos.copy(solly.position);
+        
+        // Visual feedback - maak Solly groter en helderder
+        solly.scale.set(1.5, 1.5, 1.5);
+        solly.material.emissiveIntensity = 0.8;
+        
+        console.log('🔄 Drag gestart - sleep naar de vortex!');
+    }
+    
+    function resetDrag() {
+        if (draggedSolly) {
+            draggedSolly.position.copy(originalSollyPos);
+            draggedSolly.scale.set(1, 1, 1);
+            draggedSolly.material.emissiveIntensity = 0.3;
+        }
+        
+        if (portal) {
+            portal.scale.set(1, 1, 1);
+        }
+        
+        isDragging = false;
+        draggedSolly = null;
+        console.log('❌ Drag geannuleerd');
+    }
+
+    function showLevelIndicator() {
+        const el = document.getElementById('solly-level-indicator');
+        const currentUser = gameManager ? gameManager.getCurrentUser() : null;
+        
+        if (currentUser && currentUser.level) {
+            el.textContent = 'Level: ' + currentUser.level + ' | Shape: ' + currentUser.shape;
+            el.style.display = 'block';
+        } else if (sollyConfig && sollyConfig.level) {
+            el.textContent = 'Level: ' + sollyConfig.level;
+            el.style.display = 'block';
+        } else {
+            el.style.display = 'none';
+        }
+    }
+
+    // --- Universe-themed modal styling ---
+    function showUniverseModal(html, title = '') {
+        // Verwijder bestaande modals/overlays
+        document.querySelectorAll('.solly-modal, .solly-modal-overlay').forEach(m => m.remove());
+        
+        // Overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'solly-modal-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(3px);
+            z-index: 99998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        document.body.appendChild(overlay);
+        
+        // Modal
+        const modal = document.createElement('div');
+        modal.className = 'solly-modal';
+        modal.style.cssText = `
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: transparent;
+            border: 2px solid rgba(255, 215, 0, 0.6);
+            border-radius: 12px;
+            padding: 40px 50px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 0 30px rgba(255, 215, 0, 0.3),
+                0 0 60px rgba(138, 43, 226, 0.2),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+        `;
+        
+        modal.innerHTML = `
+            <button class="solly-modal-close" style="
+                position: absolute;
+                top: 15px;
+                right: 20px;
+                font-size: 2em;
+                background: none;
+                border: none;
+                color: #FFD700;
+                cursor: pointer;
+                text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+                transition: all 0.3s ease;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+            ">&times;</button>
+            ${title ? `<h2 style="margin: 0 0 20px 0; color: #FFD700; text-align: center; font-size: 1.8em; text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);">${title}</h2>` : ''}
+            <div class="solly-modal-content" style="
+                font-size: 1.2em;
+                color: #ffffff;
+                text-align: center;
+                line-height: 1.6;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            ">${html}</div>
+        `;
+        
+        overlay.appendChild(modal);
+        
+        // Close button hover effect
+        const closeBtn = modal.querySelector('.solly-modal-close');
+        closeBtn.onmouseenter = () => {
+            closeBtn.style.background = 'rgba(255, 215, 0, 0.2)';
+            closeBtn.style.transform = 'scale(1.1)';
+        };
+        closeBtn.onmouseleave = () => {
+            closeBtn.style.background = 'transparent';
+            closeBtn.style.transform = 'scale(1)';
+        };
+        closeBtn.onclick = () => { 
+            overlay.remove(); 
+            // HERVAT de animatie
+            isPaused = false;
+            console.log('▶️ Animatie hervat na sluiten modal');
+        };
+        
+        // Close on overlay click
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+                // HERVAT de animatie
+                isPaused = false;
+                console.log('▶️ Animatie hervat na klikken op overlay');
+            }
+        };
+    }
+
+    // --- CTA-knoppen functionaliteit ---
+    document.getElementById('cta-info').onclick = () => {
+        // PAUZEER de animatie
+        isPaused = true;
+        console.log('⏸️ Animatie gepauzeerd door Info modal');
+        
+        let html = '';
+        // Gebruik altijd de actuele coin data uit gameManager
+        const currentUser = gameManager ? gameManager.getCurrentUser() : null;
+        
+        if (currentUser) {
+            html += '<b>Overzicht van jouw Sollyverse:</b><br><br>';
+            html += 'Level: ' + currentUser.level + '<br>';
+            html += 'Shape: ' + currentUser.shape + '<br>';
+            html += 'Gele Sollys: ' + currentUser.sollys.geel + '<br>';
+            html += 'Blauwe Sollys: ' + currentUser.sollys.blauw + '<br>';
+            html += 'Pink Sollys: ' + currentUser.sollys.pink + '<br>';
+            html += 'Rode Sollys: ' + currentUser.sollys.rood + '<br>';
+            html += 'Witte sterren: ' + currentUser.sterren.wit + '<br>';
+            html += 'Rode planeten: ' + currentUser.planeten.rood + '<br>';
+            html += 'Groene planeten: ' + currentUser.planeten.groen + '<br>';
+        } else {
+            html = 'Geen data beschikbaar.';
+        }
+        
+        showUniverseModal(html, '🌌 Sollyverse Info');
+    };
+
+    document.getElementById('cta-instructies').onclick = () => {
+        // PAUZEER de animatie
+        isPaused = true;
+        console.log('⏸️ Animatie gepauzeerd door Instructies modal');
+        
+        const html = `
+            <b>Hoe speel je de Sollyverse?</b><br><br>
+            
+            <b>🎮 Besturing:</b><br>
+            • Gebruik je muis om rond te kijken<br>
+            • Scroll om in/uit te zoomen<br>
+            • Pijltjestoetsen of WASD om te bewegen<br><br>
+            
+            <b>🌟 Interactie:</b><br>
+            • Hover over gele Sollys en rode planeten voor pointer<br>
+            • Ontdek alle objecten in je universum<br>
+            • Je voortgang wordt automatisch opgeslagen<br><br>
+            
+            <b>💫 Features:</b><br>
+            • Verschillende levels en shapes<br>
+            • Unieke SollyCoin identifier<br>
+            • Automatische localStorage backup<br>
+            • Universe-themed interface
+        `;
+        
+        showUniverseModal(html, '📖 Instructies');
+    };
+
+    document.getElementById('cta-personaliseer').onclick = () => {
+        // PAUZEER de animatie
+        isPaused = true;
+        console.log('⏸️ Animatie gepauzeerd door Personaliseer modal');
+        
+        const currentUser = gameManager ? gameManager.getCurrentUser() : null;
+        let html = '';
+        
+        if (currentUser) {
+            html += '<b>Personaliseer jouw Sollyverse:</b><br><br>';
+            html += 'Huidige Level: ' + currentUser.level + '<br>';
+            html += 'Huidige Shape: ' + currentUser.shape + '<br><br>';
+            html += '<b>Beschikbare Levels:</b><br>';
+            if (currentUser.availableLevels) {
+                currentUser.availableLevels.forEach(level => {
+                    html += '• ' + level + '<br>';
+                });
+            } else {
+                html += '• beginner<br>• intermediate<br>• advanced<br>';
+            }
+            html += '<br><b>Beschikbare Shapes:</b><br>';
+            if (currentUser.availableShapes) {
+                currentUser.availableShapes.forEach(shape => {
+                    html += '• ' + shape + '<br>';
+                });
+            } else {
+                html += '• piramide<br>• kubus<br>• bol<br>';
+            }
+        } else {
+            html = 'Geen personalisatie data beschikbaar.';
+        }
+        
+        showUniverseModal(html, '🎨 Personaliseer');
+    };
+
+    // --- Solly1 en Solly2 toevoegen ---
+    function addSolly1AndSolly2(scene) {
+        // Laad opgeslagen shape choice
+        const savedShape = localStorage.getItem('sollyverse_chosen_shape') || 'piramide';
+        
+        // Solly2 (Groen) - statisch op een vaste positie
+        solly2 = createSolly(60, false, 0x00FF00); // 2x groter voor zichtbaarheid
+        solly2.position.set(2000, 0, 0); // Dichterbij voor zichtbaarheid
+        solly2.userData.isSolly2 = true;
+        solly2.userData.shape = savedShape;
+        scene.add(solly2);
+        
+        // Solly1 (Wit) - komt uit de zon en beweegt
+        solly1 = createSolly(60, false, 0xFFFFFF); // 2x groter voor zichtbaarheid
+        solly1.position.set(0, 0, 0); // Start in het centrum (zon)
+        solly1.userData.isSolly1 = true;
+        solly1.userData.shape = 'piramide'; // Default shape
+        scene.add(solly1);
+        
+        console.log('🌟 Solly1 (wit) en Solly2 (groen) toegevoegd');
+        console.log('📐 Opgeslagen shape:', savedShape);
+        console.log('📍 Solly1 positie:', solly1.position);
+        console.log('📍 Solly2 positie:', solly2.position);
+    }
+    
+    // --- Nieuwe Solly beweging na transformatie ---
+    function updateTransformedSollyMovement() {
+        if (!solly1 || !collisionDetected || !canSollyMove) {
+            return; // Beweeg alleen als de vlag is gezet
+        }
+        
+        // Initialiseer bewegingstijd en startpositie
+        if (!solly1.userData.movementTime) {
+            solly1.userData.movementTime = 0;
+            solly1.userData.startPosition = solly1.position.clone();
+            console.log('⏰ Getransformeerde Solly beweging gestart vanaf:', solly1.userData.startPosition);
+        }
+        
+        solly1.userData.movementTime += 0.016; // ~60fps
+        const time = solly1.userData.movementTime;
+        const startPos = solly1.userData.startPosition;
+        
+        // Golvende beweging als een offset van de startpositie
+        const offsetX = Math.sin(time * 0.04) * 4000 + (Math.cos(time * 0.09) - 1) * 2000;
+        const offsetY = Math.sin(time * 0.05) * 3000 + (Math.cos(time * 0.07) - 1) * 1500;
+        const offsetZ = Math.sin(time * 0.06) * 4000 + (Math.cos(time * 0.1) - 1) * 2000;
+        
+        solly1.position.set(
+            startPos.x + offsetX,
+            startPos.y + offsetY,
+            startPos.z + offsetZ
+        );
+        
+        // Roteer de Solly tijdens beweging (meer dynamisch)
+        solly1.rotation.y += 0.03;
+        solly1.rotation.x += 0.015;
+        solly1.rotation.z += 0.01;
+        
+        // Debug logging
+        if (Math.floor(time * 60) % 120 === 0) {
+            console.log('🌟 Getransformeerde Solly golvende beweging:', solly1.position);
+        }
+    }
+
+    // --- Solly1 beweging updaten ---
+    function updateSolly1Movement() {
+        if (!solly1 || collisionDetected) {
+            return;
+        }
+        
+        solly1Movement.time += 0.016; // ~60fps
+        
+        // Solly1: Random beweging door het universum (alle richtingen)
+        const x = Math.sin(solly1Movement.time * 0.1) * 1500 + Math.cos(solly1Movement.time * 0.07) * 800;
+        const y = Math.cos(solly1Movement.time * 0.08) * 1200 + Math.sin(solly1Movement.time * 0.12) * 600;
+        const z = Math.sin(solly1Movement.time * 0.09) * 1000 + Math.cos(solly1Movement.time * 0.11) * 700;
+        
+        solly1.position.set(x, y, z);
+        
+        // Collision check is verwijderd en wordt nu door een timer afgehandeld
+    }
+    
+    // --- Solly2 beweging updaten (jacht op Solly1) ---
+    function updateSolly2Movement() {
+        if (!solly2 || !solly1 || collisionDetected) return;
+        
+        // Solly2 beweegt naar Solly1 toe
+        const targetPosition = solly1.position.clone();
+        const currentPosition = solly2.position.clone();
+        
+        // Bereken richting naar Solly1
+        const direction = targetPosition.sub(currentPosition).normalize();
+        
+        // Beweeg met constante snelheid naar Solly1 (15% langzamer)
+        const speed = 42.5; // Was 50, nu 15% langzamer
+        const newPosition = currentPosition.add(direction.multiplyScalar(speed));
+        
+        solly2.position.copy(newPosition);
+    }
+    
+    // --- Collision trigger ---
+    function triggerCollision() {
+        if (collisionDetected) return;
+        
+        collisionDetected = true;
+
+        // Forceer de Sollys samen voor een perfecte visuele botsing
+        if (solly1 && solly2) {
+            solly2.position.copy(solly1.position);
+            console.log('💥 Solly1 en Solly2 geforceerde collision!');
+        } else {
+            console.log('💥 Solly1 en Solly2 collision!');
+        }
+        
+        // Start Kaboom animatie
+        createKaboomAnimation();
+        
+        // Toon shape choice modal sneller na Kaboom animatie
+        shapeModalTimeout = setTimeout(() => {
+            showShapeChoiceModal();
+        }, 2000); // 2 seconden totaal (1 sec Kaboom + 1 sec wachten)
+    }
+    
+    // --- Kaboom animatie ---
+    function createKaboomAnimation() {
+        // Verwijder bestaande Kaboom animaties
+        document.querySelectorAll('.kaboom-animation').forEach(k => k.remove());
+        
+        // Maak Kaboom element
+        const kaboom = document.createElement('div');
+        kaboom.className = 'kaboom-animation';
+        kaboom.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8em;
+            color: #FFD700;
+            text-shadow: 
+                0 0 20px #FFD700,
+                0 0 40px #FFD700,
+                0 0 60px #FFD700,
+                0 0 80px #FFD700;
+            z-index: 100000;
+            pointer-events: none;
+            animation: kaboomExplosion 1s ease-out forwards;
+        `;
+        kaboom.innerHTML = '💥';
+        
+        // Voeg CSS animatie toe
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes kaboomExplosion {
+                0% {
+                    transform: translate(-50%, -50%) scale(0);
+                    opacity: 1;
+                }
+                50% {
+                    transform: translate(-50%, -50%) scale(1.5);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translate(-50%, -50%) scale(2);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(kaboom);
+        
+        // Verwijder na animatie
+        setTimeout(() => {
+            kaboom.remove();
+            style.remove();
+        }, 1000);
+        
+        // Verberg Solly1 en Solly2 tijdens Kaboom
+        if (solly1) solly1.visible = false;
+        if (solly2) solly2.visible = false;
+        
+        // Toon ze weer na Kaboom
+        setTimeout(() => {
+            if (solly1) solly1.visible = true;
+            if (solly2) solly2.visible = true;
+        }, 1000);
+    }
+    
+    // --- Shape choice modal ---
+    function showShapeChoiceModal() {
+        const html = `
+            <b>🎨 Kies je nieuwe Solly shape!</b><br><br>
+            
+            Solly1 en Solly2 zijn samengesmolten!<br>
+            Welke shape wil je voor je nieuwe Solly?<br><br>
+            
+            <div style="margin: 20px 0;">
+                <button onclick="chooseShape('piramide')" style="
+                    background: linear-gradient(45deg, #FFD700, #FFA500);
+                    border: none;
+                    color: white;
+                    padding: 15px 25px;
+                    margin: 5px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 1.1em;
+                    font-weight: bold;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+                ">🔺 Piramide</button>
+                
+                <button onclick="chooseShape('kubus')" style="
+                    background: linear-gradient(45deg, #2196F3, #03A9F4);
+                    border: none;
+                    color: white;
+                    padding: 15px 25px;
+                    margin: 5px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 1.1em;
+                    font-weight: bold;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+                ">⬜ Kubus</button>
+                
+                <button onclick="chooseShape('bol')" style="
+                    background: linear-gradient(45deg, #4CAF50, #8BC34A);
+                    border: none;
+                    color: white;
+                    padding: 15px 25px;
+                    margin: 5px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 1.1em;
+                    font-weight: bold;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+                ">🔵 Bol</button>
+            </div>
+            
+            <small>Je keuze wordt opgeslagen en gebruikt bij de volgende keer!</small>
+        `;
+        
+        showUniverseModal(html, '💥 Shape Choice!');
+    }
+    
+    // --- Shape choice functie (globale functie) ---
+    window.chooseShape = function(shape) {
+        if (shapeChoiceMade) return;
+        
+        shapeChoiceMade = true;
+        canSollyMove = false; // Zorg ervoor dat de Solly nog niet beweegt
+        
+        // Gebruik de daadwerkelijke shape keuze van de gebruiker
+        console.log('🎨 Gebruiker koos:', shape);
+        
+        // ANNULEER DE TIMEOUT VOOR DE SHAPE MODAL
+        if (shapeModalTimeout) {
+            clearTimeout(shapeModalTimeout);
+            shapeModalTimeout = null;
+            console.log('⏰ Shape modal timeout geannuleerd');
+        }
+        
+        // Sla shape op in localStorage
+        localStorage.setItem('sollyverse_chosen_shape', shape);
+        
+        // Directe transformatie van Solly1 met nieuwe shape en afmetingen
+        if (solly1) {
+            console.log('🔧 Start Solly transformatie...');
+            
+            // Verwijder oude Solly1
+            scene.remove(solly1);
+            console.log('🗑️ Oude Solly1 verwijderd');
+            
+            // Maak nieuwe Solly1 met gekozen shape en afmetingen
+            const newSolly1 = createSollyWithShape(shape, 0xFFFFFF); // Wit voor Solly1
+            
+            // NIEUWE POSITIE: Rechts van de zon en naar voren
+            newSolly1.position.set(500, 0, 1000); // 500 rechts, 1000 naar voren
+            newSolly1.userData.isSolly1 = true;
+            newSolly1.userData.shape = shape;
+            newSolly1.visible = true; // Zorg ervoor dat het zichtbaar is
+            scene.add(newSolly1);
+            
+            // Update globale referentie
+            solly1 = newSolly1;
+            
+            console.log('✨ Solly1 getransformeerd naar:', shape);
+            console.log('📍 Nieuwe Solly1 positie:', solly1.position);
+            console.log('👁️ Nieuwe Solly1 zichtbaar:', solly1.visible);
+        } else {
+            console.error('❌ Solly1 is null tijdens transformatie!');
+        }
+        
+        // Update gameManager
+        if (gameManager) {
+            gameManager.changeShape(shape);
+        }
+        
+        // Houd collisionDetected op true om herhaalde collision te voorkomen
+        
+        // Sluit modal en toon nieuwe Solly1
+        document.querySelectorAll('.solly-modal, .solly-modal-overlay').forEach(m => m.remove());
+        
+        // Toon nieuwe vorm kort als overlay
+        showNewShapeOverlay(shape);
+        
+        // Verplaats Solly2 ver weg om herhaalde collision te voorkomen
+        if (solly2) {
+            solly2.position.set(3000, 1500, 2000); // Ver weg van Solly1
+        }
+        
+        // Start de "follow cam" animatie via de gecentraliseerde state
+        setTimeout(() => {
+            animateCameraToSolly1();
+        }, 1500);
+    };
+    
+    // --- Toon nieuwe vorm als overlay ---
+    function showNewShapeOverlay(shape) {
+        const overlay = document.createElement('div');
+        overlay.className = 'new-shape-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeInOut 1.5s ease-in-out forwards;
+        `;
+        
+        const shapeIcon = document.createElement('div');
+        shapeIcon.style.cssText = `
+            font-size: 15em;
+            color: #FFD700;
+            text-shadow: 0 0 30px #FFD700;
+            animation: shapePulse 1.5s ease-in-out;
+        `;
+        
+        // Kies juiste emoji voor shape
+        switch(shape) {
+            case 'piramide':
+                shapeIcon.innerHTML = '🔺';
+                break;
+            case 'kubus':
+                shapeIcon.innerHTML = '⬜';
+                break;
+            case 'bol':
+                shapeIcon.innerHTML = '🔵';
+                break;
+            default:
+                shapeIcon.innerHTML = '🔺';
+        }
+        
+        overlay.appendChild(shapeIcon);
+        document.body.appendChild(overlay);
+        
+        // Voeg CSS animaties toe
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; }
+                20% { opacity: 1; }
+                80% { opacity: 1; }
+                100% { opacity: 0; }
+            }
+            @keyframes shapePulse {
+                0% { transform: scale(0.5); }
+                50% { transform: scale(1.2); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Verwijder na animatie
+        setTimeout(() => {
+            overlay.remove();
+            style.remove();
+        }, 1500);
+    }
+    
+    // --- Camera animatie naar Solly1 ---
+    function animateCameraToSolly1() {
+        if (!solly1 || !camera) {
+            console.error('❌ Camera animatie: Solly1 of camera is null');
+            return;
+        }
+        
+        console.log('🎥 Start camera follow-animatie...');
+        solly1.visible = true;
+        
+        // Zet de state voor de centrale animate-loop
+        cameraAnimationState.active = true;
+        cameraAnimationState.startTime = Date.now();
+        cameraAnimationState.startPosition = camera.position.clone();
+    }
+    
+    // NIEUW: Deze functie wordt nu aangeroepen vanuit de centrale animate-loop
+    function updateCameraAnimation() {
+        const state = cameraAnimationState;
+        const elapsed = Date.now() - state.startTime;
+        const totalDuration = state.zoomInDuration + state.followDuration;
+
+        let zoomInTargetPosition = solly1.position.clone().add(state.zoomInTargetOffset);
+
+        if (elapsed < state.zoomInDuration) {
+            // Fase 1: Zoom in op de stilstaande Solly
+            const progress = elapsed / state.zoomInDuration;
+            const ease = 1 - Math.pow(1 - progress, 3);
+            camera.position.lerpVectors(state.startPosition, zoomInTargetPosition, ease);
+            camera.lookAt(solly1.position);
+
+        } else if (elapsed < totalDuration) {
+            // Fase 2: Start beweging en volg de Solly terwijl je uitzoomt
+            if (!canSollyMove) {
+                canSollyMove = true;
+            }
+            const progress = (elapsed - state.zoomInDuration) / state.followDuration;
+            const currentOffset = state.followStartOffset.clone().lerp(state.followEndOffset, progress);
+            const newCameraPosition = solly1.position.clone().add(currentOffset);
+            camera.position.lerp(newCameraPosition, 0.1);
+            camera.lookAt(solly1.position);
+
+        } else {
+            // Animatie is klaar, reset de state en activeer de portal
+            state.active = false;
+            console.log('🎥 Camera follow-animatie voltooid.');
+            
+            // Activeer de portal NU PAS, na de animatie
+            activatePortal();
+        }
+    }
+    
+    // --- Maak Solly met specifieke shape en afmetingen ---
+    function createSollyWithShape(shape, color = 0xFFFFFF) { // Altijd wit
+        let geometry, material;
+        
+        // Genereer willekeurige schaal tussen +200% en -50% (0.5 tot 3.0)
+        const randomScale = 0.5 + Math.random() * 2.5; // 0.5 tot 3.0
+        
+        // Sla de willekeurige afmetingen op in localStorage
+        const sizeData = {
+            shape: shape,
+            scale: randomScale,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('sollyverse_shape_size', JSON.stringify(sizeData));
+        console.log('📏 Willekeurige afmetingen opgeslagen:', sizeData);
+        
+        switch(shape) {
+            case 'piramide':
+                const pyramidBase = 30 * randomScale;
+                const pyramidHeight = 60 * randomScale;
+                geometry = new THREE.ConeGeometry(pyramidBase, pyramidHeight, 4); // 4 segments = vierkante basis = echte piramide
+                material = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFFFFF, // Wit
+                    shininess: 100, // Zeer shiny
+                    transparent: true,
+                    opacity: 0.9,
+                    emissive: 0xFFFFFF, // Witte emissive
+                    emissiveIntensity: 0.3, // Sterke emissive
+                    specular: 0xFFFFFF // Witte specular highlights
+                });
+                break;
+                
+            case 'kubus':
+                const cubeSize = 50 * randomScale;
+                geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize); // Willekeurige kubus grootte
+                material = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFFFFF, // Wit
+                    shininess: 100, // Zeer shiny
+                    transparent: true,
+                    opacity: 0.9,
+                    emissive: 0xFFFFFF, // Witte emissive
+                    emissiveIntensity: 0.3, // Sterke emissive
+                    specular: 0xFFFFFF // Witte specular highlights
+                });
+                break;
+                
+            case 'bol':
+                const sphereRadius = 35 * randomScale;
+                geometry = new THREE.SphereGeometry(sphereRadius, 32, 32); // Willekeurige bol grootte
+                material = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFFFFF, // Wit
+                    shininess: 100, // Zeer shiny
+                    transparent: true,
+                    opacity: 0.9,
+                    emissive: 0xFFFFFF, // Witte emissive
+                    emissiveIntensity: 0.3, // Sterke emissive
+                    specular: 0xFFFFFF // Witte specular highlights
+                });
+                break;
+                
+            default:
+                const defaultBase = 30 * randomScale;
+                const defaultHeight = 60 * randomScale;
+                geometry = new THREE.ConeGeometry(defaultBase, defaultHeight, 4);
+                material = new THREE.MeshPhongMaterial({ 
+                    color: 0xFFFFFF, // Wit
+                    shininess: 100, // Zeer shiny
+                    transparent: true,
+                    opacity: 0.9,
+                    emissive: 0xFFFFFF, // Witte emissive
+                    emissiveIntensity: 0.3, // Sterke emissive
+                    specular: 0xFFFFFF // Witte specular highlights
+                });
+        }
+        
+        const solly = new THREE.Mesh(geometry, material);
+        solly.userData.isSolly = true;
+        solly.userData.shape = shape;
+        solly.userData.scale = randomScale; // Sla schaal op in userData voor debug
+        
+        return solly;
+    }
+
+    // --- CREATE SOFT PARTICLE TEXTURE ---
+    function createSoftParticleTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const context = canvas.getContext('2d');
+        const center = { x: canvas.width / 2, y: canvas.height / 2 };
+        const radius = canvas.width / 2;
+
+        // Maak een radiaal verloop voor een zachte, ronde vorm
+        const gradient = context.createRadialGradient(center.x, center.y, 0, center.x, center.y, radius);
+        gradient.addColorStop(0, 'rgba(255, 200, 255, 1.0)');
+        gradient.addColorStop(0.2, 'rgba(255, 150, 255, 0.8)');
+        gradient.addColorStop(0.5, 'rgba(200, 100, 255, 0.3)');
+        gradient.addColorStop(1, 'rgba(150, 50, 255, 0.0)');
+
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    // --- MYSTIEKE PORTAL CREATIE (DENSE INNER CORE STIJL) ---
+    function createPortal(sollyObject) {
+        // Bereken de 'bounding sphere' van de Solly om de afmetingen te bepalen.
+        const boundingBox = new THREE.Box3().setFromObject(sollyObject);
+        const sollyShape = sollyObject.userData.shape;
+        const sollyScale = sollyObject.userData.scale || 1.0;
+
+        const portalGroup = new THREE.Group();
+        const particleCloud = new THREE.Group();
+        const particleCount = 3000;
+        const particleTexture = createSoftParticleTexture();
+        const particleMaterial = new THREE.MeshBasicMaterial({
+            map: particleTexture,
+            transparent: true,
+            opacity: 0.8, // VERHOOGD: Veel zichtbaarder
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        });
+
+        // Maak de portal op maat voor de gekozen shape
+        switch (sollyShape) {
+            case 'piramide':
+            case 'kubus':
+                {
+                    console.log(`🔮 Portal wordt op maat gemaakt voor VORM: ${sollyShape}`);
+                    const boxSize = boundingBox.getSize(new THREE.Vector3());
+                    const innerSizeX = boxSize.x * 1.25;
+                    const innerSizeZ = boxSize.z * 1.25;
+                    const thickness = boxSize.x * 1.5;
+                    const outerSizeX = innerSizeX + thickness;
+                    const outerSizeZ = innerSizeZ + thickness;
+
+                    for (let i = 0; i < particleCount; i++) {
+                        const planeSize = (Math.random() * 2 + 1) * sollyScale * 0.5;
+                        const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
+                        const plane = new THREE.Mesh(planeGeometry, particleMaterial.clone());
+
+                        let x, z;
+                        do {
+                            x = THREE.MathUtils.randFloat(-outerSizeX / 2, outerSizeX / 2);
+                            z = THREE.MathUtils.randFloat(-outerSizeZ / 2, outerSizeZ / 2);
+                        } while (Math.abs(x) < innerSizeX / 2 && Math.abs(z) < innerSizeZ / 2);
+
+                        const yOffset = (Math.random() - 0.5) * 20 * sollyScale;
+                        plane.position.set(x, yOffset, z);
+
+                        plane.userData.animationSpeed = Math.random() * 0.5 + 0.5;
+                        plane.userData.yPhase = Math.random() * Math.PI;
+                        particleCloud.add(plane);
+                    }
+
+                    // Maak een vierkant klik-doelwit
+                    const shape = new THREE.Shape();
+                    shape.moveTo(-outerSizeX / 2, -outerSizeZ / 2);
+                    shape.lineTo(outerSizeX / 2, -outerSizeZ / 2);
+                    shape.lineTo(outerSizeX / 2, outerSizeZ / 2);
+                    shape.lineTo(-outerSizeX / 2, outerSizeZ / 2);
+                    const hole = new THREE.Path();
+                    hole.moveTo(-innerSizeX / 2, -innerSizeZ / 2);
+                    hole.lineTo(innerSizeX / 2, -innerSizeZ / 2);
+                    hole.lineTo(innerSizeX / 2, innerSizeZ / 2);
+                    hole.lineTo(-innerSizeX / 2, innerSizeZ / 2);
+                    shape.holes.push(hole);
+                    const clickTargetGeometry = new THREE.ShapeGeometry(shape);
+                    const clickTargetMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, side: THREE.DoubleSide });
+                    const clickTarget = new THREE.Mesh(clickTargetGeometry, clickTargetMaterial);
+                    clickTarget.rotation.x = -Math.PI / 2;
+                    clickTarget.userData.isClickTarget = true; // Betrouwbare identificatie
+                    portalGroup.add(clickTarget);
+
+                    // Glow voor vierkant - maar nu ROND
+                    const glowGeometry = new THREE.SphereGeometry(outerSizeX * 0.8, 32, 32); // Rond in plaats van vierkant
+                    const glowMaterial = new THREE.MeshBasicMaterial({
+                        color: 0xFF00FF, // HELDERDER: Magenta in plaats van donker paars
+                        transparent: true,
+                        opacity: 0.3, // VERHOOGD: Duidelijk zichtbare vortex
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                        side: THREE.BackSide,
+                        fog: false // Voorkom dat fog de glow beïnvloedt
+                    });
+                    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                    portalGroup.add(particleCloud);
+                    portalGroup.add(glow);
+                }
+                break;
+
+            case 'bol':
+            default:
+                {
+                    const boundingSphere = new THREE.Sphere();
+                    boundingBox.getBoundingSphere(boundingSphere);
+                    const coreRadius = boundingSphere.radius;
+                    console.log(`🔮 Portal wordt op maat gemaakt voor VORM: bol. Kern-radius: ${coreRadius.toFixed(2)}`);
+
+                    const innerRadius = coreRadius * 1.25;
+                    const outerRadius = innerRadius + (coreRadius * 1.5);
+
+                    for (let i = 0; i < particleCount; i++) {
+                        const planeSize = (Math.random() * 2 + 1) * sollyScale * 0.5;
+                        const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
+                        const plane = new THREE.Mesh(planeGeometry, particleMaterial.clone());
+                        const radius = innerRadius + Math.pow(Math.random(), 3) * (outerRadius - innerRadius);
+                        const angle = (i / particleCount) * Math.PI * 2;
+                        const yOffset = (Math.random() - 0.5) * 20 * sollyScale * (radius / outerRadius);
+                        plane.position.set(Math.cos(angle) * radius, yOffset, Math.sin(angle) * radius);
+                        plane.userData.baseRadius = radius;
+                        plane.userData.baseAngle = angle;
+                        plane.userData.animationSpeed = Math.random() * 0.5 + 0.5;
+                        plane.userData.yPhase = Math.random() * Math.PI;
+                        particleCloud.add(plane);
+                    }
+                    
+                    const glowGeometry = new THREE.SphereGeometry(outerRadius * 1.2, 32, 32);
+                    const glowMaterial = new THREE.MeshBasicMaterial({ 
+                        color: 0xFF00FF, // HELDERDER: Magenta in plaats van donker paars
+                        transparent: true, 
+                        opacity: 0.35, // VERHOOGD: Duidelijk zichtbare vortex
+                        blending: THREE.AdditiveBlending, 
+                        depthWrite: false, 
+                        side: THREE.BackSide,
+                        fog: false // Voorkom dat fog de glow beïnvloedt
+                    });
+                    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+
+                    const clickTargetGeometry = new THREE.TorusGeometry((innerRadius + outerRadius) / 2, (outerRadius - innerRadius) / 2, 16, 32);
+                    const clickTargetMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, side: THREE.DoubleSide });
+                    const clickTarget = new THREE.Mesh(clickTargetGeometry, clickTargetMaterial);
+                    clickTarget.userData.isClickTarget = true; // Betrouwbare identificatie
+                    
+                    portalGroup.add(particleCloud);
+                    portalGroup.add(glow);
+                    portalGroup.add(clickTarget);
+                }
+                break;
+        }
+
+        // Portal properties
+        portalGroup.userData.isPortal = true;
+        portalGroup.userData.scale = sollyScale;
+        portalGroup.userData.time = 0;
+        
+        return portalGroup;
+    }
+
+    // --- PORTAL BEWEGING EN ANIMATIE (DENSE CORE STIJL) ---
+    function updatePortalMovement() {
+        if (!portal || !portalActive) return;
+        
+        // De globale tuimelende beweging - stopt zodra de portal is aangeklikt
+        if (!portalClicked) {
+            portalMovement.time += 0.016;
+            const time = portalMovement.time;
+            const radius = 2000; // Grotere, vaste afstand tot de zon (0,0,0)
+            const speed = 0.08;
+            
+            // Beweging beperkt tot het VOORSTE halfrond, zodat Z altijd positief is.
+            const theta = time * speed;
+            // Phi (verticale hoek) oscilleert tussen -60 en +60 graden.
+            const phi = Math.sin(time * speed * 0.3) * (Math.PI / 3);
+
+            const x = radius * Math.sin(phi) * Math.cos(theta);
+            const y = radius * Math.sin(phi) * Math.sin(theta) * 0.8; // Y-as een beetje afvlakken voor een wijdere baan
+            const z = radius * Math.cos(phi); // cos(phi) is hierdoor altijd positief.
+
+            portal.position.set(x, y, z);
+        }
+        
+        // Interne animaties
+        portal.userData.time += 0.02;
+        const internalTime = portal.userData.time;
+
+        // 1. Animeer de particle cloud
+        const particleCloud = portal.children[0];
+        if (particleCloud) {
+            particleCloud.rotation.y += 0.001; // Langzame rotatie van de hele wolk
+            
+            particleCloud.children.forEach(plane => {
+                // Controleer of plane en material bestaan voordat we ze gebruiken
+                if (!plane || !plane.material) return;
+                
+                // Laat elk vlak naar de camera kijken (billboarding)
+                plane.lookAt(camera.position);
+
+                // Zachte, golvende beweging
+                const speed = plane.userData.animationSpeed;
+                plane.position.y += Math.sin(internalTime * speed + plane.userData.yPhase) * 0.05;
+
+                // Opacity en grootte laten pulseren
+                const pulse = Math.sin(internalTime * speed + plane.userData.baseAngle);
+                plane.material.opacity = Math.max(0.8, 1.0 + pulse * 0.2); // VERHOOGD: Zeer zichtbare sterretjes/planeten
+            });
+        }
+
+        // 2. Pulseer de glow
+        const glow = portal.children[1];
+        if (glow && glow.material) {
+            const pulse = 1 + Math.sin(internalTime * 2) * 0.05;
+            glow.scale.set(pulse, pulse, pulse);
+            glow.material.opacity = 0.25 + Math.sin(internalTime * 2.5) * 0.1; // VERHOOGD: Duidelijk zichtbare vortex
+        }
+    }
+    
+    // --- PORTAL INTERACTION ---
+    function onPortalClick(event) {
+        // Functie wordt alleen uitgevoerd als de portal bestaat en nog niet is aangeklikt
+        if (!portal || portalClicked || !portalActive || isDragging) {
+            return; // Voorkom conflicten met drag & drop
+        }
+
+        // stopImmediatePropagation() voorkomt dat OrbitControls de 'mousedown' ook afhandelt.
+        // We doen dit alleen NADAT we een succesvolle klik op de portal hebben vastgesteld.
+
+        // Gebruik de correcte, robuuste methode om muiscoördinaten te berekenen
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((event.clientX - rect.left) / rect.width) * 2 - 1,
+            -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
+
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+
+        // We controleren nu alleen op een intersectie met ons onzichtbare klik-doelwit.
+        const clickTarget = portal.children.find(child => child.userData.isClickTarget);
+        if (clickTarget) {
+            const intersects = raycaster.intersectObject(clickTarget);
+
+            if (intersects.length > 0) {
+                // We hebben een klik! Stop nu andere events en start de animatie.
+                event.stopImmediatePropagation();
+                
+                portalClicked = true;
+                animatePortalAndCameraToCenter();
+            }
+        }
+    }
+
+    function animatePortalAndCameraToCenter() {
+        // RUIM LISTENER OP: Verwijder de listener om toekomstige conflicten te voorkomen.
+        document.removeEventListener('click', onPortalClick, false);
+
+        // VERGROOT DE ZON: Maak Core 1 prominenter in plaats van te verbergen
+        if (sollySun) {
+            sollySun.scale.set(2, 2, 2); // 200% grootte
+            sollySun.material.color.setHex(0xFFA500); // Helderder oranje
+        }
+        if (sollySunGlow) {
+            sollySunGlow.scale.set(2, 2, 2); // 200% grootte
+            sollySunGlow.material.opacity = 0.4; // Helderder glow
+        }
+
+        controls.enabled = false; // Schakel gebruiker-besturing tijdelijk uit
+
+        const duration = 2250; // DUUR VERKORT: Snelheid +10%
+
+        const startTime = Date.now();
+
+        // Start- en eindstatussen voor de camera
+        const cameraStartPos = camera.position.clone();
+        // EINDDOEL: schuin boven de vortex, kijkend naar de vortex positie
+        const portalPos = portal.position.clone();
+        const cameraEndPos = new THREE.Vector3(
+            portalPos.x, 
+            portalPos.y + 400, 
+            portalPos.z + 800
+        ); 
+
+        function animate() {
+            const elapsed = Date.now() - startTime;
+            let progress = Math.min(elapsed / duration, 1);
+
+            // Easing voor een zachte start en stop
+            const ease = 0.5 * (1 - Math.cos(Math.PI * progress));
+
+            // Animeer alleen de camera naar de vortex
+            camera.position.lerpVectors(cameraStartPos, cameraEndPos, ease);
+            camera.lookAt(portal.position); // Blijf altijd naar de vortex kijken
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                console.log("✅ Reis voltooid. Camera bij de vortex.");
+                console.log("💡 Klik op de vergrote zon (Core 1) om terug te gaan naar originele grootte");
+                controls.enabled = true;
+                controls.target.copy(portal.position); // Stel de vortex in als het nieuwe orbit-doel
+                controls.update();
+            }
+        }
+        animate();
+    }
+    
+    // --- PORTAL ACTIVATIE NA SHAPE CHOICE ---
+    function activatePortal() {
+        if (portalActive) return;
+        
+        // De portal wordt nu op maat gemaakt voor de huidige Solly1.
+        if (!solly1) {
+            console.error("❌ Kan portal niet activeren: solly1 is niet gevonden.");
+            return;
+        }
+        
+        // Creëer de portal op basis van de Solly1 mesh
+        portal = createPortal(solly1);
+        scene.add(portal);
+        
+        // Start portal beweging
+        portalActive = true;
+        portalMovement.time = 0; // Reset de tijd voor de beweging
+        
+        // ACTIVEER LISTENER: Begin pas met luisteren naar klikken als de portal er is.
+        document.addEventListener('click', onPortalClick, false);
+    }
+
+    // --- Zon click handler ---
+    function onSunClick(event) {
+        if (!sollySun) return;
+        
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((event.clientX - rect.left) / rect.width) * 2 - 1,
+            -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        
+        const intersects = raycaster.intersectObject(sollySun);
+        if (intersects.length > 0) {
+            // Check of de zon vergroot is (portal is actief)
+            if (portalClicked && portalActive) {
+                console.log('☀️ Vergrote zon aangeklikt! Herstel originele grootte...');
+                goBackToSun();
+            } else {
+                console.log('☀️ Zon aangeklikt! Camera beweegt naar Core 1...');
+                animateCameraToSun();
+            }
+        }
+    }
+    
+    function animateCameraToSun() {
+        controls.enabled = false;
+        
+        const startPos = camera.position.clone();
+        const endPos = new THREE.Vector3(0, 200, 600); // Positie boven de zon
+        const startTime = Date.now();
+        const duration = 2000;
+        
+        function animate() {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Easing voor zachte beweging
+            const ease = 0.5 * (1 - Math.cos(Math.PI * progress));
+            
+            camera.position.lerpVectors(startPos, endPos, ease);
+            camera.lookAt(0, 0, 0); // Kijk naar de zon
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                controls.enabled = true;
+                controls.target.set(0, 0, 0); // Stel de zon in als orbit target
+                controls.update();
+                console.log('✅ Camera bij Core 1 (zon) aangekomen');
+            }
+        }
+        animate();
+    }
+    
+    // --- Terug naar zon functionaliteit ---
+    function goBackToSun() {
+        if (!sollySun) return;
+        
+        console.log('☀️ Terug naar Core 1 (zon) - herstel originele grootte...');
+        
+        // Herstel zon naar originele grootte en kleur
+        sollySun.scale.set(1, 1, 1); // 100% grootte
+        sollySun.material.color.setHex(0xFFD700); // Originele goud kleur
+        
+        if (sollySunGlow) {
+            sollySunGlow.scale.set(1, 1, 1); // 100% grootte
+            sollySunGlow.material.opacity = 0.18; // Originele glow opacity
+        }
+        
+        // Verberg de portal
+        if (portal) {
+            portal.visible = false;
+        }
+        
+        // Reset portal state
+        portalClicked = false;
+        portalActive = false;
+        
+        // Ga terug naar de zon
+        animateCameraToSun();
+    }
+    
+    // --- Keyboard shortcut voor terug naar zon ---
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || e.key === 'Backspace') {
+            if (portalClicked && portalActive) {
+                goBackToSun();
+            }
+        }
+    });
+
+    // --- DRAG & DROP SYSTEEM (VEREENVOUDIGD) ---
+    let isDragging = false;
+    let draggedSolly = null;
+    let originalSollyPos = new THREE.Vector3();
+    let mouseDownPos = new THREE.Vector2();
+    
+    // --- Vereenvoudigde Shape Solly Click Handler ---
+    function onShapeSollyMouseDown(event) {
+        console.log('🖱️ Mouse down detected');
+        
+        if (isDragging || portalClicked) return;
+        
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((event.clientX - rect.left) / rect.width) * 2 - 1,
+            -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        
+        mouseDownPos.copy(mouse);
+        
+        // Zorg ervoor dat Solly1 bestaat
+        ensureSolly1Exists();
+        
+        if (!solly1) {
+            console.log('❌ Solly1 bestaat nog steeds niet!');
+            return;
+        }
+        
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        
+        console.log('🔍 Raycasting naar Solly1...');
+        console.log('📍 Solly1 position:', solly1.position);
+        console.log('📍 Camera position:', camera.position);
+        
+        const intersects = raycaster.intersectObject(solly1);
+        console.log('🎯 Intersects found:', intersects.length);
+        
+        if (intersects.length > 0) {
+            console.log('🎯 Solly1 geselecteerd! Start drag...');
+            startDrag(solly1);
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation(); // Stop alle andere handlers
+        } else {
+            console.log('❌ Geen intersectie met Solly1');
+            // Debug: toon afstand
+            const distance = camera.position.distanceTo(solly1.position);
+            console.log('📍 Afstand tot Solly1:', distance);
+            
+            // Check wat er wel wordt geraakt
+            const allIntersects = raycaster.intersectObjects(scene.children, true);
+            console.log('🔍 Alle objecten geraakt:', allIntersects.length);
+            allIntersects.forEach((intersect, index) => {
+                console.log(`  ${index}:`, intersect.object.userData, intersect.object.type);
+            });
+            
+            // Maak Solly1 tijdelijk rood voor zichtbaarheid
+            const originalColor = solly1.material.color.clone();
+            solly1.material.color.setHex(0xFF0000);
+            console.log('🔴 Solly1 tijdelijk rood gemaakt');
+            
+            setTimeout(() => {
+                solly1.material.color.copy(originalColor);
+            }, 2000);
+        }
+    }
+    
+    function onShapeSollyMouseMove(event) {
+        if (!isDragging || !draggedSolly) return;
+        
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((event.clientX - rect.left) / rect.width) * 2 - 1,
+            -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        
+        // Project mouse naar 3D ruimte
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        
+        // Plaats Solly op een vaste afstand van camera
+        const distance = 1000;
+        const direction = raycaster.ray.direction;
+        const newPos = camera.position.clone().add(direction.multiplyScalar(distance));
+        
+        draggedSolly.position.copy(newPos);
+        
+        // Check voor vortex hover
+        if (portal && portalActive) {
+            const clickTarget = portal.children.find(child => child.userData.isClickTarget);
+            if (clickTarget) {
+                const intersects = raycaster.intersectObject(clickTarget);
+                if (intersects.length > 0) {
+                    portal.scale.set(1.2, 1.2, 1.2);
+                } else {
+                    portal.scale.set(1, 1, 1);
+                }
+            }
+        }
+    }
+    
+    function onShapeSollyMouseUp(event) {
+        if (!isDragging || !draggedSolly) return;
+        
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((event.clientX - rect.left) / rect.width) * 2 - 1,
+            -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        
+        // Check voor vortex drop
+        if (portal && portalActive) {
+            const clickTarget = portal.children.find(child => child.userData.isClickTarget);
+            if (clickTarget) {
+                const intersects = raycaster.intersectObject(clickTarget);
+                if (intersects.length > 0) {
+                    console.log('🎯 Drop op vortex! Universe reset gestart...');
+                    triggerUniverseReset();
+                    return;
+                }
+            }
+        }
+        
+        // Geen drop - reset Solly
+        resetDrag();
+    }
+
+    // --- UNIVERSE RESET EFFECT ---
+    function triggerUniverseReset() {
+        console.log('🌌 Universe reset gestart!');
+        
+        // Stop alle beweging
+        isPaused = true;
+        
+        // Start particle lights effect
+        createParticleLightsEffect();
+        
+        // Reset na effect
+        setTimeout(() => {
+            createLightFlashEffect();
+            setTimeout(() => {
+                createVortexResetEffect();
+            }, 1000);
+        }, 2000);
+    }
+    
+    function createParticleLightsEffect() {
+        console.log('✨ Particle lights effect...');
+        
+        // Maak witte particle lights rond de vortex
+        const particleCount = 500;
+        const particleGroup = new THREE.Group();
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = new THREE.Mesh(
+                new THREE.SphereGeometry(2, 8, 8),
+                new THREE.MeshBasicMaterial({ 
+                    color: 0xFFFFFF, 
+                    transparent: true, 
+                    opacity: 0.8 
+                })
+            );
+            
+            // Random positie rond vortex
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 100 + Math.random() * 200;
+            const height = (Math.random() - 0.5) * 100;
+            
+            particle.position.set(
+                Math.cos(angle) * radius,
+                height,
+                Math.sin(angle) * radius
+            );
+            
+            particle.userData.originalPos = particle.position.clone();
+            particle.userData.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 10,
+                (Math.random() - 0.5) * 10,
+                (Math.random() - 0.5) * 10
+            );
+            
+            particleGroup.add(particle);
+        }
+        
+        scene.add(particleGroup);
+        
+        // Animeer particles naar buiten
+        let time = 0;
+        function animateParticles() {
+            time += 0.016;
+            
+            particleGroup.children.forEach(particle => {
+                particle.position.add(particle.userData.velocity);
+                particle.material.opacity = Math.max(0, 0.8 - time * 0.5);
+                particle.scale.setScalar(1 + time * 0.5);
+            });
+            
+            if (time < 2) {
+                requestAnimationFrame(animateParticles);
+            } else {
+                scene.remove(particleGroup);
+            }
+        }
+        animateParticles();
+    }
+    
+    function createLightFlashEffect() {
+        console.log('⚡ Light flash effect...');
+        
+        // Maak een heldere witte flits
+        const flashGeometry = new THREE.SphereGeometry(5000, 32, 32);
+        const flashMaterial = new THREE.MeshBasicMaterial({
+            color: 0xFFFFFF,
+            transparent: true,
+            opacity: 0
+        });
+        const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+        scene.add(flash);
+        
+        // Animeer flash
+        let time = 0;
+        function animateFlash() {
+            time += 0.016;
+            
+            if (time < 0.5) {
+                flash.material.opacity = time * 2; // Fade in
+            } else if (time < 1) {
+                flash.material.opacity = 2 - (time - 0.5) * 2; // Fade out
+            } else {
+                scene.remove(flash);
+                return;
+            }
+            
+            requestAnimationFrame(animateFlash);
+        }
+        animateFlash();
+    }
+    
+    function createVortexResetEffect() {
+        console.log('🌀 Vortex reset effect...');
+        
+        // Maak een draaiende vortex die opent en verspreidt
+        const vortexParticles = new THREE.Group();
+        const particleCount = 1000;
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = new THREE.Mesh(
+                new THREE.SphereGeometry(1, 4, 4),
+                new THREE.MeshBasicMaterial({ 
+                    color: new THREE.Color().setHSL(Math.random(), 0.8, 0.6),
+                    transparent: true, 
+                    opacity: 0.8 
+                })
+            );
+            
+            const angle = (i / particleCount) * Math.PI * 2;
+            const radius = 50;
+            
+            particle.position.set(
+                Math.cos(angle) * radius,
+                0,
+                Math.sin(angle) * radius
+            );
+            
+            particle.userData.angle = angle;
+            particle.userData.radius = radius;
+            particle.userData.speed = Math.random() * 0.1 + 0.05;
+            
+            vortexParticles.add(particle);
+        }
+        
+        scene.add(vortexParticles);
+        
+        // Animeer vortex opening en verspreiding
+        let time = 0;
+        function animateVortex() {
+            time += 0.016;
+            
+            vortexParticles.children.forEach(particle => {
+                const angle = particle.userData.angle + time * particle.userData.speed;
+                const radius = particle.userData.radius + time * 200; // Verspreid naar buiten
+                const height = (Math.random() - 0.5) * time * 100; // Random hoogte
+                
+                particle.position.set(
+                    Math.cos(angle) * radius,
+                    height,
+                    Math.sin(angle) * radius
+                );
+                
+                particle.material.opacity = Math.max(0, 0.8 - time * 0.3);
+            });
+            
+            if (time < 3) {
+                requestAnimationFrame(animateVortex);
+            } else {
+                scene.remove(vortexParticles);
+                completeUniverseReset();
+            }
+        }
+        animateVortex();
+    }
+    
+    function completeUniverseReset() {
+        console.log('✅ Universe reset voltooid!');
+        
+        // Reset alle states
+        resetDrag();
+        portalClicked = false;
+        portalActive = false;
+        
+        // Verberg portal
+        if (portal) {
+            portal.visible = false;
+        }
+        
+        // Herstel zon naar normale grootte
+        if (sollySun) {
+            sollySun.scale.set(1, 1, 1);
+            sollySun.material.color.setHex(0xFFD700);
+        }
+        if (sollySunGlow) {
+            sollySunGlow.scale.set(1, 1, 1);
+            sollySunGlow.material.opacity = 0.18;
+        }
+        
+        // Herstart animatie
+        isPaused = false;
+        
+        // Random nieuwe configuratie
+        generateRandomUniverse();
+        
+        console.log('🎉 Nieuwe universe gegenereerd!');
+    }
+    
+    function generateRandomUniverse() {
+        // Genereer random universe configuratie
+        const randomLevel = Math.floor(Math.random() * 10) + 1;
+        const shapes = ['kubus', 'piramide', 'bol'];
+        const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
+        
+        console.log(`🎲 Nieuwe universe: Level ${randomLevel}, Shape: ${randomShape}`);
+        
+        // Hier kun je later de universe daadwerkelijk aanpassen
+        // Voor nu is het een placeholder voor de random functionaliteit
+    }
+
+    // --- Test functie voor Solly1 detectie ---
+    function testSolly1Detection() {
+        console.log('🧪 Testing Solly1 detection...');
+        
+        if (!solly1) {
+            console.log('❌ Solly1 is null/undefined');
+            return;
+        }
+        
+        console.log('✅ Solly1 bestaat');
+        console.log('📍 Position:', solly1.position);
+        console.log('👁️ Visible:', solly1.visible);
+        console.log('📐 Scale:', solly1.scale);
+        console.log('🎨 Material:', solly1.material);
+        console.log('🏷️ UserData:', solly1.userData);
+        console.log('🔍 In scene:', scene.children.includes(solly1));
+        
+        // Test raycaster vanaf camera
+        const testRay = new THREE.Raycaster();
+        testRay.setFromCamera(new THREE.Vector2(0, 0), camera);
+        const testIntersects = testRay.intersectObject(solly1);
+        console.log('🎯 Test intersectie vanaf camera:', testIntersects.length);
+        
+        // Maak Solly1 tijdelijk rood voor zichtbaarheid
+        const originalColor = solly1.material.color.clone();
+        solly1.material.color.setHex(0xFF0000);
+        console.log('🔴 Solly1 tijdelijk rood gemaakt voor zichtbaarheid');
+        
+        setTimeout(() => {
+            solly1.material.color.copy(originalColor);
+            console.log('⚪ Solly1 kleur hersteld');
+        }, 3000);
+    }
+    
+    // Voeg test functie toe aan window voor console toegang
+    window.testSolly1 = testSolly1Detection;
+
+    // --- Maak Solly1 als deze niet bestaat ---
+    function ensureSolly1Exists() {
+        if (!solly1) {
+            console.log('🔧 Solly1 bestaat niet, maak nieuwe aan...');
+            
+            // Maak nieuwe Solly1
+            solly1 = createSolly(60, false, 0xFFFFFF); // Wit, 60 grootte
+            solly1.position.set(500, 0, 1000); // Positie rechts van zon
+            solly1.userData.isSolly1 = true;
+            solly1.userData.shape = 'piramide'; // Default shape
+            solly1.visible = true;
+            scene.add(solly1);
+            
+            console.log('✅ Nieuwe Solly1 aangemaakt:', solly1);
+            console.log('📍 Positie:', solly1.position);
+            console.log('👁️ Zichtbaar:', solly1.visible);
+        } else {
+            console.log('✅ Solly1 bestaat al:', solly1);
+        }
+        
+        return solly1;
+    }
+    
+    // Voeg functie toe aan window voor console toegang
+    window.ensureSolly1 = ensureSolly1Exists;
+
+    // --- Eenvoudige test functie ---
+    function createTestSolly1() {
+        console.log('🧪 Maak test Solly1...');
+        
+        // Verwijder bestaande Solly1
+        if (solly1) {
+            scene.remove(solly1);
+        }
+        
+        // Maak nieuwe test Solly1
+        solly1 = createSolly(100, false, 0xFF0000); // Rood, groot
+        solly1.position.set(0, 0, 500); // Dichtbij camera
+        solly1.userData.isSolly1 = true;
+        solly1.userData.shape = 'piramide';
+        solly1.visible = true;
+        scene.add(solly1);
+        
+        console.log('✅ Test Solly1 aangemaakt:', solly1);
+        console.log('📍 Positie:', solly1.position);
+        console.log('🔴 Kleur: Rood (voor zichtbaarheid)');
+        console.log('📏 Grootte: 100 (groot voor test)');
+        
+        return solly1;
+    }
+    
+    // Voeg test functie toe aan window
+    window.createTestSolly1 = createTestSolly1;
+
+    // --- Directe test functie ---
+    function testSolly1Clickability() {
+        console.log('🧪 Test Solly1 klikbaarheid...');
+        
+        // Maak een grote, opvallende Solly1
+        if (solly1) {
+            scene.remove(solly1);
+        }
+        
+        solly1 = createSolly(200, false, 0x00FF00); // GROEN, HEEL GROOT
+        solly1.position.set(0, 0, 300); // Heel dichtbij camera
+        solly1.userData.isSolly1 = true;
+        solly1.userData.shape = 'piramide';
+        solly1.visible = true;
+        solly1.scale.set(3, 3, 3); // 3x groter
+        scene.add(solly1);
+        
+        console.log('✅ GROENE Solly1 aangemaakt!');
+        console.log('📍 Positie:', solly1.position);
+        console.log('🟢 Kleur: GROEN (onmogelijk te missen)');
+        console.log('📏 Grootte: 200 + 3x scale = 600');
+        
+        // Test direct of raycaster werkt
+        const testRay = new THREE.Raycaster();
+        testRay.setFromCamera(new THREE.Vector2(0, 0), camera);
+        const testIntersects = testRay.intersectObject(solly1);
+        console.log('🎯 Test intersectie vanaf camera center:', testIntersects.length);
+        
+        // Maak Solly1 pulserend voor extra zichtbaarheid
+        let pulseTime = 0;
+        function pulseSolly1() {
+            pulseTime += 0.016;
+            const pulse = 1 + Math.sin(pulseTime * 5) * 0.3;
+            solly1.scale.set(3 * pulse, 3 * pulse, 3 * pulse);
+            requestAnimationFrame(pulseSolly1);
+        }
+        pulseSolly1();
+        
+        console.log('💚 GROENE Solly1 pulst nu! Probeer erop te klikken!');
+    }
+    
+    // Voeg test functie toe aan window
+    window.testSolly1Clickability = testSolly1Clickability;
+
+    // --- APARTE SOLLY1 CLICK HANDLER ---
+    function onSolly1Click(event) {
+        // Check of renderer bestaat
+        if (!renderer) {
+            console.log('❌ Renderer bestaat nog niet, negeer click');
+            return;
+        }
+        
+        console.log('🎯 Directe Solly1 click handler aangeroepen!');
+        
+        // Stop alle andere handlers
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        
+        if (isDragging || portalClicked) {
+            console.log('❌ Drag of portal actief, negeer click');
+            return;
+        }
+        
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((event.clientX - rect.left) / rect.width) * 2 - 1,
+            -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        
+        console.log('🖱️ Mouse positie:', mouse);
+        
+        if (!solly1) {
+            console.log('❌ Solly1 bestaat niet!');
+            return;
+        }
+        
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        
+        console.log('🔍 Raycasting naar Solly1...');
+        console.log('📍 Solly1 positie:', solly1.position);
+        console.log('📍 Camera positie:', camera.position);
+        
+        const intersects = raycaster.intersectObject(solly1);
+        console.log('🎯 Intersects gevonden:', intersects.length);
+        
+        if (intersects.length > 0) {
+            console.log('🎯 SOLLY1 GESELECTEERD! Start drag...');
+            startDrag(solly1);
+        } else {
+            console.log('❌ Geen intersectie met Solly1');
+            
+            // Debug: toon wat er wel wordt geraakt
+            const allIntersects = raycaster.intersectObjects(scene.children, true);
+            console.log('🔍 Alle objecten geraakt:', allIntersects.length);
+            allIntersects.forEach((intersect, index) => {
+                console.log(`  ${index}:`, intersect.object.userData, intersect.object.type);
+            });
+        }
+    }
+    
+    // Verwijder de directe event listener - wordt later toegevoegd
+    // document.addEventListener('click', onSolly1Click, true);
+
+    // --- Maak Solly1 opvallend voor testing ---
+    function makeSolly1Obvious() {
+        if (!solly1) {
+            console.log('❌ Solly1 bestaat niet!');
+            return;
+        }
+        
+        console.log('🎨 Maak Solly1 opvallend...');
+        
+        // Maak Solly1 heel groot en opvallend
+        solly1.scale.set(5, 5, 5); // 5x groter
+        solly1.material.color.setHex(0xFF00FF); // MAGENTA (onmogelijk te missen)
+        solly1.material.emissiveIntensity = 1.0; // Heel helder
+        solly1.position.set(0, 0, 400); // Dichtbij camera
+        
+        console.log('✅ Solly1 is nu MAGENTA, 5x groter, en dichtbij!');
+        console.log('📍 Positie:', solly1.position);
+        console.log('🟣 Kleur: MAGENTA');
+        console.log('📏 Schaal: 5x');
+        
+        // Maak Solly1 pulserend
+        let pulseTime = 0;
+        function pulseSolly1() {
+            pulseTime += 0.016;
+            const pulse = 1 + Math.sin(pulseTime * 3) * 0.5;
+            solly1.scale.set(5 * pulse, 5 * pulse, 5 * pulse);
+            requestAnimationFrame(pulseSolly1);
+        }
+        pulseSolly1();
+        
+        console.log('💜 MAGENTA Solly1 pulst nu! Probeer erop te klikken!');
+    }
+    
+    // Voeg functie toe aan window
+    window.makeSolly1Obvious = makeSolly1Obvious;
+    </script>
+</body>
+</html>

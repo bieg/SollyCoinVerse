@@ -1,0 +1,33 @@
+{
+  "kaboom": 0,
+  "id": "level3_sollycoin_001",
+  "uniqueIdentifier": "level3_coin_2024_001",
+  "level": "level3",
+  "shape": "piramide",
+  "size":80,
+  "availableLevels": ["beginner", "level1", "level2", "level3"],
+  "availableShapes": ["piramide", "vierkant", "zandloper", "ruit"],
+  "sterren": {
+    "totaal": 2000,
+    "wit": 2000
+  },
+  "planeten": {
+    "rood": 500,
+    "groen": 500
+  },
+  "sollys": {
+    "geel": 1500,
+    "blauw": 1500,
+    "pink": 50,
+    "rood": 1000
+  },
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "lastPlayed": "2024-01-01T00:00:00.000Z",
+  "sessionStart": "2024-01-01T00:00:00.000Z",
+  "metadata": {
+    "name": "Level 3 SollyCoin",
+    "description": "Uitdagende SollyCoin voor gevorderde spelers",
+    "version": "1.0",
+    "creator": "Sollyverse System"
+  }
+} 

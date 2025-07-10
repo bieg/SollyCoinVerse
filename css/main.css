@@ -1,0 +1,246 @@
+/* SollyCoin Main Styles */
+html, body {
+    width: 100vw;
+    height: 100vh;
+    margin: 0; 
+    padding: 0;
+    overflow: hidden; 
+    background: #000;
+    font-family: 'Open Sans', Arial, sans-serif !important;
+}
+
+/* Three.js Canvas Styling */
+canvas {
+    /* position: absolute !important; */
+    position: relative;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    pointer-events: auto !important;
+    display: block !important;
+    
+}
+
+#three-canvas, canvas {
+    /* position: absolute !important; */
+    position: relative;
+    z-index: 1000 !important;
+    pointer-events: auto !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+}
+
+/* Start Screen */
+#startscreen {
+    position: fixed;
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh;
+    background: radial-gradient(ellipse at center, #fffbe6 0%, #ffe066 30%, #ffd700 60%, #1a237e 100%);
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center;
+    z-index: 10000;
+}
+
+#startscreen h1 { 
+    font-size: 3em; 
+    color: #8A2BE2; 
+    margin-bottom: 0.5em; 
+}
+
+#start-btn {
+    font-size: 2em; 
+    padding: 0.6em 2em; 
+    border-radius: 18px;
+    background: linear-gradient(90deg, #FFD700 0%, #8A2BE2 100%);
+    color: #232346; 
+    border: none; 
+    cursor: pointer; 
+    font-weight: bold;
+    box-shadow: 0 4px 24px #8A2BE288;
+    transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+
+#start-btn:hover { 
+    background: linear-gradient(90deg, #8A2BE2 0%, #FFD700 100%); 
+    color: #fff; 
+}
+
+/* CTA Buttons */
+.cta-btn {
+    background: #232346;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    box-shadow: 0 0 0 3px #8e24aa88, 0 0 18px 5px #8e24aa99;
+    transition: box-shadow 0.2s, transform 0.15s;
+    cursor: pointer;
+    z-index: 10020;
+    outline: none; 
+    position: relative;
+    margin: 0;
+    padding: 3px; /* passend bij kleinere knop */
+}
+
+.cta-btn:hover { 
+    box-shadow: 0 0 0 8px #FFD70088, 0 0 32px 10px #8e24aaee;
+    transform: scale(1.08);
+}
+
+/* Vergroot de iconen binnen de CTA-buttons */
+.cta-btn svg {
+    width: 36px;
+    height: 36px;
+}
+
+#cta-info, #cta-instructies, #cta-personaliseer {
+    bottom: unset !important;
+    right: unset !important;
+}
+
+/* Star Wars Intro */
+.starwars-modal {
+    position: fixed; 
+    left: 0; 
+    top: 0; 
+    width: 100vw; 
+    height: 100vh;
+    background: transparent; 
+    z-index: 9999; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+}
+
+.starwars-crawl-container {
+    width: 90vw; 
+    max-width: 805px; 
+    color: #FFD700; 
+    font-size: 2.5rem; 
+    text-align: center;
+    letter-spacing: 2px; 
+    line-height: 1.8; 
+    font-weight: bold; 
+    text-shadow: 0 2px 8px #000, 0 0 2px #FFD700;
+    transform: perspective(400px) rotateX(18deg) scale(1.1); 
+    opacity: 1; 
+    transition: opacity 0.7s;
+}
+
+.starwars-crawl-animate { 
+    animation: starwars-crawl-move 9s linear forwards; 
+}
+
+@keyframes starwars-crawl-move {
+    0% { 
+        transform: perspective(400px) rotateX(18deg) translateY(600px) scale(1.2); 
+        opacity: 1; 
+    }
+    80% { 
+        opacity: 1; 
+    }
+    100% { 
+        transform: perspective(400px) rotateX(25deg) translateY(-900px) scale(0.75); 
+        opacity: 0; 
+    }
+}
+
+#startscreen h1, .starwars-crawl-container, .starwars-crawl-container * {
+    font-family: 'Open Sans', Arial, sans-serif !important;
+}
+
+/* Solly Level Indicator */
+#solly-level-indicator {
+    display: none; 
+    position: fixed; 
+    left: 0; 
+    top: 0; 
+    padding: 32px 48px 16px 32px; 
+    color: #fff; 
+    font-size: 1.5em; 
+    z-index: 100; 
+    pointer-events: none; 
+    text-shadow: 0 2px 8px #000, 0 0 2px #FFD700;
+}
+
+/* Import File Styling */
+#import-file {
+    display: none;
+}
+
+#import-error {
+    color: #c00; 
+    font-weight: bold; 
+    margin-top: 10px; 
+    display: none;
+}
+
+/* Import Label Styling */
+label[for="import-file"] {
+    margin-top: 18px; 
+    font-size: 1.1em; 
+    background: #8A2BE2; 
+    color: #fff; 
+    border: none; 
+    border-radius: 12px; 
+    padding: 12px 32px; 
+    box-shadow: 0 2px 12px #8A2BE288; 
+    cursor: pointer; 
+    display: inline-block;
+}
+
+/* Start Button Margin */
+#start-btn {
+    margin-top: 24px;
+}
+
+/* Info Box Styling */
+.info-box {
+    max-width: 480px; 
+    margin: 0 auto; 
+    font-size: 1.2em; 
+    color: #232346; 
+    background: #fffbe6cc; 
+    border-radius: 16px; 
+    padding: 18px 24px; 
+    box-shadow: 0 2px 12px #FFD70044;
+}
+
+#drop-pane-overlay {
+    position: fixed;
+    top: 50%;
+    left: -60%; /* 60% van de cirkel buiten beeld */
+    width: 220px;
+    height: 220px;
+    background: #8e24aa;
+    border-radius: 50%;
+    box-shadow: 0 0 48px 16px #ce93d8, 0 0 0 12px #9c27b088;
+    z-index: 10050;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+#drop-pane-overlay:hover {
+    box-shadow: 0 0 64px 24px #ffd700, 0 0 0 18px #8e24aa;
+}
+
+/* Shield icoon in security button iets kleiner */
+#cta-security svg {
+    width: 27px;
+    height: 27px;
+} 

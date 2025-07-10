@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Sollyverse - Fase 1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/FlyControls.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/Tween.min.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:700,800&display=swap" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+    <style>
+        #three-canvas, canvas {
+            position: absolute;
+            z-index: 1000 !important;
+            pointer-events: auto !important;
+        }
+        .overlay, #solly-level-indicator {
+            pointer-events: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="drop-pane-overlay"></div>
+    <div id="startscreen">
+        <h1>Welkom in de Sollyverse</h1>
+        <div class="info-box">
+            <b>Wat is de Sollyverse?</b><br>
+            De Sollyverse is een magisch 3D-universum vol Sollys, planeten en sterren. Ontdek, groei, kies je pad en beleef unieke avonturen. Jouw voortgang wordt straks zelfs een digitale coin!<br><br>
+            <b>Hoe werkt het?</b><br>
+            - Klik op "Start" om te beginnen.<br>
+            - Of importeer je SollyCoin-token om jouw persoonlijke universum te laden.<br>
+        </div>
+        <label for="import-file" style="margin-top: 18px; font-size: 1.1em; background: #8A2BE2; color: #fff; border: none; border-radius: 12px; padding: 12px 32px; box-shadow: 0 2px 12px #8A2BE288; cursor: pointer; display:inline-block;">Importeer je SollyCoin</label>
+        <input type="file" id="import-file" accept="application/json" style="display:none;">
+        <div id="import-error" style="color:#c00; font-weight:bold; margin-top:10px; display:none;"></div>
+        <button id="start-btn" style="margin-top: 24px;">Start</button>
+    </div>
+    <div id="starwars-intro" class="starwars-modal" style="display:none;">
+        <div class="starwars-crawl-container" id="starwars-crawl">
+            <h2>Lang lang geleden, in een Sollystelsel online...</h2>
+            <p>De Sollyverse is een mysterieuze 3D ruimte waar je doorheen kunt vliegen.<br>Als Solly ben je een bijzondere piramide die door de ruimte zweeft.<br>Ontdek alle geheimen en mogelijkheden in deze magische wereld!<br>Interacteren met andere Sollies, los raadsels op of geniet van het zweven.<br>Ontdek, kies en beleef jouw avontuur.</p>
+            <p>May the Solly move with you.</p>
+        </div>
+    </div>
+    <div id="solly-level-indicator" style="display:none; position:fixed; left:0; top:0; padding:32px 48px 16px 32px; color:#fff; font-size:1.5em; z-index:100; pointer-events:none; text-shadow:0 2px 8px #000, 0 0 2px #FFD700;"></div>
+    <div id="cta-buttons" style="position: fixed; bottom: 32px; right: 32px; z-index: 10010; display: none; flex-direction: column; gap: 32px; align-items: flex-end;">
+        <button id="cta-info" class="cta-btn" title="Info">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" stroke="transparent" stroke-width="0" fill="transparent"/>
+            <line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="8"/>
+        </svg>
+        </button>
+        <button id="cta-instructies" class="cta-btn" title="Instructies">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2" stroke="transparent" stroke-width="0" fill="transparent"/>
+            <line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/></svg>
+        </button>
+        <button id="cta-personaliseer" class="cta-btn" title="Personaliseer">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" stroke="transparent" stroke-width="0" fill="transparent"/>
+            <circle cx="8.5" cy="10.5" r="1.5" fill="#FFD700"/><circle cx="15.5" cy="10.5" r="1.5" fill="#2196F3"/><circle cx="12" cy="15" r="2" fill="#8e24aa"/></svg>
+        </button>
+    </div>
+    <script src="src/GameManager.js"></script>
+    <script src="src/SecurityManager.js"></script>
+    <script src="src/ChapterManager.js"></script>
+    <script src="src/UserInterface.js"></script>
+    <script src="src/performance.js"></script>
+    <script src="src/sollys.js"></script>
+    <script src="src/debug.js"></script>
+    <script src="src/main.js"></script>
+    <!-- Hier komen straks alleen nog script tags voor externe JS en je eigen main.js -->
+</body>
+</html>

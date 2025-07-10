@@ -1,0 +1,67 @@
+flowchart TD
+    Start(["Star Wars Intro"]) --> IntroDone(["Intro voorbij"])
+    IntroDone --> World["3D Wereld geladen"]
+    IntroDone --> CTA1["CTA: Info"]
+    IntroDone --> CTA2["CTA: Instructies"]
+    IntroDone --> CTA3["CTA: Personaliseer"]
+    World --> Solly1["Solly1 (speler)"]
+    World --> MiniSollys["Mini Sollys (interactief)"]
+    World --> YellowSollys["Gele Solly's (interactief)"]
+    World --> WhiteStars["Witte sterren (niet-interactief)"]
+    World --> RedPlanets["Rode planeten"]
+    World --> BlueSollys["Blauwe Solly's"]
+    YellowSollys -- "50% vervangen" --> WhiteStars
+    Solly1 -- "Botsing" --> MiniSollys
+    MiniSollys -- "Triggert" --> Kaboom["Kaboom effect"]
+    Kaboom -- "Na 4 kabooms" --> Gateway["Gateway verschijnt"]
+    YellowSollys -- "Op rode planeet" --> Grow["Solly1 wordt groter"]
+    RedPlanets -- "Op blauwe Solly" --> Shrink["Solly1 wordt kleiner"]
+    Grow --> Solly1
+    Shrink --> Solly1
+    Solly1 -- "Past in gateway?" --> TryPortal["Solly1 probeert door gateway"]
+    TryPortal -- "Ja" --> NextLevel["Volgende level (dummy)"]
+    TryPortal -- "Nee" --> World
+    Gateway --> TryPortal
+    NextLevel --> World
+    
+    %% Import/Export Flow
+    subgraph ImportExport["🪙 SollyCoin Import/Export Systeem"]
+        ImportStart["JSON Bestand Selectie"] --> Validation["Security Validatie"]
+        Validation --> DataLoad["Dynamische Data Loading"]
+        DataLoad --> UIUpdate["UI Update & Universe Restart"]
+        UIUpdate --> Success["Success Feedback"]
+        
+        Validation --> |"Ongeldige Data"| Error["Error Handling"]
+        Error --> ImportStart
+    end
+    
+    %% Dynamische Data Handling
+    subgraph DynamicData["🔄 Dynamische Data Handling"]
+        StaticData["✅ Statische Data<br/>- id, uniqueIdentifier<br/>- createdAt, metadata"] 
+        DynamicData2["🔄 Dynamische Data<br/>- level, shape, size<br/>- sterren, planeten, sollys<br/>- kaboom, timestamps"]
+        
+        DynamicData2 --> TimestampUpdate["Timestamp Update<br/>(lastPlayed, sessionStart)"]
+        TimestampUpdate --> GameSync["Game State Synchronisatie"]
+    end
+    
+    %% Security Features
+    subgraph Security["🔒 Security Framework"]
+        DataValidation["Data Validatie<br/>- Required fields<br/>- Type checking<br/>- Range validation"]
+        RateLimiting["Rate Limiting<br/>- Import frequency<br/>- Action cooldowns"]
+        AntiCheat["Anti-Cheat<br/>- Impossible values<br/>- Speed hack detection<br/>- Data manipulation"]
+        BehaviorAnalysis["Behavioral Analysis<br/>- Import patterns<br/>- Suspicious actions<br/>- Session analysis"]
+    end
+    
+    ImportStart --> Validation
+    Validation --> DataValidation
+    DataLoad --> DynamicData2
+    
+    classDef cta fill:#ffd700,stroke:#8A2BE2,stroke-width:2px;
+    classDef import fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff;
+    classDef security fill:#FF5722,stroke:#D32F2F,stroke-width:2px,color:#fff;
+    classDef dynamic fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff;
+    
+    class CTA1,CTA2,CTA3 cta;
+    class ImportStart,Validation,DataLoad,UIUpdate,Success,Error import;
+    class DataValidation,RateLimiting,AntiCheat,BehaviorAnalysis security;
+    class StaticData,DynamicData2,TimestampUpdate,GameSync dynamic; 

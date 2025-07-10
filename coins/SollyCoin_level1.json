@@ -1,0 +1,33 @@
+{
+  "kaboom": 0,
+  "id": "level1_sollycoin_001",
+  "uniqueIdentifier": "level1_coin_2024_001",
+  "level": "level1",
+  "shape": "piramide",
+  "size": 175,
+  "availableLevels": ["beginner", "level1", "level2", "level3"],
+  "availableShapes": ["piramide", "vierkant", "zandloper", "ruit"],
+  "sterren": {
+    "totaal": 4000,
+    "wit": 4000
+  },
+  "planeten": {
+    "rood": 1000,
+    "groen": 1000
+  },
+  "sollys": {
+    "geel": 1750,
+    "blauw": 1750,
+    "pink": 0,
+    "rood": 1500
+  },
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "lastPlayed": "2024-01-01T00:00:00.000Z",
+  "sessionStart": "2024-01-01T00:00:00.000Z",
+  "metadata": {
+    "name": "Level 1 SollyCoin",
+    "description": "Gemiddelde SollyCoin voor ervaren spelers",
+    "version": "1.0",
+    "creator": "Sollyverse System"
+  }
+} 

@@ -1,0 +1,41 @@
+{
+  "kaboom": 0,
+  "id": "master_sollycoin_001",
+  "uniqueIdentifier": "master_coin_2024_001",
+  "level": "master",
+  "shape": "piramide",
+  "size": 200,
+  "availableLevels": ["beginner", "level1", "level2", "level3", "master"],
+  "availableShapes": ["piramide", "vierkant", "zandloper", "ruit"],
+  "sterren": {
+    "totaal": 10000,
+    "wit": 10000
+  },
+  "planeten": {
+    "rood": 5000,
+    "groen": 5000
+  },
+  "sollys": {
+    "geel": 5000,
+    "blauw": 5000,
+    "pink": 2500,
+    "rood": 5000
+  },
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "lastPlayed": "2024-01-01T00:00:00.000Z",
+  "sessionStart": "2024-01-01T00:00:00.000Z",
+  "isMasterCoin": true,
+  "masterFeatures": {
+    "securityAccess": true,
+    "debugMode": true,
+    "chapterAccess": [1, 2, 3, 4],
+    "unlimitedResources": true,
+    "specialEffects": true
+  },
+  "metadata": {
+    "name": "Master SollyCoin",
+    "description": "Ultieme SollyCoin met alle features en hoge waardes",
+    "version": "1.0",
+    "creator": "Sollyverse System"
+  }
+} 
