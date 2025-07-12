@@ -1,4 +1,8 @@
-// Nieuwe centrale structuur voor interactie en collision
+// GameManager.js - klassieke globale versie
+// Geen import/export, alles via window.GameManager
+
+// SecurityManager moet ook globaal zijn geladen!
+
 class GameManager {
   constructor() {
     this.callbacks = [];
@@ -354,4 +358,39 @@ class GameManager {
       return false;
     }
   }
+
+  // Initialize method for module compatibility
+  async initialize() {
+    console.log("🎮 GameManager initialized");
+    return Promise.resolve();
+  }
+
+  // Start method for module compatibility
+  async start() {
+    console.log("🎮 GameManager started");
+    return Promise.resolve();
+  }
+
+  // Stop method for module compatibility
+  async stop() {
+    console.log("🎮 GameManager stopped");
+    return Promise.resolve();
+  }
+
+  // Get current game state
+  getCurrentGameState() {
+    return this.currentUserData || {};
+  }
+
+  // Load SollyCoin data
+  async loadSollyCoinData(data) {
+    return this.loadCoinData(data);
+  }
+
+  // Export SollyCoin data
+  exportSollyCoinData() {
+    return this.currentUserData || {};
+  }
 } 
+
+window.GameManager = GameManager; 

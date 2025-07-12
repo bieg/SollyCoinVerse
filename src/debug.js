@@ -388,7 +388,7 @@ window.logAllSolly1Meshes = function() {
 // ==                                                                             ==
 // ===================================================================================
 
-class SollyverseDebug {
+export class SollyverseDebug {
     constructor() {
         this.debugActive = false;
         this.originalMaterials = new Map();
@@ -697,4 +697,46 @@ if (typeof window !== 'undefined') {
       });
     }
   });
+}
+
+export class DebugManager {
+    constructor() {
+        this.debugActive = false;
+        this.debugTools = null;
+    }
+
+    initialize() {
+        console.log("🔧 Initializing DebugManager...");
+        initDebugTools();
+        this.debugTools = window.debugTools || sollyverseDebug;
+        console.log("✅ DebugManager initialized successfully");
+    }
+
+    enableDebugMode() {
+        if (this.debugTools) {
+            this.debugTools.enableDebugMode();
+            this.debugActive = true;
+        }
+    }
+
+    disableDebugMode() {
+        if (this.debugTools) {
+            this.debugTools.disableDebugMode();
+            this.debugActive = false;
+        }
+    }
+
+    toggleDebugMode() {
+        if (this.debugActive) {
+            this.disableDebugMode();
+        } else {
+            this.enableDebugMode();
+        }
+    }
+
+    debug() {
+        console.log("🐛 DebugManager Debug Info:");
+        console.log("- Debug Active:", this.debugActive);
+        console.log("- Debug Tools:", this.debugTools);
+    }
 } 

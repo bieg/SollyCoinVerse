@@ -9,7 +9,7 @@
 // ==      - Memory management                                                  ==
 // ===================================================================================
 
-class PerformanceManager {
+export class PerformanceManager {
   constructor() {
     this.stats = {
       fps: 0,
@@ -52,17 +52,36 @@ class PerformanceManager {
       this.stats.lastFrameTime = currentTime;
       
       // Update object count
-      if (window.scene) {
-        let count = 0;
-        window.scene.traverse(obj => {
-          if (obj.isMesh) count++;
-        });
-        this.stats.objectCount = count;
+      try {
+        if (window.scene) {
+          let count = 0;
+          window.scene.traverse(obj => {
+            if (obj.isMesh) count++;
+          });
+          this.stats.objectCount = count;
+        } else if (this.universeManager) {
+          const scene = this.universeManager.getScene();
+          if (scene) {
+            let count = 0;
+            scene.traverse(obj => {
+              if (obj.isMesh) count++;
+            });
+            this.stats.objectCount = count;
+          }
+        }
+      } catch (error) {
+        console.warn("⚠️ Error counting objects:", error);
+        this.stats.objectCount = 0;
       }
       
       // Update draw calls (approximation)
       if (window.renderer) {
         this.stats.drawCalls = this.stats.objectCount; // Simplified
+      } else if (this.universeManager) {
+        const renderer = this.universeManager.getRenderer();
+        if (renderer) {
+          this.stats.drawCalls = this.stats.objectCount; // Simplified
+        }
       }
       
       lastTime = currentTime;
@@ -80,13 +99,7 @@ class PerformanceManager {
   }
 
   logPerformanceStats() {
-    console.log('📊 Performance Stats:', {
-      fps: this.stats.fps,
-      frameTime: `${this.stats.frameTime.toFixed(2)}ms`,
-      objects: this.stats.objectCount,
-      drawCalls: this.stats.drawCalls,
-      visibleObjects: this.visibleObjects.size
-    });
+    // Performance stats logging disabled
   }
 
   // Object pooling voor herbruikbare objecten
@@ -214,8 +227,10 @@ class PerformanceManager {
     
     this.visibleObjects.clear();
     
-    if (window.scene) {
-      window.scene.traverse(obj => {
+    const scene = window.scene || (this.universeManager ? this.universeManager.getScene() : null);
+    
+    if (scene) {
+      scene.traverse(obj => {
         if (obj.isMesh && obj.visible) {
           const distance = camera.position.distanceTo(obj.position);
           
@@ -321,6 +336,12 @@ class PerformanceManager {
     
     const endTime = performance.now();
     console.log(`⚡ Batch update completed in ${(endTime - startTime).toFixed(2)}ms`);
+  }
+
+  // Initialize method for module compatibility
+  async initialize() {
+    console.log("⚡ PerformanceManager initialized");
+    return Promise.resolve();
   }
 }
 

@@ -148,6 +148,12 @@ class SecurityManager {
     this.behaviorAnalyzer.cleanup();
     this.secureStorage.cleanup();
   }
+
+  // Initialize method for module compatibility
+  async initialize() {
+    console.log("🔒 SecurityManager initialized");
+    return Promise.resolve();
+  }
 }
 
 // ===================================================================================
@@ -573,6 +579,12 @@ class SecureStorage {
   cleanup() {
     // Cleanup is optioneel voor storage
   }
+
+  // Initialize method for module compatibility
+  async initialize() {
+    console.log("🔒 SecurityManager initialized");
+    return Promise.resolve();
+  }
 }
 
 // ===================================================================================
@@ -702,7 +714,6 @@ class DataValidator {
   validateKaboom(kaboom) {
     return typeof kaboom === 'number' && kaboom >= 0;
   }
-}
+} 
 
-// Export voor gebruik in andere modules
 window.SecurityManager = SecurityManager; 

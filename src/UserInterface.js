@@ -194,4 +194,24 @@ class UserInterface {
   refresh() {
     this.updateLoadCoinButton();
   }
-} 
+
+  // Initialize method for module compatibility
+  async initialize() {
+    console.log("🎨 UserInterface initialized");
+    return Promise.resolve();
+  }
+
+  // Start method for module compatibility
+  async start() {
+    console.log("🎨 UserInterface started");
+    return Promise.resolve();
+  }
+
+  // Stop method for module compatibility
+  async stop() {
+    console.log("🎨 UserInterface stopped");
+    return Promise.resolve();
+  }
+}
+
+window.UserInterface = UserInterface; 

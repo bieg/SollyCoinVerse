@@ -1,19 +1,23 @@
 # Sollyverse - Modulaire JavaScript Structuur
 
-## 🎯 **Project Status: PRE-dApp (Voorbereidingsfase)**
+## 🎯 **Project Status: dApp FASE 1 (Web3 Foundation)**
 
-Het Sollyverse is momenteel een **dApp-ready** applicatie met een solide foundation voor blockchain integratie. Het bevat een volledig token systeem, security framework en data validatie, maar mist nog de daadwerkelijke Web3 integratie.
+Het Sollyverse is nu een **volledige dApp** met Web3 integratie! We hebben de basis blockchain functionaliteit geïmplementeerd en zijn klaar voor smart contract integratie.
 
-### **✅ dApp Voorbereidingen (Aanwezig)**
+### **✅ dApp Features (Geïmplementeerd)**
+- **Web3.js Integratie** - Volledige Web3 functionaliteit
+- **MetaMask Connectie** - Wallet connectie en management
+- **Network Support** - Ethereum, Polygon, Sepolia, Mumbai
+- **Transaction Handling** - Gas estimation, transaction sending
 - **SollyCoin Token Systeem** - JSON-based tokens met unieke identifiers
 - **Security Framework** - Data validatie, rate limiting, anti-cheat
 - **Import/Export Functionaliteit** - Token uitwisseling via JSON bestanden
-- **Modulaire Architectuur** - Voorbereid voor Web3 integratie
+- **Modulaire Architectuur** - Voorbereid voor verdere Web3 integratie
 
-### **❌ dApp Features (Nog te implementeren)**
-- **Blockchain Integratie** - Web3.js, MetaMask, smart contracts
+### **🔄 dApp Features (In Ontwikkeling)**
+- **Smart Contract Development** - ERC-721 SollyCoin contract
+- **NFT Minting** - SollyCoin als echte NFT tokens
 - **On-chain Storage** - Progress saving op blockchain
-- **NFT Minting** - SollyCoin als ERC-721 tokens
 - **Decentralized Infrastructure** - IPFS, gas fee handling
 
 ## 📁 Bestandsstructuur
@@ -135,6 +139,16 @@ SollyCoin/
   - Geometry instancing voor identieke objecten
   - Memory management en cleanup
   - Real-time performance monitoring
+
+### `Web3Manager.js`
+- **Doel**: Web3 integratie en wallet management
+- **Inhoud**:
+  - MetaMask integratie en connectie
+  - Wallet status tracking en management
+  - Network detection en switching
+  - Transaction handling en gas management
+  - Smart contract interacties
+  - Event system voor wallet events
 
 ## 🪙 **SollyCoin Token Systeem**
 

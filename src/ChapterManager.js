@@ -7,7 +7,7 @@
 // ==      - Hoofdstuk switching                                                 ==
 // ===================================================================================
 
-class ChapterManager {
+export class ChapterManager {
   constructor() {
     this.currentChapter = 1;
     this.chapters = {
@@ -71,6 +71,12 @@ class ChapterManager {
         chapter.cleanup();
       }
     });
+  }
+
+  // Initialize method for module compatibility
+  async initialize() {
+    console.log("📚 ChapterManager initialized");
+    return Promise.resolve();
   }
 }
 

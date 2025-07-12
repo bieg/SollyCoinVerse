@@ -1,54 +1,75 @@
 // Solly1/Solly2 and collision functions
 
+function createSolly(size, isYellow, color) {
+    const geometry = new THREE.TetrahedronGeometry(size);
+    const material = new THREE.MeshBasicMaterial({ color: color });
+    const solly = new THREE.Mesh(geometry, material);
+    solly.userData.isYellow = isYellow;
+    return solly;
+}
+
 function addSolly1AndSolly2(scene) {
-    // Solly2 (Groen) - statisch op een vaste positie
-    solly2 = createSolly(60, false, 0x00FF00);
-    solly2.position.set(2000, 0, 0);
-    solly2.userData.isSolly2 = true;
-    solly2.userData.shape = localStorage.getItem('sollyverse_chosen_shape') || 'piramide';
-    solly2.scale.set(1.5, 1.5, 1.5);
-    scene.add(solly2);
-    // Solly1 (Wit)
-    solly1 = createSolly(60, false, 0xFFFFFF);
-    solly1.position.set(0, 0, 0);
-    solly1.userData.isSolly1 = true;
-    solly1.userData.shape = 'piramide';
-    solly1.name = 'Solly1';
-    solly1.scale.set(5, 5, 5);
-    if (solly1.material) {
-        solly1.material.color.set(0xFFFFFF);
-        solly1.material.opacity = 1;
-        solly1.material.transparent = false;
-        solly1.material.visible = true;
+    try {
+        // Solly2 (Groen) - statisch op een vaste positie
+        const solly2 = createSolly(60, false, 0x00FF00);
+        solly2.position.set(2000, 0, 0);
+        solly2.userData.isSolly2 = true;
+        solly2.userData.shape = localStorage.getItem('sollyverse_chosen_shape') || 'piramide';
+        solly2.scale.set(1.5, 1.5, 1.5);
+        scene.add(solly2);
+        
+        // Solly1 (Wit)
+        const solly1 = createSolly(60, false, 0xFFFFFF);
+        solly1.position.set(0, 0, 0);
+        solly1.userData.isSolly1 = true;
+        solly1.userData.shape = 'piramide';
+        solly1.name = 'Solly1';
+        solly1.scale.set(5, 5, 5);
+        if (solly1.material) {
+            solly1.material.color.set(0xFFFFFF);
+            solly1.material.opacity = 1;
+            solly1.material.transparent = false;
+            solly1.material.visible = true;
+        }
+        solly1.visible = true;
+        if (!solly1.getObjectByName('Solly1Collider')) {
+            const pickGeom = new THREE.SphereGeometry(350, 24, 24);
+            const pickMat  = new THREE.MeshBasicMaterial({ visible: false });
+            const collider = new THREE.Mesh(pickGeom, pickMat);
+            collider.name = 'Solly1Collider';
+            collider.userData.isSolly1Collider = true;
+            solly1.add(collider);
+            window.solly1Collider = collider;
+        }
+        scene.add(solly1);
+        
+        // Camera goed zetten
+        if (window.camera) {
+            window.camera.position.set(0, 0, 2000);
+            window.camera.lookAt(0, 0, 0);
+        }
+        
+        // Direct drag-listeners toevoegen
+        if (window.addSollyDragListeners) {
+            window.addSollyDragListeners();
+        }
+        
+        // Make globals available
+        window.solly1 = solly1;
+        window.solly2 = solly2;
+        
+        // Log alles
+        console.log('🌟 Solly1 (wit) en Solly2 (groen) toegevoegd');
+        console.log('📐 Opgeslagen shape: piramide');
+        console.log('📍 Solly1 positie:', solly1.position);
+        console.log('📏 Solly1 schaal:', solly1.scale);
+        console.log('👁️ Solly1 zichtbaar:', solly1.visible);
+        console.log('🎨 Solly1 materiaal:', solly1.material);
+        console.log('🖱️ Drag-listeners toegevoegd:', !!window.addSollyDragListeners);
+        
+    } catch (error) {
+        console.error("❌ Error adding Solly1 and Solly2:", error);
     }
-    solly1.visible = true;
-    if (!solly1.getObjectByName('Solly1Collider')) {
-        const pickGeom = new THREE.SphereGeometry(350, 24, 24);
-        const pickMat  = new THREE.MeshBasicMaterial({ visible: false });
-        const collider = new THREE.Mesh(pickGeom, pickMat);
-        collider.name = 'Solly1Collider';
-        collider.userData.isSolly1Collider = true;
-        solly1.add(collider);
-        window.solly1Collider = collider;
-    }
-    scene.add(solly1);
-    // Camera goed zetten
-    if (window.camera) {
-        window.camera.position.set(0, 0, 2000);
-        window.camera.lookAt(0, 0, 0);
-    }
-    // Direct drag-listeners toevoegen
-    if (window.addSollyDragListeners) {
-        window.addSollyDragListeners();
-    }
-    // Log alles
-    console.log('🌟 Solly1 (wit) en Solly2 (groen) toegevoegd');
-    console.log('📐 Opgeslagen shape: piramide');
-    console.log('📍 Solly1 positie:', solly1.position);
-    console.log('📏 Solly1 schaal:', solly1.scale);
-    console.log('👁️ Solly1 zichtbaar:', solly1.visible);
-    console.log('🎨 Solly1 materiaal:', solly1.material);
-    console.log('🖱️ Drag-listeners toegevoegd:', !!window.addSollyDragListeners);
 }
 
 function triggerCollision() {
@@ -1561,3 +1582,270 @@ window.refreshMiniSollys = function() {
 };
 // Roep deze direct aan na laden
 if (window.scene) window.refreshMiniSollys();
+
+export class SollyManager {
+    constructor() {
+        this.solly1 = null;
+        this.solly2 = null;
+        this.portal = null;
+        this.portalActive = false;
+        this.collisionDetected = false;
+        this.canSollyMove = true;
+        this.isDragging = false;
+        this.draggedSolly = null;
+        this.dragStartPos = new THREE.Vector3();
+        this.originalSollyPos = new THREE.Vector3();
+        this.solly1MovementPaused = false;
+        this.portalClicked = false;
+        this.collisionPaused = true;
+        
+        // Camera animation state
+        this.cameraAnimationState = {
+            active: false,
+            startTime: 0,
+            startPosition: new THREE.Vector3(),
+            zoomInDuration: 2000,
+            zoomInTargetOffset: new THREE.Vector3(0, 0, 500),
+            followDuration: 3000,
+            followEndOffset: new THREE.Vector3(0, 0, 1000)
+        };
+        
+        // Portal movement
+        this.portalMovement = {
+            time: 0,
+            speed: 0.01
+        };
+    }
+
+    initialize(scene, camera) {
+        this.scene = scene;
+        this.camera = camera;
+        console.log("🎮 SollyManager initialized");
+    }
+
+    addSolly1AndSolly2() {
+        // Solly2 (Groen) - statisch op een vaste positie
+        this.solly2 = createSolly(60, false, 0x00FF00);
+        this.solly2.position.set(2000, 0, 0);
+        this.solly2.userData.isSolly2 = true;
+        this.solly2.userData.shape = localStorage.getItem('sollyverse_chosen_shape') || 'piramide';
+        this.solly2.scale.set(1.5, 1.5, 1.5);
+        this.scene.add(this.solly2);
+        
+        // Solly1 (Wit)
+        this.solly1 = createSolly(60, false, 0xFFFFFF);
+        this.solly1.position.set(0, 0, 0);
+        this.solly1.userData.isSolly1 = true;
+        this.solly1.userData.shape = 'piramide';
+        this.solly1.name = 'Solly1';
+        this.solly1.scale.set(5, 5, 5);
+        if (this.solly1.material) {
+            this.solly1.material.color.set(0xFFFFFF);
+            this.solly1.material.opacity = 1;
+            this.solly1.material.transparent = false;
+            this.solly1.material.visible = true;
+        }
+        this.solly1.visible = true;
+        if (!this.solly1.getObjectByName('Solly1Collider')) {
+            const pickGeom = new THREE.SphereGeometry(350, 24, 24);
+            const pickMat  = new THREE.MeshBasicMaterial({ visible: false });
+            const collider = new THREE.Mesh(pickGeom, pickMat);
+            collider.name = 'Solly1Collider';
+            collider.userData.isSolly1Collider = true;
+            this.solly1.add(collider);
+            window.solly1Collider = collider;
+        }
+        this.scene.add(this.solly1);
+        
+        // Camera goed zetten
+        if (this.camera) {
+            this.camera.position.set(0, 0, 2000);
+            this.camera.lookAt(0, 0, 0);
+        }
+        
+        // Direct drag-listeners toevoegen
+        this.addSollyDragListeners();
+        
+        // Log alles
+        console.log('🌟 Solly1 (wit) en Solly2 (groen) toegevoegd');
+        console.log('📐 Opgeslagen shape: piramide');
+        console.log('📍 Solly1 positie:', this.solly1.position);
+        console.log('📏 Solly1 schaal:', this.solly1.scale);
+        console.log('👁️ Solly1 zichtbaar:', this.solly1.visible);
+        console.log('🎨 Solly1 materiaal:', this.solly1.material);
+        console.log('🖱️ Drag-listeners toegevoegd');
+    }
+
+    addSollyDragListeners() {
+        // Wacht tot renderer beschikbaar is
+        if (!window.renderer || !window.renderer.domElement) {
+            console.log('⏳ [DEBUG] Renderer nog niet beschikbaar, probeer over 100ms opnieuw...');
+            setTimeout(() => this.addSollyDragListeners(), 100);
+            return;
+        }
+        const canvas = window.renderer.domElement;
+        console.log('🖱️ [DEBUG] Drag-listeners worden toegevoegd aan canvas:', canvas);
+        canvas.addEventListener('mousedown', (e) => this.onSolly1PointerDown(e), false);
+        canvas.addEventListener('touchstart', (e) => this.onSolly1PointerDown(e), false);
+        console.log('✅ [DEBUG] Drag-listeners toegevoegd aan canvas!');
+    }
+
+    onSolly1PointerDown(event) {
+        // Implementeer pointer down logica
+        console.log('🖱️ Solly1 pointer down');
+    }
+
+    triggerCollision() {
+        if (this.collisionDetected) return;
+        
+        console.log('💥 Collision getriggerd!');
+        this.collisionDetected = true;
+        
+        // Pauzeer beweging
+        this.canSollyMove = false;
+        
+        // Start camera animatie naar collision
+        this.startCameraAnimationToCollision();
+    }
+
+    startCameraAnimationToCollision() {
+        console.log('🎥 Start camera animatie naar collision...');
+        
+        this.cameraAnimationState.active = true;
+        this.cameraAnimationState.startTime = Date.now();
+        this.cameraAnimationState.startPosition = this.camera.position.clone();
+        
+        // Bereken middenpunt tussen Solly1 en Solly2
+        const midPoint = new THREE.Vector3().addVectors(this.solly1.position, this.solly2.position).multiplyScalar(0.5);
+        const targetPosition = midPoint.clone().add(this.cameraAnimationState.zoomInTargetOffset);
+        
+        // Animeer camera naar collision
+        const animateCamera = () => {
+            if (!this.cameraAnimationState.active) return;
+            
+            const elapsed = Date.now() - this.cameraAnimationState.startTime;
+            const progress = Math.min(elapsed / this.cameraAnimationState.zoomInDuration, 1);
+            
+            // Easing
+            const ease = 1 - Math.pow(1 - progress, 3);
+            
+            this.camera.position.lerpVectors(this.cameraAnimationState.startPosition, targetPosition, ease);
+            this.camera.lookAt(midPoint);
+            
+            if (progress < 1) {
+                requestAnimationFrame(animateCamera);
+            } else {
+                console.log('🎥 Camera animatie voltooid, start follow animatie...');
+                this.startCameraFollowAnimation();
+            }
+        };
+        
+        animateCamera();
+    }
+
+    startCameraFollowAnimation() {
+        console.log('🎥 Start camera follow-animatie...');
+        
+        const followStartTime = Date.now();
+        const followStartPosition = this.camera.position.clone();
+        const followTargetPosition = this.solly1.position.clone().add(this.cameraAnimationState.followEndOffset);
+        
+        const animateFollow = () => {
+            const elapsed = Date.now() - followStartTime;
+            const progress = Math.min(elapsed / this.cameraAnimationState.followDuration, 1);
+            
+            // Easing
+            const ease = 1 - Math.pow(1 - progress, 3);
+            
+            this.camera.position.lerpVectors(followStartPosition, followTargetPosition, ease);
+            this.camera.lookAt(this.solly1.position);
+            
+            if (progress < 1) {
+                requestAnimationFrame(animateFollow);
+            } else {
+                console.log('🎥 Camera follow-animatie voltooid.');
+                this.activatePortal();
+            }
+        };
+        
+        animateFollow();
+    }
+
+    activatePortal() {
+        if (this.portalActive) return;
+        
+        if (!this.solly1) {
+            console.error("❌ Kan portal niet activeren: solly1 is niet gevonden.");
+            return;
+        }
+        
+        this.portal = createPortal(this.solly1);
+        this.scene.add(this.portal);
+        
+        window.portal = this.portal;
+        
+        this.portalActive = true;
+        this.portalMovement.time = 0;
+        
+        console.log('🎯 Voeg drag & drop listeners toe na shape choice...');
+        document.removeEventListener('mousedown', this.onShapeSollyClick);
+        document.addEventListener('mousedown', (e) => this.onShapeSollyClick(e), true);
+        document.removeEventListener('mousemove', this.onDragMove);
+        document.addEventListener('mousemove', (e) => this.onDragMove(e));
+        document.removeEventListener('mouseup', this.onDragEnd);
+        document.addEventListener('mouseup', (e) => this.onDragEnd(e));
+        console.log('✅ Drag & drop listeners toegevoegd');
+        
+        document.addEventListener('click', (e) => this.onPortalClick(e), false);
+    }
+
+    onShapeSollyClick(event) {
+        // Implementeer shape solly click logica
+        console.log('🖱️ Shape solly click');
+    }
+
+    onDragMove(event) {
+        // Implementeer drag move logica
+        console.log('🖱️ Drag move');
+    }
+
+    onDragEnd(event) {
+        // Implementeer drag end logica
+        console.log('🖱️ Drag end');
+    }
+
+    onPortalClick(event) {
+        // Implementeer portal click logica
+        console.log('🎯 Portal click');
+    }
+
+    getSolly1() {
+        return this.solly1;
+    }
+
+    getSolly2() {
+        return this.solly2;
+    }
+
+    getPortal() {
+        return this.portal;
+    }
+
+    isPortalActive() {
+        return this.portalActive;
+    }
+
+    isCollisionDetected() {
+        return this.collisionDetected;
+    }
+
+    setCollisionPaused(paused) {
+        this.collisionPaused = paused;
+    }
+
+    isCollisionPaused() {
+        return this.collisionPaused;
+    }
+}
+
+window.addSolly1AndSolly2 = addSolly1AndSolly2;
