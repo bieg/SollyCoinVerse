@@ -15,13 +15,13 @@ function addGalaxyShells(scene) {
     // Create multiple shell layers
     const shellCount = 5; // meer schillen
     const baseRadius = 8000;
-    const radiusStep = 4000; // grotere afstand tussen schillen
+    const radiusStep = 6000; // nog grotere afstand tussen schillen
     for (let i = 0; i < shellCount; i++) {
         const shellGeometry = new THREE.SphereGeometry(baseRadius + i * radiusStep, 64, 64);
         const shellMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0x3949ab,        // helderder blauw
+            color: 0xB000FF,        // magenta paars
             transparent: true, 
-            opacity: 0.25 - i * 0.04, // duidelijker zichtbaar
+            opacity: 0.08 - i * 0.015, // dunner, subtieler
             wireframe: true
         });
         const shell = new THREE.Mesh(shellGeometry, shellMaterial);
@@ -284,6 +284,7 @@ function createSolly(size, isYellow, color) {
     const geometry = new THREE.TetrahedronGeometry(size);
     const material = new THREE.MeshBasicMaterial({ color: color });
     const solly = new THREE.Mesh(geometry, material);
+
     solly.userData.isYellow = isYellow;
     return solly;
 }
@@ -292,6 +293,7 @@ function createPlanet(size, isRed, color) {
     const geometry = new THREE.SphereGeometry(size, 16, 16);
     const material = new THREE.MeshBasicMaterial({ color: color });
     const planet = new THREE.Mesh(geometry, material);
+
     planet.userData.isRed = isRed;
     planet.userData.isPlanet = true;
     return planet;

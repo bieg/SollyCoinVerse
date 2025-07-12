@@ -16,10 +16,10 @@
     "groen": 1000
   },
   "sollys": {
-    "geel": 2250,
-    "blauw": 2250,
+    "geel": 7500,
+    "blauw": 6000,
     "pink": 0,
-    "rood": 2200
+    "rood":3000
   },
   "createdAt": "2024-01-01T00:00:00.000Z",
   "lastPlayed": "2024-01-01T00:00:00.000Z",
