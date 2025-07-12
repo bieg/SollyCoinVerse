@@ -18,7 +18,6 @@ let sollyverseInitialized = false;
 
 // Globale variabelen
 let scene, camera, renderer, controls;
-let miniSollys = [], redPlanets = [], blueSollys = [], whiteStars = [];
 let solly1 = null, solly2 = null;
 let solly1Movement = { time: 0, amplitude: 2000, frequency: 0.05 };
 let collisionDetected = false;
@@ -26,7 +25,6 @@ let shapeChoiceMade = false;
 let shapeModalTimeout = null;
 let canSollyMove = false;
 let isPaused = false;
-let portalClicked = false;
 let sollySun, sollySunGlow;
 
 // Camera animatie state
@@ -114,6 +112,30 @@ async function loadDefaultConfig() {
     }
 }
 
+// Helper om HTML-tekstvriendelijk te maken
+function escapeHTML(str) {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// Toon het gekozen SollyCoin-JSON in een modal
+function displayChosenCoinJSON() {
+    if (!sollyConfig) {
+        console.warn('⚠️ Geen SollyCoin-config gevonden om te tonen.');
+        return;
+    }
+    if (typeof showUniverseModal !== 'function') {
+        console.warn('⚠️ showUniverseModal niet beschikbaar.');
+        return;
+    }
+    const prettyJson = JSON.stringify(sollyConfig, null, 2);
+    const html = `<pre style="text-align:left; color:#FFD700; white-space:pre-wrap; max-width:90vw;">${escapeHTML(prettyJson)}</pre>`;
+    showUniverseModal(html, 'Jouw SollyCoin');
+}
+
 async function initSollyverse() {
     if (sollyverseInitialized) return;
     
@@ -154,6 +176,13 @@ async function initSollyverse() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000);
     document.body.appendChild(renderer.domElement);
+
+    // ✅ Maak globals beschikbaar zodra renderer bestaat
+    window.renderer = renderer;
+    window.scene = scene;
+    window.camera = camera;
+    window.controls = controls;
+    window.gameManager = gameManager;
 
     // Controls
     controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -200,6 +229,8 @@ async function initSollyverse() {
     // CTA-buttons tonen als het universum draait
     const ctaButtons = document.getElementById('cta-buttons');
     if (ctaButtons) ctaButtons.style.display = 'flex';
+
+    // JSON-voorbeeldpanel wordt niet langer automatisch getoond
 }
 
 // Animation loop
@@ -212,6 +243,7 @@ function animate() {
         updatePortalMovement();
     }
     
+    if (typeof updateCameraControls === 'function') updateCameraControls();
     updateCameraFollow();
     controls.update();
     renderer.render(scene, camera);
@@ -343,9 +375,4 @@ function triggerCollision() {
     // Add collision logic here
 }
 
-// Make globals available
-window.scene = scene;
-window.camera = camera;
-window.renderer = renderer;
-window.controls = controls;
-window.gameManager = gameManager;
+// applyUniverseScaling verwijderd – universe gebruikt vaste basiswaarden

@@ -13,13 +13,15 @@ let whiteStars = [];
 
 function addGalaxyShells(scene) {
     // Create multiple shell layers
-    const shellCount = 3;
+    const shellCount = 5; // meer schillen
+    const baseRadius = 8000;
+    const radiusStep = 4000; // grotere afstand tussen schillen
     for (let i = 0; i < shellCount; i++) {
-        const shellGeometry = new THREE.SphereGeometry(8000 + i * 2000, 64, 64);
+        const shellGeometry = new THREE.SphereGeometry(baseRadius + i * radiusStep, 64, 64);
         const shellMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0x1a237e, 
+            color: 0x3949ab,        // helderder blauw
             transparent: true, 
-            opacity: 0.1 - i * 0.02,
+            opacity: 0.25 - i * 0.04, // duidelijker zichtbaar
             wireframe: true
         });
         const shell = new THREE.Mesh(shellGeometry, shellMaterial);
@@ -69,14 +71,22 @@ function addGalaxyStars(scene) {
 }
 
 function addSollySun(scene) {
+    // Gladde ronde bol met zachte gloed
     const sunGeometry = new THREE.SphereGeometry(220, 64, 64);
-    const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700 });
+    const sunMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0xFFB200,          // warm oranje-geel
+        emissive: 0xFF8C00,      // zachte oranje gloed
+        emissiveIntensity: 0.7,
+        roughness: 0.3,
+        metalness: 0.0,
+        flatShading: false
+    });
     const sollySun = new THREE.Mesh(sunGeometry, sunMaterial);
     sollySun.position.set(0, 0, 0);
     scene.add(sollySun);
     
     const glowGeometry = new THREE.SphereGeometry(260, 64, 64);
-    const glowMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 0.18 });
+    const glowMaterial = new THREE.MeshBasicMaterial({ color: 0xFF8C00, transparent: true, opacity: 0.22 });
     const sollySunGlow = new THREE.Mesh(glowGeometry, glowMaterial);
     sollySunGlow.position.set(0, 0, 0);
     scene.add(sollySunGlow);
@@ -94,10 +104,9 @@ function addPlanets(scene) {
         const rood = 1000;
         const groen = 1000;
         
-        // Haal size multiplier op voor scaling
-        const sizeMultiplier = gameManager ? gameManager.getSizeMultiplier() : 2.0;
+        // Gebruik grootte direct uit JSON – geen multiplier meer
         const baseSize = 48;
-        const scaledSize = baseSize * sizeMultiplier;
+        const scaledSize = baseSize;
 
         function addPlanetToScene(count, isRed, color, array) {
             console.log(`Adding ${count} planets with color ${color}`);
@@ -129,9 +138,8 @@ function addPlanets(scene) {
     console.log('🟢 Groene planeten:', groen);
 
     // Haal size multiplier op voor scaling
-    const sizeMultiplier = gameManager ? gameManager.getSizeMultiplier() : 2.0;
     const baseSize = 48;
-    const scaledSize = baseSize * sizeMultiplier;
+    const scaledSize = baseSize;
 
     function addPlanetToScene(count, isRed, color, array) {
         console.log(`Adding ${count} planets with color ${color}`);
@@ -166,15 +174,14 @@ function addSollys(scene) {
         const rood = 1500;
         
         // Haal size multiplier op voor scaling
-        const sizeMultiplier = gameManager ? gameManager.getSizeMultiplier() : 2.0;
         const baseSize = 24;
-        const scaledSize = baseSize * sizeMultiplier;
+        const scaledSize = baseSize;
 
         function addSollyToScene(count, isYellow, color, array) {
             console.log(`Adding ${count} Sollys with color ${color}`);
             for (let i = 0; i < count; i++) {
                 const solly = createSolly(scaledSize, isYellow, color);
-                const radius = 2000 + Math.random() * 8000;
+                const radius = 3000 + Math.random() * 15000;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 
@@ -207,15 +214,14 @@ function addSollys(scene) {
     console.log('📊 Volledige sollys data:', currentUser.sollys);
 
     // Haal size multiplier op voor scaling
-    const sizeMultiplier = gameManager ? gameManager.getSizeMultiplier() : 2.0;
     const baseSize = 24;
-    const scaledSize = baseSize * sizeMultiplier;
+    const scaledSize = baseSize;
 
     function addSollyToScene(count, isYellow, color, array) {
         console.log(`Adding ${count} Sollys with color ${color}`);
         for (let i = 0; i < count; i++) {
             const solly = createSolly(scaledSize, isYellow, color);
-            const radius = 2000 + Math.random() * 8000;
+            const radius = 3000 + Math.random() * 15000;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             
@@ -250,9 +256,8 @@ function addWhiteStars(scene) {
     console.log('⭐ Witte sterren:', wit);
 
     // Haal size multiplier op voor scaling
-    const sizeMultiplier = gameManager ? gameManager.getSizeMultiplier() : 2.0;
     const baseSize = 8;
-    const scaledSize = baseSize * sizeMultiplier;
+    const scaledSize = baseSize;
 
     function addStarToScene(count, color, array) {
         console.log(`Adding ${count} stars with color ${color}`);
