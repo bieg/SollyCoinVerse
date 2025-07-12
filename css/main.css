@@ -104,9 +104,22 @@ canvas {
     height: 36px;
 }
 
+/* Override zodat CTA-knoppen klikbaar zijn */
 #cta-info, #cta-instructies, #cta-personaliseer {
-    bottom: unset !important;
-    right: unset !important;
+    pointer-events: auto !important;
+}
+
+/* Vergrote CTA-knoppen */
+#cta-buttons .cta-btn {
+    width: 80px !important;
+    height: 80px !important;
+    font-size: 48px !important;
+    line-height: 1 !important;
+    pointer-events: auto !important;
+}
+#cta-buttons .cta-btn svg {
+    width: 48px !important;
+    height: 48px !important;
 }
 
 /* Star Wars Intro */

@@ -241,16 +241,12 @@ function showUniverseModal(html, title = '') {
     overlay.className = 'solly-modal-overlay';
     overlay.style.cssText = `
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        inset: 0;
         background: rgba(0, 0, 0, 0.7);
         backdrop-filter: blur(3px);
         z-index: 99998;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: grid;
+        place-items: center;
     `;
     document.body.appendChild(overlay);
     
@@ -266,8 +262,9 @@ function showUniverseModal(html, title = '') {
         background: transparent;
         border: 2px solid rgba(255, 215, 0, 0.6);
         border-radius: 12px;
-        padding: 40px 50px;
-        max-width: 600px;
+        padding: 32px 36px;
+        width: 90vw;
+        max-width: 420px; /* portrait smaller */
         max-height: 80vh;
         overflow-y: auto;
         backdrop-filter: blur(10px);
@@ -307,7 +304,7 @@ function showUniverseModal(html, title = '') {
         </div>
     `;
     
-    document.body.appendChild(modal);
+    overlay.appendChild(modal);
     
     const closeBtn = modal.querySelector('.solly-modal-close');
     const closeModal = () => {

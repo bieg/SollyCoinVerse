@@ -230,6 +230,79 @@ async function initSollyverse() {
     const ctaButtons = document.getElementById('cta-buttons');
     if (ctaButtons) ctaButtons.style.display = 'flex';
 
+    // CTA-click handlers
+    const infoBtn = document.getElementById('cta-info');
+    const instructiesBtn = document.getElementById('cta-instructies');
+    const personaliseerBtn = document.getElementById('cta-personaliseer');
+    // Forceer pointer-events voor klikbaarheid
+    [infoBtn, instructiesBtn, personaliseerBtn].forEach(btn => {
+        if (btn) btn.style.pointerEvents = 'auto';
+    });
+
+    function safeShowModal(html, title) {
+        if (typeof showUniverseModal === 'function') {
+            showUniverseModal(html, title);
+        } else {
+            alert(title + "\n\n" + html.replace(/<[^>]+>/g, ''));
+        }
+    }
+    if (infoBtn) infoBtn.addEventListener('click', () => {
+        console.log('CTA Info clicked');
+        showInfoModal();
+    });
+    if (instructiesBtn) instructiesBtn.addEventListener('click', () => {
+        console.log('CTA Instructies clicked');
+        showInstructionsModal();
+    });
+    if (personaliseerBtn) personaliseerBtn.addEventListener('click', () => {
+        console.log('CTA Personaliseer clicked');
+        showPersonaliseerModal();
+    });
+
+    // ---------- Modal helpers ----------
+    function showInfoModal() {
+        const user = gameManager ? gameManager.getCurrentUser() : sollyConfig;
+        if (!user) return;
+
+        function fmtDate(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            return d.toLocaleDateString('nl-NL');
+        }
+
+        const html = `<ul style="text-align:left; line-height:1.6; list-style:none; padding-left:0;">
+            <li><strong>${user.id || ''}</strong></li>
+            <li>Level: <strong>${user.level}</strong></li>
+            <li>Shape: <strong>${user.shape}</strong></li>
+            <li>Size: <strong>${user.size}</strong></li>
+            <li>Sterrenscore: <strong>${user.sterren?.totaal || user.sterren}</strong></li>
+            <li>Created: <strong>${fmtDate(user.createdAt)}</strong></li>
+            <li>Last played: <strong>${fmtDate(user.lastPlayed)}</strong></li>
+            <li>Session start: <strong>${fmtDate(user.sessionStart)}</strong></li>
+        </ul>`;
+        safeShowModal(html, 'SollyCoin Samenvatting');
+    }
+
+    function showInstructionsModal() {
+        const html = `<ul style="text-align:left; line-height:1.6;">
+            <li>Beweeg camera: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> of pijltjestoetsen</li>
+            <li>Zoom: scroll / pinch</li>
+            <li>Sleep Solly&nbsp;1 om rond te vliegen</li>
+            <li>Botsing: laat Solly&nbsp;2 (groen) Solly&nbsp;1 raken!</li>
+        </ul>`;
+        safeShowModal(html, 'Instructies');
+    }
+
+    function showPersonaliseerModal() {
+        const html = `<p>Personaliseer-functie komt binnenkort!<br/>
+            Kies straks vormen, kleuren en accessoires voor jouw Solly.</p>`;
+        safeShowModal(html, 'Personaliseer');
+    }
+
+    window.showInfoModal = showInfoModal;
+    window.showInstructionsModal = showInstructionsModal;
+    window.showPersonaliseerModal = showPersonaliseerModal;
+
     // JSON-voorbeeldpanel wordt niet langer automatisch getoond
 }
 
