@@ -472,7 +472,11 @@ function triggerCollision() {
     collisionDetected = true;
     
     console.log('💥 Collision triggered!');
-    // Add collision logic here
+    
+    // Start explosie animatie als de functie beschikbaar is
+    if (typeof window.createCollisionExplosion === 'function') {
+        window.createCollisionExplosion();
+    }
 }
 
 // === Collision Solly1 vs miniSollys ===

@@ -80,8 +80,144 @@ function triggerCollision() {
     // Pauzeer beweging
     canSollyMove = false;
     
+    // Start explosie animatie
+    createCollisionExplosion();
+    
     // Start camera animatie naar collision
     startCameraAnimationToCollision();
+}
+
+// Nieuwe explosie animatie functie
+function createCollisionExplosion() {
+    console.log('💥 Start collision explosie animatie!');
+    
+    // Bereken explosie positie (midden tussen Solly1 en Solly2, of Solly1 positie)
+    const explosionPos = solly2 ? 
+        new THREE.Vector3().addVectors(solly1.position, solly2.position).multiplyScalar(0.5) : 
+        solly1.position.clone();
+    
+    // Maak meerdere explosie lagen voor een spectaculair effect
+    createExplosionLayer(explosionPos, 0xFFD700, 50, 800, 800); // Gouden kern
+    createExplosionLayer(explosionPos, 0xFF4500, 100, 1200, 600); // Oranje explosie
+    createExplosionLayer(explosionPos, 0xFF0000, 150, 1600, 400); // Rode schokgolf
+    
+    // Voeg particle effect toe
+    createExplosionParticles(explosionPos);
+    
+    // Voeg screen shake effect toe
+    createScreenShake();
+}
+
+// Maak explosie functies globaal beschikbaar
+window.createCollisionExplosion = createCollisionExplosion;
+
+function createExplosionLayer(position, color, delay, maxScale, duration) {
+    setTimeout(() => {
+        const geo = new THREE.SphereGeometry(1, 32, 32);
+        const mat = new THREE.MeshBasicMaterial({ 
+            color: color, 
+            transparent: true, 
+            opacity: 0.9, 
+            blending: THREE.AdditiveBlending 
+        });
+        const explosion = new THREE.Mesh(geo, mat);
+        explosion.position.copy(position);
+        scene.add(explosion);
+
+        const start = performance.now();
+        const startScale = 10;
+        const endScale = maxScale;
+        
+        function animate() {
+            const t = (performance.now() - start) / duration;
+            if (t >= 1) {
+                scene.remove(explosion);
+                return;
+            }
+            
+            // Easing functie voor natuurlijke explosie
+            const ease = 1 - Math.pow(1 - t, 2);
+            const scale = THREE.MathUtils.lerp(startScale, endScale, ease);
+            explosion.scale.setScalar(scale);
+            explosion.material.opacity = 0.9 * (1 - ease);
+            
+            requestAnimationFrame(animate);
+        }
+        animate();
+    }, delay);
+}
+
+function createExplosionParticles(position) {
+    const particleCount = 50;
+    const particles = [];
+    
+    for (let i = 0; i < particleCount; i++) {
+        const geo = new THREE.SphereGeometry(0.5, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ 
+            color: Math.random() > 0.5 ? 0xFFD700 : 0xFF4500, 
+            transparent: true, 
+            opacity: 1.0 
+        });
+        const particle = new THREE.Mesh(geo, mat);
+        
+        // Willekeurige richting en snelheid
+        const direction = new THREE.Vector3(
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2
+        ).normalize();
+        
+        const speed = 50 + Math.random() * 100;
+        particle.velocity = direction.multiplyScalar(speed);
+        particle.position.copy(position);
+        
+        scene.add(particle);
+        particles.push(particle);
+    }
+    
+    // Animeer particles
+    const start = performance.now();
+    const duration = 2000;
+    
+    function animateParticles() {
+        const t = (performance.now() - start) / duration;
+        if (t >= 1) {
+            particles.forEach(p => scene.remove(p));
+            return;
+        }
+        
+        particles.forEach(particle => {
+            particle.position.add(particle.velocity.clone().multiplyScalar(0.016));
+            particle.material.opacity = 1.0 * (1 - t);
+            particle.scale.setScalar(1 - t * 0.5);
+        });
+        
+        requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+}
+
+function createScreenShake() {
+    const originalPosition = camera.position.clone();
+    const shakeIntensity = 50;
+    const shakeDuration = 500;
+    const start = performance.now();
+    
+    function shake() {
+        const t = (performance.now() - start) / shakeDuration;
+        if (t >= 1) {
+            camera.position.copy(originalPosition);
+            return;
+        }
+        
+        const intensity = shakeIntensity * (1 - t);
+        camera.position.x = originalPosition.x + (Math.random() - 0.5) * intensity;
+        camera.position.y = originalPosition.y + (Math.random() - 0.5) * intensity;
+        camera.position.z = originalPosition.z + (Math.random() - 0.5) * intensity;
+        
+        requestAnimationFrame(shake);
+    }
+    shake();
 }
 
 function startCameraAnimationToCollision() {
@@ -1257,29 +1393,64 @@ function rectsOverlap(r1, r2) {
 }
 
 function spawnKaboom(pos) {
-    const geo = new THREE.SphereGeometry(1, 16, 16);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xFFFF00, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
-    const boom = new THREE.Mesh(geo, mat);
-    boom.position.copy(pos);
-    scene.add(boom);
+    console.log('💥 Mini-Kaboom op positie:', pos);
+    
+    // Maak meerdere lagen voor een mooier effect
+    createExplosionLayer(pos, 0xFFFF00, 0, 400, 500); // Gele kern
+    createExplosionLayer(pos, 0xFFA500, 50, 600, 400); // Oranje explosie
+    
+    // Voeg kleine particles toe
+    createMiniExplosionParticles(pos);
+}
 
+function createMiniExplosionParticles(position) {
+    const particleCount = 20;
+    const particles = [];
+    
+    for (let i = 0; i < particleCount; i++) {
+        const geo = new THREE.SphereGeometry(0.3, 6, 6);
+        const mat = new THREE.MeshBasicMaterial({ 
+            color: Math.random() > 0.5 ? 0xFFFF00 : 0xFFA500, 
+            transparent: true, 
+            opacity: 1.0 
+        });
+        const particle = new THREE.Mesh(geo, mat);
+        
+        // Willekeurige richting en snelheid
+        const direction = new THREE.Vector3(
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2
+        ).normalize();
+        
+        const speed = 20 + Math.random() * 40;
+        particle.velocity = direction.multiplyScalar(speed);
+        particle.position.copy(position);
+        
+        scene.add(particle);
+        particles.push(particle);
+    }
+    
+    // Animeer particles
     const start = performance.now();
-    const duration = 600;
-    const startScale = 20;
-    const endScale   = 800;
-    function animate() {
+    const duration = 1000;
+    
+    function animateParticles() {
         const t = (performance.now() - start) / duration;
         if (t >= 1) {
-            scene.remove(boom);
+            particles.forEach(p => scene.remove(p));
             return;
         }
-        const ease = t;
-        const scale = THREE.MathUtils.lerp(startScale, endScale, ease);
-        boom.scale.setScalar(scale);
-        boom.material.opacity = 0.8 * (1 - ease);
-        requestAnimationFrame(animate);
+        
+        particles.forEach(particle => {
+            particle.position.add(particle.velocity.clone().multiplyScalar(0.016));
+            particle.material.opacity = 1.0 * (1 - t);
+            particle.scale.setScalar(1 - t * 0.3);
+        });
+        
+        requestAnimationFrame(animateParticles);
     }
-    animate();
+    animateParticles();
 }
 
 function evaluateDropOnMiniSolly() {
@@ -1308,57 +1479,97 @@ function evaluateDropOnMiniSolly() {
 function handleSollyOnMini(targetMini) {
     console.log('[DEBUG] handleSollyOnMini aangeroepen', targetMini);
     if (!targetMini) return;
+    
     // Kaboom-teller ophogen
     window.kaboomCount = (window.kaboomCount || 0) + 1;
     console.log(`💥 Kaboom! Totaal: ${window.kaboomCount}`);
 
-    // Kaboom-animatie: extra groot en fel
-    const geo = new THREE.SphereGeometry(1, 32, 32);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xFF2222, transparent: true, opacity: 1.0, blending: THREE.AdditiveBlending });
-    const boom = new THREE.Mesh(geo, mat);
-    boom.position.copy(targetMini.position);
-    scene.add(boom);
+    // Spectaculaire explosie animatie
+    const explosionPos = targetMini.position.clone();
+    
+    // Meerdere explosie lagen met verschillende kleuren en timing
+    createExplosionLayer(explosionPos, 0xFFD700, 0, 600, 600); // Gouden kern
+    createExplosionLayer(explosionPos, 0xFF4500, 100, 900, 500); // Oranje explosie
+    createExplosionLayer(explosionPos, 0xFF0000, 200, 1200, 400); // Rode schokgolf
+    
+    // Extra grote particle explosie
+    createMegaExplosionParticles(explosionPos);
+    
+    // Verwijder mini-Solly na explosie
+    setTimeout(() => {
+        if (window.scene) {
+            // Eerst alle children loskoppelen en verwijderen
+            while (targetMini.children.length > 0) {
+                const child = targetMini.children[0];
+                targetMini.remove(child);
+                if (child.parent === null && child instanceof THREE.Mesh) {
+                    scene.remove(child);
+                }
+            }
+            scene.remove(targetMini);
+            
+            // Verwijder ook uit de miniSollys array
+            if (window.miniSollys) {
+                const index = window.miniSollys.indexOf(targetMini);
+                if (index > -1) {
+                    window.miniSollys.splice(index, 1);
+                    console.log('[DEBUG] mini-Solly ook uit array verwijderd - UUID:', targetMini.uuid);
+                }
+            }
+            
+            console.log('[DEBUG] mini-Solly + outline verwijderd uit scene - UUID:', targetMini.uuid);
+        }
+    }, 600);
+}
 
+function createMegaExplosionParticles(position) {
+    const particleCount = 80;
+    const particles = [];
+    
+    for (let i = 0; i < particleCount; i++) {
+        const geo = new THREE.SphereGeometry(0.8, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ 
+            color: [0xFFD700, 0xFF4500, 0xFF0000, 0xFFFF00][Math.floor(Math.random() * 4)], 
+            transparent: true, 
+            opacity: 1.0 
+        });
+        const particle = new THREE.Mesh(geo, mat);
+        
+        // Willekeurige richting en snelheid
+        const direction = new THREE.Vector3(
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2
+        ).normalize();
+        
+        const speed = 80 + Math.random() * 120;
+        particle.velocity = direction.multiplyScalar(speed);
+        particle.position.copy(position);
+        
+        scene.add(particle);
+        particles.push(particle);
+    }
+    
+    // Animeer particles
     const start = performance.now();
-    const duration = 900;
-    const startScale = targetMini.scale.length() * 20;
-    const endScale   = startScale * 10;
-    function animate() {
+    const duration = 2500;
+    
+    function animateParticles() {
         const t = (performance.now() - start) / duration;
         if (t >= 1) {
-            scene.remove(boom);
-            // Verwijder mini-Solly en alle child-meshes (zoals outlines)
-            if (window.scene) {
-                // Eerst alle children loskoppelen en verwijderen
-                while (targetMini.children.length > 0) {
-                    const child = targetMini.children[0];
-                    targetMini.remove(child);
-                    if (child.parent === null && child instanceof THREE.Mesh) {
-                        scene.remove(child);
-                    }
-                }
-                scene.remove(targetMini);
-                
-                // Verwijder ook uit de miniSollys array
-                if (window.miniSollys) {
-                    const index = window.miniSollys.indexOf(targetMini);
-                    if (index > -1) {
-                        window.miniSollys.splice(index, 1);
-                        console.log('[DEBUG] mini-Solly ook uit array verwijderd - UUID:', targetMini.uuid);
-                    }
-                }
-                
-                console.log('[DEBUG] mini-Solly + outline verwijderd uit scene - UUID:', targetMini.uuid);
-            }
+            particles.forEach(p => scene.remove(p));
             return;
         }
-        const ease = t;
-        const scale = THREE.MathUtils.lerp(startScale, endScale, ease);
-        boom.scale.setScalar(scale);
-        boom.material.opacity = 1.0 * (1 - ease);
-        requestAnimationFrame(animate);
+        
+        particles.forEach(particle => {
+            particle.position.add(particle.velocity.clone().multiplyScalar(0.016));
+            particle.material.opacity = 1.0 * (1 - t);
+            particle.scale.setScalar(1 - t * 0.7);
+        });
+        
+        requestAnimationFrame(animateParticles);
     }
-    animate();
+    animateParticles();
 }
 
 // Helper: grootste projectie-radius van een object
