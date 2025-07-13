@@ -180,8 +180,10 @@ function addSollys(scene) {
         function addSollyToScene(count, isYellow, color, array) {
             console.log(`Adding ${count} Sollys with color ${color}`);
             for (let i = 0; i < count; i++) {
-                const solly = createSolly(scaledSize, isYellow, color);
-                const radius = 3000 + Math.random() * 15000;
+                // Random size tussen 0.5x en 2.5x van de base size
+                const randomSizeMultiplier = 0.5 + Math.random() * 2.0;
+                const solly = createSolly(scaledSize * randomSizeMultiplier, isYellow, color);
+                const radius = 6000 + Math.random() * 20000;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 
@@ -220,15 +222,19 @@ function addSollys(scene) {
     function addSollyToScene(count, isYellow, color, array) {
         console.log(`Adding ${count} Sollys with color ${color}`);
         for (let i = 0; i < count; i++) {
-            const solly = createSolly(scaledSize, isYellow, color);
-            const radius = 3000 + Math.random() * 15000;
+            // Random size tussen 1.0x en 3.5x van de base size (iets groter bereik voor user data)
+            const randomSizeMultiplier = 1.0 + Math.random() * 2.5;
+            const solly = createSolly(scaledSize * randomSizeMultiplier, isYellow, color);
+            // Spawn verder uit elkaar
+            const radius = 4000 + Math.random() * 8000; // 4000–12000
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
-            
             solly.position.x = radius * Math.sin(phi) * Math.cos(theta);
             solly.position.y = radius * Math.sin(phi) * Math.sin(theta);
             solly.position.z = radius * Math.cos(phi);
-            
+
+
+
             scene.add(solly);
             array.push(solly);
         }
@@ -239,6 +245,11 @@ function addSollys(scene) {
     addSollyToScene(blauw, false, 0x2196F3, blueSollys);
     addSollyToScene(pink, false, 0xFF69B4, blueSollys);
     addSollyToScene(rood, false, 0xFF0000, blueSollys);
+
+    // Maak arrays globaal beschikbaar zodat andere modules (sollys.js) ze kunnen gebruiken
+    window.miniSollys = miniSollys;
+    window.blueSollys = blueSollys;
+    window.redPlanets = redPlanets;
 }
 
 function addWhiteStars(scene) {

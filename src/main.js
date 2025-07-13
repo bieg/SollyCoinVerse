@@ -185,6 +185,31 @@ async function initSollyverse() {
     window.controls = controls;
     window.gameManager = gameManager;
 
+    // Mini-Solly click event: kaboom bij click
+    renderer.domElement.addEventListener('click', function(e) {
+        if (window.solly1DragActive) return; // niet tijdens drag
+        if (!window.miniSollys || window.miniSollys.length === 0) return;
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((e.clientX - rect.left) / rect.width) * 2 - 1,
+            -((e.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        // Alleen zichtbare mini-Sollys
+        const validMiniSollys = window.miniSollys.filter(m => m && m.parent && m.visible);
+        const intersects = raycaster.intersectObjects(validMiniSollys, false);
+        if (intersects.length > 0) {
+            const mini = intersects[0].object;
+            if (typeof window.handleSollyOnMini === 'function') {
+                window.handleSollyOnMini(mini);
+            }
+            if (typeof window.spawnKaboom === 'function') {
+                window.spawnKaboom(mini.position);
+            }
+        }
+    });
+
     // Controls
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -455,8 +480,11 @@ function checkMiniSollyCollision() {
     if (!window.solly1 || !window.miniSollys) return;
     const sollyPos = solly1.position;
     const threshold = 120; // afstand waarbij we een botsing aannemen
-    for (const m of window.miniSollys) {
-        if (!m) continue;
+    
+    // Filter out mini-Sollies that are no longer in the scene
+    const validMiniSollys = window.miniSollys.filter(m => m && m.parent && m.visible);
+    
+    for (const m of validMiniSollys) {
         if (sollyPos.distanceTo(m.position) < threshold) {
             triggerCollision();
             break;

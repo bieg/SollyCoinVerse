@@ -1081,7 +1081,38 @@ function onSolly1PointerMove(event) {
         ray.ray.at(dragOffsetDist, hit);
         draggedSolly.position.copy(hit);
     }
- }
+
+    // ==== Highlight logica voor dichtstbijzijnde mini-Solly ====
+    if (window.miniSollys && window.miniSollys.length) {
+        const rectSolly = getScreenRect(draggedSolly);
+        let closestMini = null;
+        let closestDist = Infinity;
+        window.miniSollys.forEach(mini => {
+            if (!mini) return;
+            const rectMini = getScreenRect(mini);
+            // meet afstand tussen middens als snelle heuristiek
+            const centerSolly = new THREE.Vector2((rectSolly.minX+rectSolly.maxX)/2,(rectSolly.minY+rectSolly.maxY)/2);
+            const centerMini  = new THREE.Vector2((rectMini.minX+rectMini.maxX)/2,(rectMini.minY+rectMini.maxY)/2);
+            const d = centerSolly.distanceTo(centerMini);
+            if (d < closestDist) { closestDist = d; closestMini = mini; }
+        });
+        const pixelThreshold = 140; // iets ruimer voor highlight
+
+        window.miniSollys.forEach(mini => {
+            if (!mini.material) return;
+            const isTarget = (mini === closestMini && closestDist < pixelThreshold);
+            if (isTarget) {
+                // Opslaan originele kleur bij eerste keer highlight
+                if (!mini.userData.__origColor) mini.userData.__origColor = mini.material.color.clone();
+                mini.material.color.setHex(0xFFFF00);
+            } else {
+                if (mini.userData.__origColor) {
+                    mini.material.color.copy(mini.userData.__origColor);
+                }
+            }
+        });
+    }
+}
 
 function onSolly1PointerUp(event) {
     if (!window.solly1DragActive) return;
@@ -1117,6 +1148,9 @@ function onSolly1PointerUp(event) {
     window.removeEventListener('pointerup', onSolly1PointerUp);
     // GEEN camera lookAt!
     console.log('🔵 [DRAG] Drag beëindigd, alles weer normaal');
+
+    // Collision-check na loslaten
+    evaluateDropOnMiniSolly();
 }
 
 // Alleen Solly1 klikbaar maken
@@ -1183,73 +1217,170 @@ if (window.solly1) {
     forceSolly1Visible();
 }
 
-// Detecteer drop
+function projectToScreen(vec3) {
+    const width  = window.innerWidth;
+    const height = window.innerHeight;
+    const projected = vec3.clone().project(camera);
+    return new THREE.Vector2(
+        (projected.x * 0.5 + 0.5) * width,
+        (-projected.y * 0.5 + 0.5) * height
+    );
+}
+
+// === Helper: projecteer volledige bounding-box naar scherm ===
+function getScreenRect(obj) {
+    const box = new THREE.Box3().setFromObject(obj);
+    const pts = [
+        new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.max.z)
+    ];
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const w = window.innerWidth, h = window.innerHeight;
+    pts.forEach(p => {
+        const proj = p.clone().project(camera);
+        const x = (proj.x * 0.5 + 0.5) * w;
+        const y = (-proj.y * 0.5 + 0.5) * h;
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+    });
+    return { minX, maxX, minY, maxY };
+}
+
+function rectsOverlap(r1, r2) {
+    return r1.minX <= r2.maxX && r1.maxX >= r2.minX && r1.minY <= r2.maxY && r1.maxY >= r2.minY;
+}
+
+function spawnKaboom(pos) {
+    const geo = new THREE.SphereGeometry(1, 16, 16);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xFFFF00, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
+    const boom = new THREE.Mesh(geo, mat);
+    boom.position.copy(pos);
+    scene.add(boom);
+
+    const start = performance.now();
+    const duration = 600;
+    const startScale = 20;
+    const endScale   = 800;
+    function animate() {
+        const t = (performance.now() - start) / duration;
+        if (t >= 1) {
+            scene.remove(boom);
+            return;
+        }
+        const ease = t;
+        const scale = THREE.MathUtils.lerp(startScale, endScale, ease);
+        boom.scale.setScalar(scale);
+        boom.material.opacity = 0.8 * (1 - ease);
+        requestAnimationFrame(animate);
+    }
+    animate();
+}
+
 function evaluateDropOnMiniSolly() {
     if (!window.miniSollys || !solly1) return;
-    const threshold = 150; // afstand voor succesvolle drop
+
+    const centerSolly = projectToScreen(solly1.position);
+    const radiusSolly = getScreenRadius(solly1);
+    const pixelThreshold = 120; // ruimer na visuele review
+
     for (const mini of window.miniSollys) {
         if (!mini) continue;
-        if (solly1.position.distanceTo(mini.position) < threshold) {
-            console.log('🎯 Solly1 gedropt op miniSolly!', mini);
+        const centerMini = projectToScreen(mini.position);
+        const radiusMini = getScreenRadius(mini);
+        const d2d = centerSolly.distanceTo(centerMini);
+        const hitDist = radiusSolly + radiusMini;
+        console.log('[DEBUG] check mini:', mini.uuid, {d2d, hitDist, centerSolly, centerMini, radiusSolly, radiusMini});
+        if (d2d < hitDist * 1.05) { // kleine marge
+            console.log('💥 KABOOM! 2D circle hit met mini-Solly:', mini);
             handleSollyOnMini(mini);
+            spawnKaboom(mini.position);
             break;
         }
     }
 }
 
 function handleSollyOnMini(targetMini) {
+    console.log('[DEBUG] handleSollyOnMini aangeroepen', targetMini);
     if (!targetMini) return;
+    // Kaboom-teller ophogen
+    window.kaboomCount = (window.kaboomCount || 0) + 1;
+    console.log(`💥 Kaboom! Totaal: ${window.kaboomCount}`);
 
-    // 1. Highlight Solly1 kort geel
-    if (window.solly1 && window.solly1.material) {
-        const originalColor = window.solly1.material.color.clone();
-        window.solly1.material.color.setHex(0xFFFF00);
-        setTimeout(() => {
-            if (window.solly1 && window.solly1.material) {
-                window.solly1.material.color.copy(originalColor);
-            }
-        }, 350);
-    }
+    // Kaboom-animatie: extra groot en fel
+    const geo = new THREE.SphereGeometry(1, 32, 32);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xFF2222, transparent: true, opacity: 1.0, blending: THREE.AdditiveBlending });
+    const boom = new THREE.Mesh(geo, mat);
+    boom.position.copy(targetMini.position);
+    scene.add(boom);
 
-    // 2. Pulse & fade-out animatie voor de mini-Solly
-    const startScale = targetMini.scale.clone();
-    const endScale   = startScale.clone().multiplyScalar(2.2);
-
-    // Zorg dat materiaal kan faden
-    if (Array.isArray(targetMini.material)) {
-        targetMini.material.forEach(m => { m.transparent = true; });
-    } else if (targetMini.material) {
-        targetMini.material.transparent = true;
-    }
-
-    const startOpacity = (Array.isArray(targetMini.material) ? targetMini.material[0].opacity : targetMini.material.opacity) ?? 1;
-    const duration = 600;
-    const startTime = performance.now();
-
+    const start = performance.now();
+    const duration = 900;
+    const startScale = targetMini.scale.length() * 20;
+    const endScale   = startScale * 10;
     function animate() {
-        const elapsed = performance.now() - startTime;
-        const t = Math.min(elapsed / duration, 1);
-        const ease = 0.5 - Math.cos(t * Math.PI) / 2; // easeInOut
-
-        // Scale
-        targetMini.scale.lerpVectors(startScale, endScale, ease);
-
-        // Opacity fade
-        const newOpacity = startOpacity * (1 - ease);
-        if (Array.isArray(targetMini.material)) {
-            targetMini.material.forEach(m => m.opacity = newOpacity);
-        } else if (targetMini.material) {
-            targetMini.material.opacity = newOpacity;
-        }
-
-        if (t < 1) {
-            requestAnimationFrame(animate);
-        } else {
-            // Verwijder uit scene na animatie
+        const t = (performance.now() - start) / duration;
+        if (t >= 1) {
+            scene.remove(boom);
+            // Verwijder mini-Solly en alle child-meshes (zoals outlines)
             if (window.scene) {
+                // Eerst alle children loskoppelen en verwijderen
+                while (targetMini.children.length > 0) {
+                    const child = targetMini.children[0];
+                    targetMini.remove(child);
+                    if (child.parent === null && child instanceof THREE.Mesh) {
+                        scene.remove(child);
+                    }
+                }
                 scene.remove(targetMini);
+                
+                // Verwijder ook uit de miniSollys array
+                if (window.miniSollys) {
+                    const index = window.miniSollys.indexOf(targetMini);
+                    if (index > -1) {
+                        window.miniSollys.splice(index, 1);
+                        console.log('[DEBUG] mini-Solly ook uit array verwijderd - UUID:', targetMini.uuid);
+                    }
+                }
+                
+                console.log('[DEBUG] mini-Solly + outline verwijderd uit scene - UUID:', targetMini.uuid);
             }
+            return;
         }
+        const ease = t;
+        const scale = THREE.MathUtils.lerp(startScale, endScale, ease);
+        boom.scale.setScalar(scale);
+        boom.material.opacity = 1.0 * (1 - ease);
+        requestAnimationFrame(animate);
     }
     animate();
+}
+
+// Helper: grootste projectie-radius van een object
+function getScreenRadius(obj) {
+    const box = new THREE.Box3().setFromObject(obj);
+    const center = box.getCenter(new THREE.Vector3());
+    const pts = [
+        new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.max.z)
+    ];
+    const c2d = projectToScreen(center);
+    let maxR = 0;
+    pts.forEach(p => {
+        const p2d = projectToScreen(p);
+        const r = c2d.distanceTo(p2d);
+        if (r > maxR) maxR = r;
+    });
+    return maxR;
 }
