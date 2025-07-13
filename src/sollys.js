@@ -1198,13 +1198,58 @@ function evaluateDropOnMiniSolly() {
 }
 
 function handleSollyOnMini(targetMini) {
-    // Placeholder-actie: laat mini oplichten en verwijder
-    if (targetMini.material) {
-        targetMini.material.color.setHex(0xFFFF00);
+    if (!targetMini) return;
+
+    // 1. Highlight Solly1 kort geel
+    if (window.solly1 && window.solly1.material) {
+        const originalColor = window.solly1.material.color.clone();
+        window.solly1.material.color.setHex(0xFFFF00);
+        setTimeout(() => {
+            if (window.solly1 && window.solly1.material) {
+                window.solly1.material.color.copy(originalColor);
+            }
+        }, 350);
     }
-    // Voorbeeld: verwijder mini uit scene
-    setTimeout(() => {
-        if (window.scene && targetMini) scene.remove(targetMini);
-    }, 500);
-    // Extra logica (score, animatie) kan hier toegevoegd worden
+
+    // 2. Pulse & fade-out animatie voor de mini-Solly
+    const startScale = targetMini.scale.clone();
+    const endScale   = startScale.clone().multiplyScalar(2.2);
+
+    // Zorg dat materiaal kan faden
+    if (Array.isArray(targetMini.material)) {
+        targetMini.material.forEach(m => { m.transparent = true; });
+    } else if (targetMini.material) {
+        targetMini.material.transparent = true;
+    }
+
+    const startOpacity = (Array.isArray(targetMini.material) ? targetMini.material[0].opacity : targetMini.material.opacity) ?? 1;
+    const duration = 600;
+    const startTime = performance.now();
+
+    function animate() {
+        const elapsed = performance.now() - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const ease = 0.5 - Math.cos(t * Math.PI) / 2; // easeInOut
+
+        // Scale
+        targetMini.scale.lerpVectors(startScale, endScale, ease);
+
+        // Opacity fade
+        const newOpacity = startOpacity * (1 - ease);
+        if (Array.isArray(targetMini.material)) {
+            targetMini.material.forEach(m => m.opacity = newOpacity);
+        } else if (targetMini.material) {
+            targetMini.material.opacity = newOpacity;
+        }
+
+        if (t < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            // Verwijder uit scene na animatie
+            if (window.scene) {
+                scene.remove(targetMini);
+            }
+        }
+    }
+    animate();
 }
