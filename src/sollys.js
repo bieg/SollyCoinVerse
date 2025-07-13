@@ -185,8 +185,10 @@ function addSollyDragListeners() {
     }
     const canvas = window.renderer.domElement;
     debugLog('🖱️ [DEBUG] Drag-listeners worden toegevoegd aan canvas:', canvas);
-    // Gebruik één uniforme pointerdown-listener – werkt voor muis, touch én pen
-    canvas.addEventListener('pointerdown', onSolly1PointerDown, false);
+    // Verwijder eventuele oude listener in bubbelfase
+    canvas.removeEventListener('pointerdown', onSolly1PointerDown, false);
+    // Voeg pointerdown-listener toe in capture-fase zodat we vóór OrbitControls reageren
+    canvas.addEventListener('pointerdown', onSolly1PointerDown, true);
     // Log dat listeners zijn toegevoegd
     debugLog('✅ [DEBUG] Drag-listeners toegevoegd aan canvas!');
 }
@@ -439,7 +441,8 @@ function onDragEnd(event) {
         if (window.controls && window.debugSolly1Only) window.controls.enabled = false;
         
         // Hervat automatische beweging van Solly1
-        window.solly1MovementPaused = false; // Hervat animatie na drag
+        // Laat Solly1 op zijn nieuwe positie staan: animatie blijft gepauzeerd
+        // window.solly1MovementPaused blijft TRUE
         if (solly1 && solly1.userData) {
             solly1.userData.movementPaused = false;
             solly1.userData.frozen = false;
@@ -1092,7 +1095,7 @@ function onSolly1PointerUp(event) {
             window.isPaused = false;
         }
     }
-    window.solly1MovementPaused = false;
+    // Laat Solly1 op nieuwe positie staan; animatie blijft gepauzeerd
     isDragging = false;
     draggedSolly = null;
     dragPlane = null;
