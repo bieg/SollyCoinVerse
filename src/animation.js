@@ -5,7 +5,7 @@ function animate() {
     if (solly1 && !window.solly1DragActive) {
         console.log('🟡 [animate] Solly1 positie:', solly1.position.x, solly1.position.y, solly1.position.z);
     }
-    if (!isPaused && !window.solly1DragActive) {
+    if (!window.isPaused && !window.solly1DragActive) {
         updateSolly1Movement();
         updateSolly2Movement();
         updatePortalMovement();

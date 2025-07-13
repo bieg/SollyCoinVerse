@@ -25,6 +25,7 @@ let shapeChoiceMade = false;
 let shapeModalTimeout = null;
 let canSollyMove = false;
 let isPaused = false;
+window.isPaused = isPaused;
 let sollySun, sollySunGlow;
 
 // Camera animatie state
@@ -310,10 +311,11 @@ async function initSollyverse() {
 function animate() {
     requestAnimationFrame(animate);
     
-    if (!isPaused && !window.solly1DragActive) {
+    if (!window.isPaused && !window.solly1DragActive) {
         updateSolly1Movement();
         updateSolly2Movement();
         updatePortalMovement();
+        if (!collisionDetected) checkMiniSollyCollision();
     }
     
     if (typeof updateCameraControls === 'function') updateCameraControls();
@@ -446,6 +448,20 @@ function triggerCollision() {
     
     console.log('💥 Collision triggered!');
     // Add collision logic here
+}
+
+// === Collision Solly1 vs miniSollys ===
+function checkMiniSollyCollision() {
+    if (!window.solly1 || !window.miniSollys) return;
+    const sollyPos = solly1.position;
+    const threshold = 120; // afstand waarbij we een botsing aannemen
+    for (const m of window.miniSollys) {
+        if (!m) continue;
+        if (sollyPos.distanceTo(m.position) < threshold) {
+            triggerCollision();
+            break;
+        }
+    }
 }
 
 // applyUniverseScaling verwijderd – universe gebruikt vaste basiswaarden
