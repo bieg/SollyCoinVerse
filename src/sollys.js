@@ -1468,22 +1468,32 @@ function evaluateDropOnMiniSolly() {
 
     const centerSolly = projectToScreen(solly1.position);
     const radiusSolly = getScreenRadius(solly1);
-    const pixelThreshold = 120; // ruimer na visuele review
 
     for (const mini of window.miniSollys) {
         if (!mini) continue;
         const centerMini = projectToScreen(mini.position);
         const radiusMini = getScreenRadius(mini);
         const d2d = centerSolly.distanceTo(centerMini);
-        const hitDist = radiusSolly + radiusMini;
-        // === Log afstanden en radii ===
+        const r1 = radiusSolly;
+        const r2 = radiusMini;
+        // Bereken overlap area van twee cirkels
+        let overlapArea = 0;
+        if (d2d < r1 + r2) {
+            const part1 = r1 * r1 * Math.acos((d2d * d2d + r1 * r1 - r2 * r2) / (2 * d2d * r1));
+            const part2 = r2 * r2 * Math.acos((d2d * d2d + r2 * r2 - r1 * r1) / (2 * d2d * r2));
+            const part3 = 0.5 * Math.sqrt((-d2d + r1 + r2) * (d2d + r1 - r2) * (d2d - r1 + r2) * (d2d + r1 + r2));
+            overlapArea = part1 + part2 - part3;
+        }
+        const area1 = Math.PI * r1 * r1;
+        const area2 = Math.PI * r2 * r2;
+        const minArea = Math.min(area1, area2);
+        const overlapRatio = overlapArea / minArea;
+        // Log overlap info
         console.log('[DEBUG] check mini:', mini.uuid, {
-            d2d, hitDist, centerSolly, centerMini, radiusSolly, radiusMini,
-            marge: 1.15, hitDistMarge: hitDist * 1.15
+            d2d, r1, r2, overlapArea, area1, area2, overlapRatio
         });
-        // === Gebruik nu 1.15 marge ===
-        if (d2d < hitDist * 1.15) { // kleinere marge
-            console.log('💥 KABOOM! 2D circle hit met mini-Solly:', mini);
+        if (overlapRatio > 0.6) {
+            console.log('💥 KABOOM! 2D overlap > 60% met mini-Solly:', mini);
             handleSollyOnMini(mini);
             spawnKaboom(mini.position);
             break;
