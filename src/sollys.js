@@ -355,6 +355,8 @@ let solly1MovementPaused = false;
 var portalClicked = false;
 // Globale pauzeer-flag voor collision/kaboom
 window.collisionPaused = false;
+// === NIEUW: Drop-handled flag ===
+window.solly1DropHandled = false;
 
 // Hover-callback eerst declareren zodat het beschikbaar is
 function onSollyHoverMove(e) {
@@ -594,6 +596,9 @@ function onDragEnd(event) {
         
         // Controleer of Solly1 bovenop een miniSolly is gedropt
         evaluateDropOnMiniSolly();
+        // === Zet drop-handled flag ===
+        window.solly1DropHandled = true;
+        console.log('[DEBUG] solly1DropHandled = true na drag end');
 
         console.log('💡 Lights weer aangezet en alle animaties hervat');
     }
@@ -1198,6 +1203,8 @@ function onSolly1PointerDown(event) {
     console.log('Camera positie:', camera.position);
     console.log('Scene positie:', scene.position);
     logAllSolly1Meshes();
+    // === Reset drop-handled flag bij nieuwe drag ===
+    window.solly1DropHandled = false;
 }
 
 function onSolly1PointerMove(event) {
@@ -1287,6 +1294,9 @@ function onSolly1PointerUp(event) {
 
     // Collision-check na loslaten
     evaluateDropOnMiniSolly();
+    // === Zet drop-handled flag ===
+    window.solly1DropHandled = true;
+    console.log('[DEBUG] solly1DropHandled = true na pointer up');
 }
 
 // Alleen Solly1 klikbaar maken

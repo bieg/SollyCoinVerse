@@ -481,6 +481,8 @@ function triggerCollision() {
 
 // === Collision Solly1 vs miniSollys ===
 function checkMiniSollyCollision() {
+    // === Alleen collision checken als drop nog niet is afgehandeld ===
+    if (window.solly1DropHandled === true) return;
     if (!window.solly1 || !window.miniSollys) return;
     const sollyPos = solly1.position;
     const threshold = 120; // afstand waarbij we een botsing aannemen
