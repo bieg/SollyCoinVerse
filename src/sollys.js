@@ -487,6 +487,11 @@ function startDrag(object) {
     }
     draggedSolly.scale.set(5, 5, 5);
     
+    // === NIEUW: Zorg dat de zon nooit van kleur verandert ===
+    if (window.sollySun && window.sollySun.material && window.sollySun.material.color) {
+        window.sollySun.material.color.set(0xFFB200); // altijd oranje-geel
+    }
+    
     console.log('❄️ Alle animaties gepauzeerd voor smooth drag');
 }
 
@@ -1243,6 +1248,9 @@ function onSolly1PointerMove(event) {
 
         window.miniSollys.forEach(mini => {
             if (!mini.material) return;
+            // === Skip de zon (Core_1/sollySun) ===
+            if (mini.name && mini.name.toLowerCase().includes('core_1')) return;
+            if (window.sollySun && mini === window.sollySun) return;
             const isTarget = (mini === closestMini && closestDist < pixelThreshold);
             if (isTarget) {
                 // Opslaan originele kleur bij eerste keer highlight
