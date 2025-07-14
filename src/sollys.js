@@ -1476,8 +1476,13 @@ function evaluateDropOnMiniSolly() {
         const radiusMini = getScreenRadius(mini);
         const d2d = centerSolly.distanceTo(centerMini);
         const hitDist = radiusSolly + radiusMini;
-        console.log('[DEBUG] check mini:', mini.uuid, {d2d, hitDist, centerSolly, centerMini, radiusSolly, radiusMini});
-        if (d2d < hitDist * 1.05) { // kleine marge
+        // === Log afstanden en radii ===
+        console.log('[DEBUG] check mini:', mini.uuid, {
+            d2d, hitDist, centerSolly, centerMini, radiusSolly, radiusMini,
+            marge: 1.15, hitDistMarge: hitDist * 1.15
+        });
+        // === Gebruik nu 1.15 marge ===
+        if (d2d < hitDist * 1.15) { // kleinere marge
             console.log('💥 KABOOM! 2D circle hit met mini-Solly:', mini);
             handleSollyOnMini(mini);
             spawnKaboom(mini.position);
