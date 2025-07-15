@@ -185,6 +185,9 @@ async function initSollyverse() {
     window.controls = controls;
     window.gameManager = gameManager;
 
+    // Initialize CollisionManager
+    window.collisionManager = new CollisionManager();
+
     // Mini-Solly click event: kaboom bij click
     renderer.domElement.addEventListener('click', function(e) {
         if (window.solly1DragActive) return; // niet tijdens drag
@@ -483,18 +486,10 @@ function triggerCollision() {
 function checkMiniSollyCollision() {
     // === Alleen collision checken als drop nog niet is afgehandeld ===
     if (window.solly1DropHandled === true) return;
-    if (!window.solly1 || !window.miniSollys) return;
-    const sollyPos = solly1.position;
-    const threshold = 120; // afstand waarbij we een botsing aannemen
     
-    // Filter out mini-Sollies that are no longer in the scene
-    const validMiniSollys = window.miniSollys.filter(m => m && m.parent && m.visible);
-    
-    for (const m of validMiniSollys) {
-        if (sollyPos.distanceTo(m.position) < threshold) {
-            triggerCollision();
-            break;
-        }
+    // Gebruik CollisionManager voor collision detection
+    if (window.collisionManager) {
+        window.collisionManager.checkMiniSollyCollision();
     }
 }
 

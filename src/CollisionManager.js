@@ -312,10 +312,307 @@ class CollisionManager {
     // Check of er genoeg collisions zijn voor portal activatie
     if (window.gameManager) {
       const kaboomCount = window.gameManager.getKaboomCount();
-      if (kaboomCount >= 5 && window.activatePortal) {
+      
+      // Na 4 collisions: toon ShapeChoice modal
+      if (kaboomCount === 4) {
+        this.showShapeChoiceModal();
+      }
+      // Na 5 collisions: activeer portal
+      else if (kaboomCount >= 5 && window.activatePortal) {
         window.activatePortal();
       }
     }
+  }
+
+  showShapeChoiceModal() {
+    this.debugLog('🎨 Showing ShapeChoice modal after 4 collisions');
+    
+    // Maak modal HTML
+    const modalHTML = `
+      <div class="shape-choice-modal">
+        <div class="shape-choice-content">
+          <h2>🎨 Kies je nieuwe vorm!</h2>
+          <p>Je hebt 4 collisions bereikt! Kies hoe je verder wilt:</p>
+          
+          <div class="shape-options">
+            <div class="shape-option" data-shape="piramide">
+              <div class="shape-preview piramide-preview">🔺</div>
+              <h3>Piramide</h3>
+              <p>Klassieke vorm, perfecte balans</p>
+            </div>
+            
+            <div class="shape-option" data-shape="vierkant">
+              <div class="shape-preview vierkant-preview">⬜</div>
+              <h3>Vierkant</h3>
+              <p>Stabiel en betrouwbaar</p>
+            </div>
+            
+            <div class="shape-option" data-shape="zandloper">
+              <div class="shape-preview zandloper-preview">⏳</div>
+              <h3>Zandloper</h3>
+              <p>Dynamisch en snel</p>
+            </div>
+            
+            <div class="shape-option" data-shape="ruit">
+              <div class="shape-preview ruit-preview">💎</div>
+              <h3>Ruit</h3>
+              <p>Elegant en precies</p>
+            </div>
+          </div>
+          
+          <div class="shape-choice-actions">
+            <button class="shape-choice-btn" onclick="window.collisionManager.handleShapeChoice('piramide')">
+              Kies Piramide
+            </button>
+            <button class="shape-choice-btn" onclick="window.collisionManager.handleShapeChoice('vierkant')">
+              Kies Vierkant
+            </button>
+            <button class="shape-choice-btn" onclick="window.collisionManager.handleShapeChoice('zandloper')">
+              Kies Zandloper
+            </button>
+            <button class="shape-choice-btn" onclick="window.collisionManager.handleShapeChoice('ruit')">
+              Kies Ruit
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Voeg CSS toe als het nog niet bestaat
+    if (!document.getElementById('shape-choice-styles')) {
+      const style = document.createElement('style');
+      style.id = 'shape-choice-styles';
+      style.textContent = `
+        .shape-choice-modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.8);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 10000;
+          animation: fadeIn 0.3s ease-out;
+        }
+        
+        .shape-choice-content {
+          background: linear-gradient(135deg, #1a1a2e, #16213e);
+          border: 2px solid #8A2BE2;
+          border-radius: 20px;
+          padding: 40px;
+          max-width: 600px;
+          text-align: center;
+          color: white;
+          box-shadow: 0 20px 40px rgba(138, 43, 226, 0.3);
+          animation: slideUp 0.4s ease-out;
+        }
+        
+        .shape-choice-content h2 {
+          color: #FFD700;
+          font-size: 2.5em;
+          margin-bottom: 20px;
+          text-shadow: 0 2px 8px rgba(255, 215, 0, 0.5);
+        }
+        
+        .shape-choice-content p {
+          font-size: 1.2em;
+          margin-bottom: 30px;
+          color: #E0E0E0;
+        }
+        
+        .shape-options {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+          margin-bottom: 30px;
+        }
+        
+        .shape-option {
+          background: rgba(255, 255, 255, 0.1);
+          border: 2px solid transparent;
+          border-radius: 15px;
+          padding: 20px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        
+        .shape-option:hover {
+          border-color: #FFD700;
+          background: rgba(255, 215, 0, 0.1);
+          transform: translateY(-5px);
+        }
+        
+        .shape-preview {
+          font-size: 3em;
+          margin-bottom: 10px;
+        }
+        
+        .shape-option h3 {
+          color: #FFD700;
+          margin-bottom: 10px;
+          font-size: 1.3em;
+        }
+        
+        .shape-option p {
+          font-size: 0.9em;
+          color: #B0B0B0;
+          margin: 0;
+        }
+        
+        .shape-choice-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 15px;
+          justify-content: center;
+        }
+        
+        .shape-choice-btn {
+          background: linear-gradient(45deg, #8A2BE2, #9370DB);
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 12px 24px;
+          font-size: 1.1em;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
+        }
+        
+        .shape-choice-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(138, 43, 226, 0.6);
+          background: linear-gradient(45deg, #9370DB, #8A2BE2);
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+          from { 
+            opacity: 0;
+            transform: translateY(50px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    // Voeg modal toe aan DOM
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    document.body.appendChild(modalContainer.firstElementChild);
+    
+    // Maak collisionManager globaal beschikbaar
+    window.collisionManager = this;
+  }
+
+  handleShapeChoice(shape) {
+    this.debugLog(`🎨 Shape chosen: ${shape}`);
+    
+    // Update game state
+    if (window.gameManager) {
+      window.gameManager.changeShape(shape);
+    }
+    
+    // Update Solly1 vorm
+    this.updateSolly1Shape(shape);
+    
+    // Verberg modal
+    this.hideShapeChoiceModal();
+    
+    // Toon success message
+    this.showShapeChangeMessage(shape);
+  }
+
+  updateSolly1Shape(shape) {
+    if (!window.solly1) return;
+    
+    // Verwijder oude geometrie
+    if (window.solly1.geometry) {
+      window.solly1.geometry.dispose();
+    }
+    
+    // Maak nieuwe geometrie op basis van shape
+    let newGeometry;
+    switch (shape) {
+      case 'vierkant':
+        newGeometry = new THREE.BoxGeometry(120, 120, 120);
+        break;
+      case 'zandloper':
+        newGeometry = new THREE.ConeGeometry(60, 240, 4);
+        break;
+      case 'ruit':
+        newGeometry = new THREE.OctahedronGeometry(80);
+        break;
+      case 'piramide':
+      default:
+        newGeometry = new THREE.ConeGeometry(60, 120, 4);
+        break;
+    }
+    
+    window.solly1.geometry = newGeometry;
+    window.solly1.userData.shape = shape;
+    
+    this.debugLog(`🎨 Solly1 shape updated to: ${shape}`);
+  }
+
+  hideShapeChoiceModal() {
+    const modal = document.querySelector('.shape-choice-modal');
+    if (modal) {
+      modal.style.animation = 'fadeOut 0.3s ease-in';
+      setTimeout(() => modal.remove(), 300);
+    }
+  }
+
+  showShapeChangeMessage(shape) {
+    const messageEl = document.createElement('div');
+    messageEl.textContent = `🎨 Je bent nu een ${shape}!`;
+    messageEl.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      color: white;
+      padding: 20px 30px;
+      border-radius: 15px;
+      font-size: 1.3em;
+      font-weight: bold;
+      z-index: 10001;
+      box-shadow: 0 8px 24px rgba(76, 175, 80, 0.4);
+      animation: shapeChangePulse 2s ease-out;
+    `;
+    
+    // Voeg animatie CSS toe
+    if (!document.getElementById('shape-change-animations')) {
+      const style = document.createElement('style');
+      style.id = 'shape-change-animations';
+      style.textContent = `
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+        
+        @keyframes shapeChangePulse {
+          0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+          50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(messageEl);
+    setTimeout(() => messageEl.remove(), 2000);
   }
 
   // Public methods
