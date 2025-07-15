@@ -1174,9 +1174,13 @@ function onSolly1PointerDown(event) {
     if (event.stopImmediatePropagation) event.stopImmediatePropagation();
     if (event.stopPropagation) event.stopPropagation();
     if (event.preventDefault) event.preventDefault();
-    // Log welk object je raakt
-    const hitObj = hits[0].object;
-    console.log('🎯 Raycast hit:', hitObj.name, 'is hoofdmesh:', hitObj === solly1, 'is child van solly1:', hitObj.parent === solly1);
+    // Log welk object je raakt (veilig checken of hits[0] bestaat)
+    if (hits.length > 0 && hits[0]) {
+        const hitObj = hits[0].object;
+        console.log('🎯 Raycast hit:', hitObj.name, 'is hoofdmesh:', hitObj === solly1, 'is child van solly1:', hitObj.parent === solly1);
+    } else {
+        console.log('🎯 Raycast hit: fallback (geen directe hit, maar dichtbij)');
+    }
     // Als Solly1 geraakt
     draggedSolly = solly1;
     // Definieer vlak loodrecht op camera door Solly1 positie
@@ -1337,6 +1341,11 @@ function enableSolly1DragOnly() {
             } else if (obj.name && obj.name.toLowerCase().includes('core_1')) {
                 obj.visible = true;
                 obj.raycast = () => {};
+            } else if (solly1.children && solly1.children.includes(obj)) {
+                // Zorg dat children van Solly1 (voor zandloper) ook raycastable zijn
+                obj.visible = true;
+                if (obj.material) obj.material.visible = true;
+                obj.raycast = THREE.Mesh.prototype.raycast;
             } else {
                 obj.visible = false;
                 if (obj.material) obj.material.visible = false;

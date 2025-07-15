@@ -615,6 +615,13 @@ class CollisionManager {
       window.solly1.userData.shape = shape;
     }
     
+    // Herstel raycasting na vorm verandering
+    if (typeof window.enableSolly1DragOnly === 'function') {
+      setTimeout(() => {
+        window.enableSolly1DragOnly();
+      }, 100);
+    }
+    
     this.debugLog(`🎨 Solly1 shape updated to: ${shape}`);
   }
 
