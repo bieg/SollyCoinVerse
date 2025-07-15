@@ -1,349 +1,382 @@
 // ===================================================================================
-// ==                           SOLLYVERSE PERFORMANCE MANAGER                     ==
+// ==                        PERFORMANCE MANAGER MODULE                           ==
 // ==                                                                             ==
-// ==      Performance optimalisaties en monitoring:                             ==
-// ==      - Object pooling                                                      ==
-// ==      - Level of Detail (LOD) system                                       ==
-// ==      - Frustum culling                                                    ==
-// ==      - Geometry instancing                                                ==
-// ==      - Memory management                                                  ==
+// ==      Bevat alle performance optimalisaties:                                ==
+// ==      - Object pooling voor particles                                       ==
+// ==      - Level of Detail (LOD) system                                        ==
+// ==      - Frustum culling                                                     ==
+// ==      - Memory management                                                   ==
 // ===================================================================================
 
-export class PerformanceManager {
+class PerformanceManager {
   constructor() {
-    this.stats = {
-      fps: 0,
-      frameTime: 0,
-      objectCount: 0,
-      drawCalls: 0,
-      memoryUsage: 0,
-      lastFrameTime: 0
-    };
-    
-    this.settings = {
-      enableLOD: true,
-      enableFrustumCulling: true,
-      enableObjectPooling: true,
-      enableInstancing: true,
-      maxVisibleObjects: 2000,
-      cullDistance: 15000,
-      lodDistance: 8000
-    };
-    
-    this.objectPools = new Map();
-    this.visibleObjects = new Set();
-    this.lodLevels = new Map();
-    
-    this.initPerformanceMonitoring();
-    console.log('⚡ PerformanceManager initialized');
+    this.objectPools = {};
+    this.lodLevels = {};
+    this.frustumCuller = null;
+    this.memoryMonitor = null;
+    this.isActive = false;
+    this.DEBUG = window.DEBUG || false;
   }
 
-  // Performance monitoring
-  initPerformanceMonitoring() {
-    let frameCount = 0;
-    let lastTime = performance.now();
+  debugLog(...args) {
+    if (this.DEBUG) {
+      console.log('[PerformanceManager]', ...args);
+    }
+  }
+
+  // Initialize performance manager
+  initialize() {
+    try {
+      this.debugLog('⚡ Initializing PerformanceManager...');
+      
+      this.setupObjectPools();
+      this.setupLODSystem();
+      this.setupFrustumCulling();
+      this.setupMemoryMonitoring();
+      
+      this.isActive = true;
+      this.debugLog('✅ PerformanceManager initialized successfully');
+      
+      return true;
+    } catch (error) {
+      this.debugLog('❌ PerformanceManager initialization failed:', error);
+      return false;
+    }
+  }
+
+  // Setup object pools for frequently created/destroyed objects
+  setupObjectPools() {
+    this.debugLog('🏊 Setting up object pools...');
     
-    const updateStats = () => {
-      const currentTime = performance.now();
-      const deltaTime = currentTime - lastTime;
-      
-      this.stats.frameTime = deltaTime;
-      this.stats.fps = Math.round(1000 / deltaTime);
-      this.stats.lastFrameTime = currentTime;
-      
-      // Update object count
-      try {
-        if (window.scene) {
-          let count = 0;
-          window.scene.traverse(obj => {
-            if (obj.isMesh) count++;
-          });
-          this.stats.objectCount = count;
-        } else if (this.universeManager) {
-          const scene = this.universeManager.getScene();
-          if (scene) {
-            let count = 0;
-            scene.traverse(obj => {
-              if (obj.isMesh) count++;
-            });
-            this.stats.objectCount = count;
-          }
-        }
-      } catch (error) {
-        console.warn("⚠️ Error counting objects:", error);
-        this.stats.objectCount = 0;
+    // Particle pool
+    this.objectPools.particles = {
+      active: [],
+      inactive: [],
+      maxSize: 100,
+      create: () => {
+        const geo = new THREE.SphereGeometry(0.5, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ 
+          color: 0xFFD700, 
+          transparent: true, 
+          opacity: 1.0 
+        });
+        return new THREE.Mesh(geo, mat);
+      },
+      reset: (particle) => {
+        particle.position.set(0, 0, 0);
+        particle.scale.setScalar(1);
+        particle.material.opacity = 1.0;
+        particle.velocity = null;
       }
-      
-      // Update draw calls (approximation)
-      if (window.renderer) {
-        this.stats.drawCalls = this.stats.objectCount; // Simplified
-      } else if (this.universeManager) {
-        const renderer = this.universeManager.getRenderer();
-        if (renderer) {
-          this.stats.drawCalls = this.stats.objectCount; // Simplified
-        }
-      }
-      
-      lastTime = currentTime;
-      frameCount++;
-      
-      // Log performance every 60 frames
-      if (frameCount % 60 === 0) {
-        this.logPerformanceStats();
-      }
-      
-      requestAnimationFrame(updateStats);
     };
     
-    requestAnimationFrame(updateStats);
-  }
-
-  logPerformanceStats() {
-    // Performance stats logging disabled
-  }
-
-  // Object pooling voor herbruikbare objecten
-  createObjectPool(type, createFunction, maxSize = 100) {
-    const pool = {
-      objects: [],
-      active: new Set(),
-      create: createFunction,
-      maxSize: maxSize
+    // Explosion pool
+    this.objectPools.explosions = {
+      active: [],
+      inactive: [],
+      maxSize: 20,
+      create: () => {
+        const geo = new THREE.SphereGeometry(1, 32, 32);
+        const mat = new THREE.MeshBasicMaterial({ 
+          color: 0xFF4500, 
+          transparent: true, 
+          opacity: 0.9, 
+          blending: THREE.AdditiveBlending 
+        });
+        return new THREE.Mesh(geo, mat);
+      },
+      reset: (explosion) => {
+        explosion.position.set(0, 0, 0);
+        explosion.scale.setScalar(1);
+        explosion.material.opacity = 0.9;
+      }
     };
     
-    this.objectPools.set(type, pool);
-    return pool;
+    this.debugLog('✅ Object pools setup complete');
   }
 
-  getFromPool(type) {
-    const pool = this.objectPools.get(type);
-    if (!pool) return null;
-    
-    let obj;
-    if (pool.objects.length > 0) {
-      obj = pool.objects.pop();
-    } else {
-      obj = pool.create();
+  // Get object from pool
+  getFromPool(poolName) {
+    const pool = this.objectPools[poolName];
+    if (!pool) {
+      throw new Error(`Pool '${poolName}' not found`);
     }
     
-    pool.active.add(obj);
-    return obj;
+    let object;
+    if (pool.inactive.length > 0) {
+      object = pool.inactive.pop();
+      pool.reset(object);
+    } else {
+      object = pool.create();
+    }
+    
+    pool.active.push(object);
+    return object;
   }
 
-  returnToPool(type, obj) {
-    const pool = this.objectPools.get(type);
-    if (!pool || !pool.active.has(obj)) return;
+  // Return object to pool
+  returnToPool(poolName, object) {
+    const pool = this.objectPools[poolName];
+    if (!pool) {
+      throw new Error(`Pool '${poolName}' not found`);
+    }
     
-    pool.active.delete(obj);
+    const index = pool.active.indexOf(object);
+    if (index > -1) {
+      pool.active.splice(index, 1);
+    }
     
-    if (pool.objects.length < pool.maxSize) {
-      // Reset object properties
-      obj.position.set(0, 0, 0);
-      obj.rotation.set(0, 0, 0);
-      obj.scale.set(1, 1, 1);
-      obj.visible = false;
-      
-      pool.objects.push(obj);
+    if (pool.inactive.length < pool.maxSize) {
+      pool.inactive.push(object);
     } else {
       // Dispose if pool is full
-      this.disposeObject(obj);
+      if (object.geometry) object.geometry.dispose();
+      if (object.material) object.material.dispose();
     }
   }
 
-  // Level of Detail system
-  createLODLevels(object, distances = [1000, 3000, 8000]) {
-    const lod = {
-      object: object,
-      levels: [],
-      currentLevel: 0
+  // Setup Level of Detail system
+  setupLODSystem() {
+    this.debugLog('📊 Setting up LOD system...');
+    
+    this.lodLevels = {
+      near: { distance: 1000, detail: 'high' },
+      medium: { distance: 3000, detail: 'medium' },
+      far: { distance: 8000, detail: 'low' }
     };
     
-    distances.forEach((distance, index) => {
-      const level = {
-        distance: distance,
-        geometry: this.createSimplifiedGeometry(object.geometry, index),
-        material: object.material.clone()
-      };
-      lod.levels.push(level);
-    });
-    
-    this.lodLevels.set(object, lod);
-    return lod;
+    this.debugLog('✅ LOD system setup complete');
   }
 
-  createSimplifiedGeometry(originalGeometry, level) {
-    // Simplified geometry based on level
-    const reductionFactor = Math.pow(2, level + 1);
-    
-    if (originalGeometry.type === 'SphereGeometry') {
-      const segments = Math.max(8, Math.floor(originalGeometry.parameters.widthSegments / reductionFactor));
-      return new THREE.SphereGeometry(
-        originalGeometry.parameters.radius,
-        segments,
-        segments
-      );
-    } else if (originalGeometry.type === 'TetrahedronGeometry') {
-      return new THREE.TetrahedronGeometry(
-        originalGeometry.parameters.radius,
-        Math.max(0, level - 1)
-      );
+  // Get LOD level for distance
+  getLODLevel(distance) {
+    if (distance < this.lodLevels.near.distance) {
+      return this.lodLevels.near.detail;
+    } else if (distance < this.lodLevels.medium.distance) {
+      return this.lodLevels.medium.detail;
+    } else {
+      return this.lodLevels.far.detail;
     }
-    
-    return originalGeometry;
   }
 
-  updateLOD(camera) {
-    if (!this.settings.enableLOD) return;
+  // Apply LOD to object
+  applyLOD(object, distance) {
+    const lodLevel = this.getLODLevel(distance);
     
-    this.lodLevels.forEach((lod, object) => {
-      if (!object.visible) return;
-      
-      const distance = camera.position.distanceTo(object.position);
-      let newLevel = 0;
-      
-      for (let i = 0; i < lod.levels.length; i++) {
-        if (distance > lod.levels[i].distance) {
-          newLevel = i;
+    switch (lodLevel) {
+      case 'high':
+        object.visible = true;
+        if (object.geometry) {
+          object.geometry.detail = 32;
         }
-      }
-      
-      if (newLevel !== lod.currentLevel) {
-        object.geometry = lod.levels[newLevel].geometry;
-        lod.currentLevel = newLevel;
-      }
-    });
-  }
-
-  // Frustum culling
-  updateFrustumCulling(camera) {
-    if (!this.settings.enableFrustumCulling) return;
-    
-    const frustum = new THREE.Frustum();
-    const matrix = new THREE.Matrix4().multiplyMatrices(
-      camera.projectionMatrix,
-      camera.matrixWorldInverse
-    );
-    frustum.setFromProjectionMatrix(matrix);
-    
-    this.visibleObjects.clear();
-    
-    const scene = window.scene || (this.universeManager ? this.universeManager.getScene() : null);
-    
-    if (scene) {
-      scene.traverse(obj => {
-        if (obj.isMesh && obj.visible) {
-          const distance = camera.position.distanceTo(obj.position);
-          
-          // Distance culling
-          if (distance > this.settings.cullDistance) {
-            obj.visible = false;
-            return;
-          }
-          
-          // Frustum culling
-          if (frustum.containsPoint(obj.position)) {
-            this.visibleObjects.add(obj);
-            obj.visible = true;
-          } else {
-            obj.visible = false;
-          }
-        }
-      });
-    }
-  }
-
-  // Geometry instancing voor identieke objecten
-  createInstancedMesh(geometry, material, count) {
-    const instancedMesh = new THREE.InstancedMesh(geometry, material, count);
-    instancedMesh.count = 0;
-    return instancedMesh;
-  }
-
-  addInstance(instancedMesh, position, rotation, scale) {
-    if (instancedMesh.count >= instancedMesh.instanceMatrix.count) return false;
-    
-    const matrix = new THREE.Matrix4();
-    matrix.compose(position, rotation, scale);
-    instancedMesh.setMatrixAt(instancedMesh.count, matrix);
-    instancedMesh.count++;
-    
-    return true;
-  }
-
-  // Memory management
-  disposeObject(obj) {
-    if (obj.geometry) {
-      obj.geometry.dispose();
-    }
-    if (obj.material) {
-      if (Array.isArray(obj.material)) {
-        obj.material.forEach(mat => mat.dispose());
-      } else {
-        obj.material.dispose();
-      }
-    }
-  }
-
-  cleanupUnusedObjects() {
-    // Cleanup object pools
-    this.objectPools.forEach((pool, type) => {
-      pool.objects.forEach(obj => {
-        this.disposeObject(obj);
-      });
-      pool.objects.length = 0;
-    });
-    
-    // Cleanup LOD levels
-    this.lodLevels.forEach((lod, object) => {
-      lod.levels.forEach(level => {
-        if (level.geometry !== object.geometry) {
-          level.geometry.dispose();
-        }
-      });
-    });
-  }
-
-  // Performance settings
-  setPerformanceMode(mode) {
-    switch (mode) {
-      case 'low':
-        this.settings.maxVisibleObjects = 500;
-        this.settings.cullDistance = 8000;
-        this.settings.lodDistance = 4000;
         break;
       case 'medium':
-        this.settings.maxVisibleObjects = 1000;
-        this.settings.cullDistance = 12000;
-        this.settings.lodDistance = 6000;
+        object.visible = true;
+        if (object.geometry) {
+          object.geometry.detail = 16;
+        }
         break;
-      case 'high':
-        this.settings.maxVisibleObjects = 2000;
-        this.settings.cullDistance = 15000;
-        this.settings.lodDistance = 8000;
+      case 'low':
+        object.visible = true;
+        if (object.geometry) {
+          object.geometry.detail = 8;
+        }
         break;
     }
   }
 
-  // Batch updates voor betere performance
-  batchUpdate(updates) {
-    const startTime = performance.now();
+  // Setup frustum culling
+  setupFrustumCulling() {
+    this.debugLog('👁️ Setting up frustum culling...');
     
-    updates.forEach(update => {
-      if (typeof update === 'function') {
-        update();
+    this.frustumCuller = new THREE.Frustum();
+    this.debugLog('✅ Frustum culling setup complete');
+  }
+
+  // Update frustum culler
+  updateFrustumCuller(camera) {
+    if (!this.frustumCuller) return;
+    
+    this.frustumCuller.setFromProjectionMatrix(
+      new THREE.Matrix4().multiplyMatrices(
+        camera.projectionMatrix,
+        camera.matrixWorldInverse
+      )
+    );
+  }
+
+  // Check if object is in frustum
+  isInFrustum(object) {
+    if (!this.frustumCuller) return true;
+    
+    const box = new THREE.Box3().setFromObject(object);
+    return this.frustumCuller.intersectsBox(box);
+  }
+
+  // Setup memory monitoring
+  setupMemoryMonitoring() {
+    this.debugLog('💾 Setting up memory monitoring...');
+    
+    this.memoryMonitor = {
+      lastCheck: Date.now(),
+      checkInterval: 30000, // 30 seconds
+      maxMemoryUsage: 100 * 1024 * 1024, // 100MB
+      cleanupThreshold: 0.8 // 80% of max
+    };
+    
+    this.debugLog('✅ Memory monitoring setup complete');
+  }
+
+  // Check memory usage
+  checkMemoryUsage() {
+    if (!this.memoryMonitor) return;
+    
+    const now = Date.now();
+    if (now - this.memoryMonitor.lastCheck < this.memoryMonitor.checkInterval) {
+      return;
+    }
+    
+    this.memoryMonitor.lastCheck = now;
+    
+    // Check if memory usage is available
+    if (performance.memory) {
+      const usedMemory = performance.memory.usedJSHeapSize;
+      const maxMemory = performance.memory.jsHeapSizeLimit;
+      const memoryUsage = usedMemory / maxMemory;
+      
+      this.debugLog('💾 Memory usage:', (usedMemory / 1024 / 1024).toFixed(2), 'MB /', (maxMemory / 1024 / 1024).toFixed(2), 'MB');
+      
+      if (memoryUsage > this.memoryMonitor.cleanupThreshold) {
+        this.debugLog('⚠️ High memory usage detected, triggering cleanup');
+        this.performCleanup();
+      }
+    }
+  }
+
+  // Perform memory cleanup
+  performCleanup() {
+    this.debugLog('🧹 Performing memory cleanup...');
+    
+    // Cleanup object pools
+    Object.keys(this.objectPools).forEach(poolName => {
+      const pool = this.objectPools[poolName];
+      const excessObjects = pool.active.length - pool.maxSize;
+      
+      if (excessObjects > 0) {
+        for (let i = 0; i < excessObjects; i++) {
+          const object = pool.active.pop();
+          if (object.geometry) object.geometry.dispose();
+          if (object.material) object.material.dispose();
+        }
+        this.debugLog(`🧹 Cleaned up ${excessObjects} objects from ${poolName} pool`);
       }
     });
     
-    const endTime = performance.now();
-    console.log(`⚡ Batch update completed in ${(endTime - startTime).toFixed(2)}ms`);
+    // Force garbage collection if available
+    if (window.gc) {
+      window.gc();
+      this.debugLog('🗑️ Forced garbage collection');
+    }
   }
 
-  // Initialize method for module compatibility
-  async initialize() {
-    console.log("⚡ PerformanceManager initialized");
-    return Promise.resolve();
+  // Optimize scene rendering
+  optimizeScene(scene, camera) {
+    if (!this.isActive) return;
+    
+    // Update frustum culler
+    this.updateFrustumCuller(camera);
+    
+    // Apply LOD and culling to all objects
+    scene.traverse((object) => {
+      if (object.isMesh) {
+        const distance = camera.position.distanceTo(object.position);
+        
+        // Apply LOD
+        this.applyLOD(object, distance);
+        
+        // Apply frustum culling
+        if (!this.isInFrustum(object)) {
+          object.visible = false;
+        }
+      }
+    });
+    
+    // Check memory usage
+    this.checkMemoryUsage();
+  }
+
+  // Get performance statistics
+  getStats() {
+    const stats = {
+      isActive: this.isActive,
+      objectPools: {},
+      memory: null
+    };
+    
+    // Object pool stats
+    Object.keys(this.objectPools).forEach(poolName => {
+      const pool = this.objectPools[poolName];
+      stats.objectPools[poolName] = {
+        active: pool.active.length,
+        inactive: pool.inactive.length,
+        maxSize: pool.maxSize
+      };
+    });
+    
+    // Memory stats
+    if (performance.memory) {
+      stats.memory = {
+        used: performance.memory.usedJSHeapSize,
+        total: performance.memory.totalJSHeapSize,
+        limit: performance.memory.jsHeapSizeLimit
+      };
+    }
+    
+    return stats;
+  }
+
+  // Enable/disable performance manager
+  setActive(active) {
+    this.isActive = active;
+    this.debugLog(`⚡ PerformanceManager ${active ? 'enabled' : 'disabled'}`);
+  }
+
+  // Cleanup resources
+  cleanup() {
+    this.debugLog('🧹 Cleaning up PerformanceManager...');
+    
+    // Cleanup object pools
+    Object.keys(this.objectPools).forEach(poolName => {
+      const pool = this.objectPools[poolName];
+      
+      // Dispose active objects
+      pool.active.forEach(object => {
+        if (object.geometry) object.geometry.dispose();
+        if (object.material) object.material.dispose();
+      });
+      
+      // Dispose inactive objects
+      pool.inactive.forEach(object => {
+        if (object.geometry) object.geometry.dispose();
+        if (object.material) object.material.dispose();
+      });
+      
+      pool.active = [];
+      pool.inactive = [];
+    });
+    
+    this.objectPools = {};
+    this.lodLevels = {};
+    this.frustumCuller = null;
+    this.memoryMonitor = null;
+    this.isActive = false;
   }
 }
 
+// Maak PerformanceManager globaal beschikbaar
+window.PerformanceManager = PerformanceManager;
+
 // Export voor gebruik in andere modules
-window.PerformanceManager = PerformanceManager; 
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PerformanceManager;
+} 

@@ -50,8 +50,9 @@ class CollisionManager {
     const solly1 = window.solly1;
     if (!solly1) return;
     
-    // Bereken explosie positie
+    // Bereken explosie positie - gebruik de EXACTE positie van Solly1
     const explosionPos = solly1.position.clone();
+    this.debugLog('💥 Explosie positie:', explosionPos);
     
     // Maak meerdere explosie lagen voor spectaculair effect
     this.createExplosionLayer(explosionPos, 0xFFD700, 50, 800, 800); // Gouden kern
@@ -215,20 +216,26 @@ class CollisionManager {
 
   // Mini Solly collision detection
   checkMiniSollyCollision() {
-    if (!window.solly1 || !window.miniSollys) return;
+    // Skip collision check als er een drag actief is
+    if (window.solly1DragActive || window.isDragging) {
+      return;
+    }
     
-    const solly1Position = window.solly1.position;
-    const collisionDistance = 300;
+    if (!window.miniSollys || !window.solly1) return;
     
-    window.miniSollys.forEach((miniSolly, index) => {
-      if (!miniSolly || !miniSolly.visible) return;
+    for (let i = 0; i < window.miniSollys.length; i++) {
+      const miniSolly = window.miniSollys[i];
+      if (!miniSolly) continue;
       
-      const distance = solly1Position.distanceTo(miniSolly.position);
+      // Bereken afstand tussen Solly1 en mini-Solly
+      const distance = window.solly1.position.distanceTo(miniSolly.position);
+      const collisionThreshold = 100; // Collision afstand
       
-      if (distance < collisionDistance) {
-        this.handleMiniSollyCollision(miniSolly, index);
+      if (distance < collisionThreshold) {
+        this.handleMiniSollyCollision(miniSolly, i);
+        break;
       }
-    });
+    }
   }
 
   handleMiniSollyCollision(miniSolly, index) {

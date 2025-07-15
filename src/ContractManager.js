@@ -1,417 +1,344 @@
-/**
- * ContractManager - Beheert alle smart contract interacties
- * @author SollyCoin Team
- * @version 1.0.0
- */
+// ===================================================================================
+// ==                        CONTRACT MANAGER MODULE                             ==
+// ==                                                                             ==
+// ==      Bevat alle smart contract interacties:                                ==
+// ==      - SollyCoin token contract                                            ==
+// ==      - SollyNFT contract                                                   ==
+// ==      - GameFactory contract                                                ==
+// ==      - Transaction management                                               ==
+// ===================================================================================
 
-export class ContractManager {
-    constructor(web3Manager) {
-        this.web3Manager = web3Manager;
-        this.contracts = {};
-        this.contractAddresses = {};
-        this.isInitialized = false;
-        
-        // Contract ABIs (vereenvoudigd voor demo)
-        this.abis = {
-            SollyCoin: [
-                "function name() view returns (string)",
-                "function symbol() view returns (string)",
-                "function balanceOf(address) view returns (uint256)",
-                "function updateGameProgress(uint256, uint256)",
-                "function mintSolly(uint256, string)",
-                "function claimLevelReward(uint256)",
-                "function getGameState(address) view returns (uint256, uint256, uint256, bool)",
-                "event GameProgressUpdated(address indexed, uint256, uint256)",
-                "event SollyMinted(address indexed, uint256, uint256)",
-                "event GameRewardClaimed(address indexed, uint256, string)"
-            ],
-            SollyNFT: [
-                "function name() view returns (string)",
-                "function symbol() view returns (string)",
-                "function ownerOf(uint256) view returns (address)",
-                "function tokenURI(uint256) view returns (string)",
-                "function mintSollyNFT(address, string, uint256, string, uint256, uint256, bool) payable returns (uint256)",
-                "function updateSollyMetadata(uint256, string, uint256, string, uint256, uint256)",
-                "function getSollyMetadata(uint256) view returns (uint256, string, uint256, uint256, uint256, bool)",
-                "function totalSupply() view returns (uint256)",
-                "event SollyNFTMinted(address indexed, uint256 indexed, string)",
-                "event SollyNFTUpdated(uint256 indexed, string)"
-            ],
-            GameFactory: [
-                "function createGame(uint256, uint256) payable returns (uint256)",
-                "function joinGame(uint256) payable",
-                "function submitScore(uint256, uint256)",
-                "function completeGame(uint256)",
-                "function cancelGame(uint256)",
-                "function getGame(uint256) view returns (uint256, address, uint256, uint256, uint256, uint256, uint256, uint256, uint8, address[])",
-                "function getPlayerScore(uint256, address) view returns (uint256)",
-                "function getPlayerGames(address) view returns (uint256[])",
-                "event GameInstanceCreated(uint256 indexed, address indexed, uint256)",
-                "event PlayerJoinedGame(uint256 indexed, address indexed)",
-                "event GameCompleted(uint256 indexed, address indexed, uint256)",
-                "event GameCancelled(uint256 indexed, address indexed)"
-            ]
+class ContractManager {
+  constructor() {
+    this.web3 = null;
+    this.contracts = {};
+    this.isConnected = false;
+    this.currentAccount = null;
+    this.DEBUG = window.DEBUG || false;
+  }
+
+  debugLog(...args) {
+    if (this.DEBUG) {
+      console.log('[ContractManager]', ...args);
+    }
+  }
+
+  // Initialize contract manager
+  async initialize(web3Instance) {
+    try {
+      this.debugLog('🔗 Initializing ContractManager...');
+      
+      this.web3 = web3Instance;
+      this.isConnected = true;
+      
+      // Load contract ABIs and addresses
+      await this.loadContracts();
+      
+      this.debugLog('✅ ContractManager initialized successfully');
+      return true;
+    } catch (error) {
+      this.debugLog('❌ ContractManager initialization failed:', error);
+      return false;
+    }
+  }
+
+  // Load contract instances
+  async loadContracts() {
+    try {
+      this.debugLog('📋 Loading contract instances...');
+      
+      // SollyCoin contract
+      if (window.SOLLY_COIN_ABI && window.SOLLY_COIN_ADDRESS) {
+        this.contracts.sollyCoin = new this.web3.eth.Contract(
+          window.SOLLY_COIN_ABI,
+          window.SOLLY_COIN_ADDRESS
+        );
+        this.debugLog('✅ SollyCoin contract loaded');
+      }
+      
+      // SollyNFT contract
+      if (window.SOLLY_NFT_ABI && window.SOLLY_NFT_ADDRESS) {
+        this.contracts.sollyNFT = new this.web3.eth.Contract(
+          window.SOLLY_NFT_ABI,
+          window.SOLLY_NFT_ADDRESS
+        );
+        this.debugLog('✅ SollyNFT contract loaded');
+      }
+      
+      // GameFactory contract
+      if (window.GAME_FACTORY_ABI && window.GAME_FACTORY_ADDRESS) {
+        this.contracts.gameFactory = new this.web3.eth.Contract(
+          window.GAME_FACTORY_ABI,
+          window.GAME_FACTORY_ADDRESS
+        );
+        this.debugLog('✅ GameFactory contract loaded');
+      }
+      
+    } catch (error) {
+      this.debugLog('❌ Failed to load contracts:', error);
+      throw error;
+    }
+  }
+
+  // Set current account
+  setAccount(account) {
+    this.currentAccount = account;
+    this.debugLog('👤 Account set:', account);
+  }
+
+  // Get SollyCoin balance
+  async getSollyCoinBalance(account = null) {
+    try {
+      const targetAccount = account || this.currentAccount;
+      if (!targetAccount) {
+        throw new Error('No account specified');
+      }
+      
+      const balance = await this.contracts.sollyCoin.methods.balanceOf(targetAccount).call();
+      this.debugLog('💰 SollyCoin balance:', balance);
+      
+      return this.web3.utils.fromWei(balance, 'ether');
+    } catch (error) {
+      this.debugLog('❌ Failed to get SollyCoin balance:', error);
+      throw error;
+    }
+  }
+
+  // Mint SollyCoin
+  async mintSollyCoin(amount, to = null) {
+    try {
+      const targetAccount = to || this.currentAccount;
+      if (!targetAccount) {
+        throw new Error('No account specified');
+      }
+      
+      const weiAmount = this.web3.utils.toWei(amount.toString(), 'ether');
+      
+      this.debugLog('🪙 Minting SollyCoin:', amount, 'to:', targetAccount);
+      
+      const result = await this.contracts.sollyCoin.methods.mint(targetAccount, weiAmount).send({
+        from: this.currentAccount,
+        gas: 200000
+      });
+      
+      this.debugLog('✅ SollyCoin minted successfully:', result.transactionHash);
+      return result;
+    } catch (error) {
+      this.debugLog('❌ Failed to mint SollyCoin:', error);
+      throw error;
+    }
+  }
+
+  // Transfer SollyCoin
+  async transferSollyCoin(to, amount) {
+    try {
+      if (!this.currentAccount) {
+        throw new Error('No account specified');
+      }
+      
+      const weiAmount = this.web3.utils.toWei(amount.toString(), 'ether');
+      
+      this.debugLog('🔄 Transferring SollyCoin:', amount, 'to:', to);
+      
+      const result = await this.contracts.sollyCoin.methods.transfer(to, weiAmount).send({
+        from: this.currentAccount,
+        gas: 100000
+      });
+      
+      this.debugLog('✅ SollyCoin transferred successfully:', result.transactionHash);
+      return result;
+    } catch (error) {
+      this.debugLog('❌ Failed to transfer SollyCoin:', error);
+      throw error;
+    }
+  }
+
+  // Mint SollyNFT
+  async mintSollyNFT(metadata) {
+    try {
+      if (!this.currentAccount) {
+        throw new Error('No account specified');
+      }
+      
+      this.debugLog('🎨 Minting SollyNFT with metadata:', metadata);
+      
+      const result = await this.contracts.sollyNFT.methods.mint(
+        this.currentAccount,
+        metadata.tokenURI
+      ).send({
+        from: this.currentAccount,
+        gas: 300000
+      });
+      
+      this.debugLog('✅ SollyNFT minted successfully:', result.transactionHash);
+      return result;
+    } catch (error) {
+      this.debugLog('❌ Failed to mint SollyNFT:', error);
+      throw error;
+    }
+  }
+
+  // Get SollyNFT token data
+  async getSollyNFTData(tokenId) {
+    try {
+      this.debugLog('📋 Getting SollyNFT data for token:', tokenId);
+      
+      const tokenURI = await this.contracts.sollyNFT.methods.tokenURI(tokenId).call();
+      const owner = await this.contracts.sollyNFT.methods.ownerOf(tokenId).call();
+      
+      const data = {
+        tokenId: tokenId,
+        tokenURI: tokenURI,
+        owner: owner
+      };
+      
+      this.debugLog('✅ SollyNFT data retrieved:', data);
+      return data;
+    } catch (error) {
+      this.debugLog('❌ Failed to get SollyNFT data:', error);
+      throw error;
+    }
+  }
+
+  // Create new game instance
+  async createGame(gameConfig) {
+    try {
+      if (!this.currentAccount) {
+        throw new Error('No account specified');
+      }
+      
+      this.debugLog('🎮 Creating new game with config:', gameConfig);
+      
+      const result = await this.contracts.gameFactory.methods.createGame(
+        gameConfig.level,
+        gameConfig.shape,
+        gameConfig.size
+      ).send({
+        from: this.currentAccount,
+        gas: 500000
+      });
+      
+      this.debugLog('✅ Game created successfully:', result.transactionHash);
+      return result;
+    } catch (error) {
+      this.debugLog('❌ Failed to create game:', error);
+      throw error;
+    }
+  }
+
+  // Get game data
+  async getGameData(gameId) {
+    try {
+      this.debugLog('📋 Getting game data for game:', gameId);
+      
+      const gameData = await this.contracts.gameFactory.methods.getGame(gameId).call();
+      
+      this.debugLog('✅ Game data retrieved:', gameData);
+      return gameData;
+    } catch (error) {
+      this.debugLog('❌ Failed to get game data:', error);
+      throw error;
+    }
+  }
+
+  // Update game progress
+  async updateGameProgress(gameId, progress) {
+    try {
+      if (!this.currentAccount) {
+        throw new Error('No account specified');
+      }
+      
+      this.debugLog('🔄 Updating game progress for game:', gameId, 'progress:', progress);
+      
+      const result = await this.contracts.gameFactory.methods.updateProgress(
+        gameId,
+        progress.kaboom,
+        progress.score,
+        progress.level
+      ).send({
+        from: this.currentAccount,
+        gas: 200000
+      });
+      
+      this.debugLog('✅ Game progress updated successfully:', result.transactionHash);
+      return result;
+    } catch (error) {
+      this.debugLog('❌ Failed to update game progress:', error);
+      throw error;
+    }
+  }
+
+  // Get transaction status
+  async getTransactionStatus(txHash) {
+    try {
+      this.debugLog('📊 Getting transaction status for:', txHash);
+      
+      const receipt = await this.web3.eth.getTransactionReceipt(txHash);
+      
+      if (receipt) {
+        const status = receipt.status ? 'success' : 'failed';
+        this.debugLog('✅ Transaction status:', status);
+        return {
+          hash: txHash,
+          status: status,
+          blockNumber: receipt.blockNumber,
+          gasUsed: receipt.gasUsed
         };
+      } else {
+        this.debugLog('⏳ Transaction pending...');
+        return {
+          hash: txHash,
+          status: 'pending'
+        };
+      }
+    } catch (error) {
+      this.debugLog('❌ Failed to get transaction status:', error);
+      throw error;
     }
+  }
 
-    /**
-     * Initialiseer contract manager met contract addresses
-     */
-    async initialize(contractAddresses = {}) {
-        try {
-            console.log("🔧 Initializing ContractManager...");
-            
-            // Default addresses voor development
-            this.contractAddresses = {
-                SollyCoin: contractAddresses.SollyCoin || "0x0000000000000000000000000000000000000000",
-                SollyNFT: contractAddresses.SollyNFT || "0x0000000000000000000000000000000000000000",
-                GameFactory: contractAddresses.GameFactory || "0x0000000000000000000000000000000000000000"
-            };
-
-            // Maak contract instances
-            await this.createContractInstances();
-            
-            this.isInitialized = true;
-            console.log("✅ ContractManager initialized successfully");
-            
-            // Emit event
-            this.web3Manager.emit('contractsInitialized', this.contractAddresses);
-            
-        } catch (error) {
-            console.error("❌ ContractManager initialization failed:", error);
-            throw error;
-        }
+  // Estimate gas for transaction
+  async estimateGas(method, params = []) {
+    try {
+      this.debugLog('⛽ Estimating gas for method:', method);
+      
+      const gasEstimate = await method.estimateGas({
+        from: this.currentAccount,
+        ...params
+      });
+      
+      this.debugLog('✅ Gas estimate:', gasEstimate);
+      return gasEstimate;
+    } catch (error) {
+      this.debugLog('❌ Failed to estimate gas:', error);
+      throw error;
     }
+  }
 
-    /**
-     * Maak contract instances aan
-     */
-    async createContractInstances() {
-        const web3 = this.web3Manager.getWeb3();
-        
-        for (const [contractName, address] of Object.entries(this.contractAddresses)) {
-            if (address !== "0x0000000000000000000000000000000000000000") {
-                try {
-                    this.contracts[contractName] = new web3.eth.Contract(
-                        this.abis[contractName],
-                        address
-                    );
-                    console.log(`📋 Created ${contractName} instance at ${address}`);
-                } catch (error) {
-                    console.error(`❌ Failed to create ${contractName} instance:`, error);
-                }
-            }
-        }
-    }
+  // Get contract status
+  getStatus() {
+    return {
+      isConnected: this.isConnected,
+      currentAccount: this.currentAccount,
+      contracts: Object.keys(this.contracts),
+      web3: !!this.web3
+    };
+  }
 
-    /**
-     * SollyCoin contract functies
-     */
-    async getSollyCoinBalance(address) {
-        if (!this.contracts.SollyCoin) return "0";
-        
-        try {
-            const balance = await this.contracts.SollyCoin.methods.balanceOf(address).call();
-            return this.web3Manager.getWeb3().utils.fromWei(balance, 'ether');
-        } catch (error) {
-            console.error("❌ Error getting SollyCoin balance:", error);
-            return "0";
-        }
-    }
-
-    async updateGameProgress(level, score) {
-        if (!this.contracts.SollyCoin) throw new Error("SollyCoin contract not available");
-        
-        try {
-            const accounts = await this.web3Manager.getAccounts();
-            const result = await this.contracts.SollyCoin.methods
-                .updateGameProgress(level, score)
-                .send({ from: accounts[0] });
-            
-            console.log("✅ Game progress updated:", result);
-            return result;
-        } catch (error) {
-            console.error("❌ Error updating game progress:", error);
-            throw error;
-        }
-    }
-
-    async mintSolly(level, metadata) {
-        if (!this.contracts.SollyCoin) throw new Error("SollyCoin contract not available");
-        
-        try {
-            const accounts = await this.web3Manager.getAccounts();
-            const result = await this.contracts.SollyCoin.methods
-                .mintSolly(level, metadata)
-                .send({ from: accounts[0] });
-            
-            console.log("✅ Solly minted:", result);
-            return result;
-        } catch (error) {
-            console.error("❌ Error minting Solly:", error);
-            throw error;
-        }
-    }
-
-    async claimLevelReward(level) {
-        if (!this.contracts.SollyCoin) throw new Error("SollyCoin contract not available");
-        
-        try {
-            const accounts = await this.web3Manager.getAccounts();
-            const result = await this.contracts.SollyCoin.methods
-                .claimLevelReward(level)
-                .send({ from: accounts[0] });
-            
-            console.log("✅ Level reward claimed:", result);
-            return result;
-        } catch (error) {
-            console.error("❌ Error claiming level reward:", error);
-            throw error;
-        }
-    }
-
-    async getGameState(address) {
-        if (!this.contracts.SollyCoin) return null;
-        
-        try {
-            const gameState = await this.contracts.SollyCoin.methods.getGameState(address).call();
-            return {
-                level: parseInt(gameState[0]),
-                score: parseInt(gameState[1]),
-                lastPlayed: parseInt(gameState[2]),
-                isActive: gameState[3]
-            };
-        } catch (error) {
-            console.error("❌ Error getting game state:", error);
-            return null;
-        }
-    }
-
-    /**
-     * SollyNFT contract functies
-     */
-    async mintSollyNFT(tokenURI, level, shape, size, kaboom, isSpecial) {
-        if (!this.contracts.SollyNFT) throw new Error("SollyNFT contract not available");
-        
-        try {
-            const accounts = await this.web3Manager.getAccounts();
-            const mintPrice = this.web3Manager.getWeb3().utils.toWei("0.01", "ether");
-            
-            const result = await this.contracts.SollyNFT.methods
-                .mintSollyNFT(accounts[0], tokenURI, level, shape, size, kaboom, isSpecial)
-                .send({ 
-                    from: accounts[0],
-                    value: mintPrice
-                });
-            
-            console.log("✅ SollyNFT minted:", result);
-            return result;
-        } catch (error) {
-            console.error("❌ Error minting SollyNFT:", error);
-            throw error;
-        }
-    }
-
-    async getSollyNFTMetadata(tokenId) {
-        if (!this.contracts.SollyNFT) return null;
-        
-        try {
-            const metadata = await this.contracts.SollyNFT.methods.getSollyMetadata(tokenId).call();
-            return {
-                level: parseInt(metadata[0]),
-                shape: metadata[1],
-                size: parseInt(metadata[2]),
-                kaboom: parseInt(metadata[3]),
-                createdAt: parseInt(metadata[4]),
-                isSpecial: metadata[5]
-            };
-        } catch (error) {
-            console.error("❌ Error getting NFT metadata:", error);
-            return null;
-        }
-    }
-
-    async updateSollyNFTMetadata(tokenId, tokenURI, level, shape, size, kaboom) {
-        if (!this.contracts.SollyNFT) throw new Error("SollyNFT contract not available");
-        
-        try {
-            const accounts = await this.web3Manager.getAccounts();
-            const result = await this.contracts.SollyNFT.methods
-                .updateSollyMetadata(tokenId, tokenURI, level, shape, size, kaboom)
-                .send({ from: accounts[0] });
-            
-            console.log("✅ SollyNFT metadata updated:", result);
-            return result;
-        } catch (error) {
-            console.error("❌ Error updating NFT metadata:", error);
-            throw error;
-        }
-    }
-
-    /**
-     * GameFactory contract functies
-     */
-    async createGame(entryFee, maxPlayers) {
-        if (!this.contracts.GameFactory) throw new Error("GameFactory contract not available");
-        
-        try {
-            const accounts = await this.web3Manager.getAccounts();
-            const entryFeeWei = this.web3Manager.getWeb3().utils.toWei(entryFee.toString(), "ether");
-            
-            const result = await this.contracts.GameFactory.methods
-                .createGame(entryFeeWei, maxPlayers)
-                .send({ 
-                    from: accounts[0],
-                    value: entryFeeWei
-                });
-            
-            console.log("✅ Game created:", result);
-            return result;
-        } catch (error) {
-            console.error("❌ Error creating game:", error);
-            throw error;
-        }
-    }
-
-    async joinGame(gameId, entryFee) {
-        if (!this.contracts.GameFactory) throw new Error("GameFactory contract not available");
-        
-        try {
-            const accounts = await this.web3Manager.getAccounts();
-            const entryFeeWei = this.web3Manager.getWeb3().utils.toWei(entryFee.toString(), "ether");
-            
-            const result = await this.contracts.GameFactory.methods
-                .joinGame(gameId)
-                .send({ 
-                    from: accounts[0],
-                    value: entryFeeWei
-                });
-            
-            console.log("✅ Joined game:", result);
-            return result;
-        } catch (error) {
-            console.error("❌ Error joining game:", error);
-            throw error;
-        }
-    }
-
-    async submitScore(gameId, score) {
-        if (!this.contracts.GameFactory) throw new Error("GameFactory contract not available");
-        
-        try {
-            const accounts = await this.web3Manager.getAccounts();
-            const result = await this.contracts.GameFactory.methods
-                .submitScore(gameId, score)
-                .send({ from: accounts[0] });
-            
-            console.log("✅ Score submitted:", result);
-            return result;
-        } catch (error) {
-            console.error("❌ Error submitting score:", error);
-            throw error;
-        }
-    }
-
-    async getGame(gameId) {
-        if (!this.contracts.GameFactory) return null;
-        
-        try {
-            const game = await this.contracts.GameFactory.methods.getGame(gameId).call();
-            return {
-                gameId: parseInt(game[0]),
-                creator: game[1],
-                entryFee: this.web3Manager.getWeb3().utils.fromWei(game[2], "ether"),
-                maxPlayers: parseInt(game[3]),
-                currentPlayers: parseInt(game[4]),
-                totalPrizePool: this.web3Manager.getWeb3().utils.fromWei(game[5], "ether"),
-                startTime: parseInt(game[6]),
-                endTime: parseInt(game[7]),
-                status: parseInt(game[8]),
-                players: game[9]
-            };
-        } catch (error) {
-            console.error("❌ Error getting game:", error);
-            return null;
-        }
-    }
-
-    async getPlayerGames(address) {
-        if (!this.contracts.GameFactory) return [];
-        
-        try {
-            const games = await this.contracts.GameFactory.methods.getPlayerGames(address).call();
-            return games.map(gameId => parseInt(gameId));
-        } catch (error) {
-            console.error("❌ Error getting player games:", error);
-            return [];
-        }
-    }
-
-    /**
-     * Utility functies
-     */
-    getContractAddresses() {
-        return this.contractAddresses;
-    }
-
-    isContractAvailable(contractName) {
-        return this.contracts[contractName] !== undefined;
-    }
-
-    /**
-     * Event listeners voor contract events
-     */
-    setupEventListeners() {
-        if (!this.isInitialized) return;
-
-        // SollyCoin events
-        if (this.contracts.SollyCoin) {
-            this.contracts.SollyCoin.events.GameProgressUpdated({})
-                .on('data', (event) => {
-                    console.log("🎮 Game progress updated:", event.returnValues);
-                    this.web3Manager.emit('gameProgressUpdated', event.returnValues);
-                });
-
-            this.contracts.SollyCoin.events.SollyMinted({})
-                .on('data', (event) => {
-                    console.log("🪙 Solly minted:", event.returnValues);
-                    this.web3Manager.emit('sollyMinted', event.returnValues);
-                });
-        }
-
-        // SollyNFT events
-        if (this.contracts.SollyNFT) {
-            this.contracts.SollyNFT.events.SollyNFTMinted({})
-                .on('data', (event) => {
-                    console.log("🎨 SollyNFT minted:", event.returnValues);
-                    this.web3Manager.emit('sollyNFTMinted', event.returnValues);
-                });
-        }
-
-        // GameFactory events
-        if (this.contracts.GameFactory) {
-            this.contracts.GameFactory.events.GameInstanceCreated({})
-                .on('data', (event) => {
-                    console.log("🎮 Game created:", event.returnValues);
-                    this.web3Manager.emit('gameCreated', event.returnValues);
-                });
-
-            this.contracts.GameFactory.events.GameCompleted({})
-                .on('data', (event) => {
-                    console.log("🏆 Game completed:", event.returnValues);
-                    this.web3Manager.emit('gameCompleted', event.returnValues);
-                });
-        }
-    }
-
-    // Initialize method for module compatibility
-    async initialize() {
-        console.log("📋 ContractManager initialized");
-        return Promise.resolve();
-    }
+  // Cleanup resources
+  cleanup() {
+    this.debugLog('🧹 Cleaning up ContractManager resources...');
+    this.web3 = null;
+    this.contracts = {};
+    this.isConnected = false;
+    this.currentAccount = null;
+  }
 }
+
+// Maak ContractManager globaal beschikbaar
+window.ContractManager = ContractManager;
 
 // Export voor gebruik in andere modules
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ContractManager;
+  module.exports = ContractManager;
 } 

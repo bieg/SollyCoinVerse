@@ -9,7 +9,7 @@
 // ===================================================================================
 
 // Game Constants
-export const GAME_CONSTANTS = {
+window.GAME_CONSTANTS = {
   // Level configuratie
   MAX_LEVEL: 100,
   REWARD_PER_LEVEL: 100,
@@ -35,7 +35,7 @@ export const GAME_CONSTANTS = {
 };
 
 // Timing Constants
-export const TIMING_CONSTANTS = {
+window.TIMING_CONSTANTS = {
   // Auto-save delays
   AUTO_SAVE_DELAY: 1000,
   CONFIG_LOAD_DELAY: 100,
@@ -56,7 +56,7 @@ export const TIMING_CONSTANTS = {
 };
 
 // UI Constants
-export const UI_CONSTANTS = {
+window.UI_CONSTANTS = {
   // Colors
   PRIMARY_COLOR: '#8A2BE2',
   SUCCESS_COLOR: '#4CAF50',
@@ -84,7 +84,7 @@ export const UI_CONSTANTS = {
 };
 
 // Performance Constants
-export const PERFORMANCE_CONSTANTS = {
+window.PERFORMANCE_CONSTANTS = {
   // Object pooling
   MAX_PARTICLES: 50,
   MAX_EXPLOSIONS: 10,
@@ -105,7 +105,7 @@ export const PERFORMANCE_CONSTANTS = {
 };
 
 // Security Constants
-export const SECURITY_CONSTANTS = {
+window.SECURITY_CONSTANTS = {
   // Rate limiting
   MAX_ACTIONS_PER_MINUTE: 60,
   COOLDOWN_PERIOD: 60000, // 1 minute
@@ -124,7 +124,7 @@ export const SECURITY_CONSTANTS = {
 };
 
 // Web3 Constants
-export const WEB3_CONSTANTS = {
+window.WEB3_CONSTANTS = {
   // Network IDs
   NETWORKS: {
     ETHEREUM_MAINNET: 1,
@@ -151,7 +151,7 @@ export const WEB3_CONSTANTS = {
 };
 
 // Debug Constants
-export const DEBUG_CONSTANTS = {
+window.DEBUG_CONSTANTS = {
   // Debug modes
   DEBUG_MODE: window.DEBUG || false,
   VERBOSE_LOGGING: false,
@@ -168,7 +168,7 @@ export const DEBUG_CONSTANTS = {
 };
 
 // Asset Constants
-export const ASSET_CONSTANTS = {
+window.ASSET_CONSTANTS = {
   // File types
   SUPPORTED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
   SUPPORTED_AUDIO_TYPES: ['audio/mpeg', 'audio/wav', 'audio/ogg'],
@@ -189,7 +189,7 @@ export const ASSET_CONSTANTS = {
 };
 
 // Error Constants
-export const ERROR_CONSTANTS = {
+window.ERROR_CONSTANTS = {
   // Error types
   ERROR_TYPES: {
     CONFIG_LOADING: 'CONFIG_LOADING',
@@ -198,62 +198,84 @@ export const ERROR_CONSTANTS = {
     SECURITY_VALIDATION: 'SECURITY_VALIDATION',
     WEB3_CONNECTION: 'WEB3_CONNECTION',
     CONTRACT_INTERACTION: 'CONTRACT_INTERACTION',
-    THREE_JS_ERROR: 'THREE_JS_ERROR',
-    ASSET_LOADING: 'ASSET_LOADING',
-    DATA_VALIDATION: 'DATA_VALIDATION',
-    FUNCTION_EXECUTION: 'FUNCTION_EXECUTION',
-    ASYNC_FUNCTION_EXECUTION: 'ASYNC_FUNCTION_EXECUTION'
+    NETWORK_ERROR: 'NETWORK_ERROR',
+    VALIDATION_ERROR: 'VALIDATION_ERROR',
+    PERMISSION_ERROR: 'PERMISSION_ERROR'
   },
-  
-  // Error limits
-  MAX_ERRORS: 10,
-  ERROR_HISTORY_SIZE: 50,
   
   // Error messages
-  DEFAULT_ERROR_MESSAGE: 'Er is een onverwachte fout opgetreden'
-};
-
-// Local Storage Keys
-export const STORAGE_KEYS = {
-  GAME_PROGRESS: 'sollyverse_data',
-  USER_ID: 'sollyverse_id',
-  SETTINGS: 'sollyverse_settings',
-  DEBUG_MODE: 'sollyverse_debug',
-  ERROR_HISTORY: 'sollyverse_errors'
-};
-
-// API Constants
-export const API_CONSTANTS = {
-  // Endpoints
-  BASE_URL: 'https://api.sollyverse.com',
-  ENDPOINTS: {
-    AUTH: '/auth',
-    GAME_STATE: '/game-state',
-    LEADERBOARD: '/leaderboard',
-    ASSETS: '/assets'
+  ERROR_MESSAGES: {
+    CONFIG_LOADING: 'Fout bij het laden van configuratie',
+    PROGRESS_SAVING: 'Fout bij het opslaan van voortgang',
+    PROGRESS_LOADING: 'Fout bij het laden van voortgang',
+    SECURITY_VALIDATION: 'Security validatie gefaald',
+    WEB3_CONNECTION: 'Web3 verbinding mislukt',
+    CONTRACT_INTERACTION: 'Smart contract interactie mislukt',
+    NETWORK_ERROR: 'Netwerk fout opgetreden',
+    VALIDATION_ERROR: 'Data validatie gefaald',
+    PERMISSION_ERROR: 'Geen toestemming voor deze actie'
   },
   
-  // Timeouts
-  REQUEST_TIMEOUT: 10000, // 10 seconds
-  RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000,
-  
-  // Headers
-  DEFAULT_HEADERS: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
+  // Error codes
+  ERROR_CODES: {
+    INVALID_DATA: 1001,
+    NETWORK_TIMEOUT: 1002,
+    PERMISSION_DENIED: 1003,
+    RESOURCE_NOT_FOUND: 1004,
+    VALIDATION_FAILED: 1005,
+    SECURITY_VIOLATION: 1006
   }
 };
 
-// Maak alle constants globaal beschikbaar
-window.GAME_CONSTANTS = GAME_CONSTANTS;
-window.TIMING_CONSTANTS = TIMING_CONSTANTS;
-window.UI_CONSTANTS = UI_CONSTANTS;
-window.PERFORMANCE_CONSTANTS = PERFORMANCE_CONSTANTS;
-window.SECURITY_CONSTANTS = SECURITY_CONSTANTS;
-window.WEB3_CONSTANTS = WEB3_CONSTANTS;
-window.DEBUG_CONSTANTS = DEBUG_CONSTANTS;
-window.ASSET_CONSTANTS = ASSET_CONSTANTS;
-window.ERROR_CONSTANTS = ERROR_CONSTANTS;
-window.STORAGE_KEYS = STORAGE_KEYS;
-window.API_CONSTANTS = API_CONSTANTS; 
+// Storage Keys
+window.STORAGE_KEYS = {
+  // Local storage keys
+  USER_PROGRESS: 'sollycoin_user_progress',
+  GAME_CONFIG: 'sollycoin_game_config',
+  USER_PREFERENCES: 'sollycoin_user_preferences',
+  SESSION_DATA: 'sollycoin_session_data',
+  
+  // Session storage keys
+  TEMP_DATA: 'sollycoin_temp_data',
+  DEBUG_DATA: 'sollycoin_debug_data'
+};
+
+// API Constants
+window.API_CONSTANTS = {
+  // Base URLs
+  BASE_URL: 'https://api.sollyverse.com',
+  IPFS_GATEWAY: 'https://ipfs.io/ipfs/',
+  
+  // Endpoints
+  ENDPOINTS: {
+    USER_PROFILE: '/api/user/profile',
+    GAME_STATE: '/api/game/state',
+    LEADERBOARD: '/api/leaderboard',
+    ACHIEVEMENTS: '/api/achievements'
+  },
+  
+  // Request timeouts
+  REQUEST_TIMEOUT: 10000, // 10 seconds
+  RETRY_ATTEMPTS: 3,
+  
+  // Rate limiting
+  REQUESTS_PER_MINUTE: 60,
+  BURST_LIMIT: 10
+};
+
+// Export voor gebruik in andere modules (browser compatibel)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    GAME_CONSTANTS: window.GAME_CONSTANTS,
+    TIMING_CONSTANTS: window.TIMING_CONSTANTS,
+    UI_CONSTANTS: window.UI_CONSTANTS,
+    PERFORMANCE_CONSTANTS: window.PERFORMANCE_CONSTANTS,
+    SECURITY_CONSTANTS: window.SECURITY_CONSTANTS,
+    WEB3_CONSTANTS: window.WEB3_CONSTANTS,
+    DEBUG_CONSTANTS: window.DEBUG_CONSTANTS,
+    ASSET_CONSTANTS: window.ASSET_CONSTANTS,
+    ERROR_CONSTANTS: window.ERROR_CONSTANTS,
+    STORAGE_KEYS: window.STORAGE_KEYS,
+    API_CONSTANTS: window.API_CONSTANTS
+  };
+} 

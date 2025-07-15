@@ -339,11 +339,15 @@ async function initSollyverse() {
 function animate() {
     requestAnimationFrame(animate);
     
+    // Skip animaties tijdens drag
     if (!window.isPaused && !window.solly1DragActive) {
         updateSolly1Movement();
         updateSolly2Movement();
         updatePortalMovement();
-        if (!collisionDetected) checkMiniSollyCollision();
+        // Skip collision check tijdens drag
+        if (!collisionDetected && !window.solly1DragActive) {
+            checkMiniSollyCollision();
+        }
     }
     
     if (typeof updateCameraControls === 'function') updateCameraControls();
@@ -484,6 +488,11 @@ function triggerCollision() {
 
 // === Collision Solly1 vs miniSollys ===
 function checkMiniSollyCollision() {
+    // Skip collision check tijdens drag
+    if (window.solly1DragActive || window.isDragging) {
+        return;
+    }
+    
     // === Alleen collision checken als drop nog niet is afgehandeld ===
     if (window.solly1DropHandled === true) return;
     

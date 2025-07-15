@@ -1,318 +1,304 @@
 // ===================================================================================
+// ==                           WEB3 MANAGER MODULE                              ==
 // ==                                                                             ==
-// ==                           SOLLYVERSE WEB3 MANAGER                          ==
-// ==                                                                             ==
-// ==      Bevat alle Web3 functionaliteit:                                     ==
-// ==      - MetaMask integratie                                                ==
-// ==      - Wallet connectie en management                                     ==
-// ==      - Network detection en switching                                     ==
-// ==      - Smart contract interacties                                         ==
-// ==      - Transaction handling                                               ==
+// ==      Bevat alle Web3 functionaliteit:                                      ==
+// ==      - Wallet connectie en management                                      ==
+// ==      - Network detection en switching                                      ==
+// ==      - Account management                                                   ==
+// ==      - Transaction handling                                                ==
 // ===================================================================================
 
-export class Web3Manager {
+class Web3Manager {
   constructor() {
     this.web3 = null;
-    this.accounts = [];
-    this.currentAccount = null;
-    this.networkId = null;
-    this.networkName = null;
+    this.provider = null;
     this.isConnected = false;
-    this.contracts = {};
-    this.pendingTransactions = [];
-    
-    // Supported networks
-    this.supportedNetworks = {
-      1: 'Ethereum Mainnet',
-      11155111: 'Sepolia Testnet',
-      137: 'Polygon Mainnet',
-      80001: 'Mumbai Testnet',
-      31337: 'Hardhat Local'
-    };
-    
-    // Contract addresses (to be updated after deployment)
-    this.contractAddresses = {
-      1: '', // Mainnet - to be deployed
-      11155111: '', // Sepolia - to be deployed
-      137: '', // Polygon - to be deployed
-      80001: '', // Mumbai - to be deployed
-      31337: '' // Local - to be deployed
-    };
-    
-    this.eventListeners = [];
-    
-    console.log('🌐 Web3Manager initialized');
+    this.currentAccount = null;
+    this.currentNetwork = null;
+    this.eventListeners = {};
+    this.DEBUG = window.DEBUG || false;
   }
 
-  // Initialize Web3 and check for MetaMask
+  debugLog(...args) {
+    if (this.DEBUG) {
+      console.log('[Web3Manager]', ...args);
+    }
+  }
+
+  // Initialize Web3 connection
   async initialize() {
     try {
-      // Check if MetaMask is installed
+      this.debugLog('🔗 Initializing Web3Manager...');
+      
+      // Check if MetaMask is available
       if (typeof window.ethereum !== 'undefined') {
-        console.log('🦊 MetaMask detected');
+        this.provider = window.ethereum;
+        this.web3 = new Web3(this.provider);
+        this.isConnected = true;
         
-        // Create Web3 instance
-        this.web3 = new Web3(window.ethereum);
+        this.debugLog('✅ Web3 initialized with MetaMask');
         
-        // Listen for account changes
-        window.ethereum.on('accountsChanged', (accounts) => {
-          this.handleAccountsChanged(accounts);
-        });
-        
-        // Listen for network changes
-        window.ethereum.on('chainChanged', (chainId) => {
-          this.handleChainChanged(chainId);
-        });
-        
-        // Try to connect automatically
-        await this.connectWallet();
+        // Setup event listeners
+        this.setupEventListeners();
         
         return true;
       } else {
-        console.warn('⚠️ MetaMask not detected');
-        this.showMetaMaskInstallPrompt();
+        this.debugLog('⚠️ MetaMask not found, Web3 not available');
         return false;
       }
     } catch (error) {
-      console.error('❌ Error initializing Web3:', error);
+      this.debugLog('❌ Web3Manager initialization failed:', error);
       return false;
     }
   }
 
-  // Connect to MetaMask wallet
+  // Setup event listeners for wallet changes
+  setupEventListeners() {
+    if (!this.provider) return;
+    
+    // Account change event
+    this.provider.on('accountsChanged', (accounts) => {
+      this.debugLog('👤 Account changed:', accounts);
+      this.currentAccount = accounts[0] || null;
+      this.emit('accountChanged', this.currentAccount);
+    });
+    
+    // Network change event
+    this.provider.on('chainChanged', (chainId) => {
+      this.debugLog('🌐 Network changed:', chainId);
+      this.currentNetwork = this.getNetworkName(chainId);
+      this.emit('networkChanged', this.currentNetwork);
+    });
+    
+    // Connect event
+    this.provider.on('connect', (connectInfo) => {
+      this.debugLog('🔗 Wallet connected:', connectInfo);
+      this.isConnected = true;
+      this.emit('connected', connectInfo);
+    });
+    
+    // Disconnect event
+    this.provider.on('disconnect', (error) => {
+      this.debugLog('🔌 Wallet disconnected:', error);
+      this.isConnected = false;
+      this.currentAccount = null;
+      this.emit('disconnected', error);
+    });
+  }
+
+  // Connect wallet
   async connectWallet() {
     try {
-      if (!this.web3) {
-        throw new Error('Web3 not initialized');
-      }
-
-      console.log('🔗 Connecting to MetaMask...');
+      this.debugLog('🔗 Connecting wallet...');
       
-      // Request account access
-      const accounts = await window.ethereum.request({
+      if (!this.provider) {
+        throw new Error('No Web3 provider available');
+      }
+      
+      const accounts = await this.provider.request({
         method: 'eth_requestAccounts'
       });
       
-      await this.handleAccountsChanged(accounts);
-      
-      // Get network info
-      await this.updateNetworkInfo();
-      
-      console.log('✅ Wallet connected successfully');
+      this.currentAccount = accounts[0];
       this.isConnected = true;
       
-      // Trigger connected event
-      this.triggerEvent('walletConnected', {
-        account: this.currentAccount,
-        network: this.networkName,
-        networkId: this.networkId
-      });
+      this.debugLog('✅ Wallet connected:', this.currentAccount);
+      this.emit('walletConnected', this.currentAccount);
       
-      return true;
+      return this.currentAccount;
     } catch (error) {
-      console.error('❌ Error connecting wallet:', error);
-      this.isConnected = false;
-      
-      // Trigger error event
-      this.triggerEvent('walletError', {
-        error: error.message
-      });
-      
-      return false;
+      this.debugLog('❌ Wallet connection failed:', error);
+      throw error;
     }
   }
 
   // Disconnect wallet
-  disconnectWallet() {
-    this.accounts = [];
-    this.currentAccount = null;
-    this.isConnected = false;
-    this.contracts = {};
-    
-    console.log('🔌 Wallet disconnected');
-    
-    // Trigger disconnected event
-    this.triggerEvent('walletDisconnected');
-  }
-
-  // Handle account changes
-  async handleAccountsChanged(accounts) {
-    if (accounts.length === 0) {
-      console.log('🔌 No accounts found');
-      this.disconnectWallet();
-    } else if (accounts[0] !== this.currentAccount) {
-      console.log('👤 Account changed:', accounts[0]);
-      this.accounts = accounts;
-      this.currentAccount = accounts[0];
+  async disconnectWallet() {
+    try {
+      this.debugLog('🔌 Disconnecting wallet...');
       
-      // Trigger account changed event
-      this.triggerEvent('accountChanged', {
-        account: this.currentAccount
-      });
+      this.currentAccount = null;
+      this.isConnected = false;
+      
+      this.debugLog('✅ Wallet disconnected');
+      this.emit('walletDisconnected');
+      
+      return true;
+    } catch (error) {
+      this.debugLog('❌ Wallet disconnection failed:', error);
+      throw error;
     }
   }
 
-  // Handle network changes
-  async handleChainChanged(chainId) {
-    console.log('🌐 Network changed:', chainId);
-    
-    // Reload page for network changes (MetaMask recommendation)
-    window.location.reload();
+  // Get current account
+  getCurrentAccount() {
+    return this.currentAccount;
   }
 
-  // Update network information
-  async updateNetworkInfo() {
+  // Get all accounts
+  async getAccounts() {
     try {
-      this.networkId = await this.web3.eth.getChainId();
-      this.networkName = this.supportedNetworks[this.networkId] || 'Unknown Network';
-      
-      console.log('🌐 Connected to network:', this.networkName, `(ID: ${this.networkId})`);
-      
-      // Check if network is supported
-      if (!this.supportedNetworks[this.networkId]) {
-        console.warn('⚠️ Unsupported network detected');
-        this.triggerEvent('unsupportedNetwork', {
-          networkId: this.networkId,
-          networkName: this.networkName
-        });
+      if (!this.web3) {
+        throw new Error('Web3 not initialized');
       }
+      
+      const accounts = await this.web3.eth.getAccounts();
+      this.debugLog('👥 Accounts retrieved:', accounts);
+      
+      return accounts;
     } catch (error) {
-      console.error('❌ Error getting network info:', error);
+      this.debugLog('❌ Failed to get accounts:', error);
+      throw error;
+    }
+  }
+
+  // Get current network
+  async getCurrentNetwork() {
+    try {
+      if (!this.web3) {
+        throw new Error('Web3 not initialized');
+      }
+      
+      const chainId = await this.web3.eth.getChainId();
+      const networkName = this.getNetworkName(chainId);
+      
+      this.currentNetwork = networkName;
+      this.debugLog('🌐 Current network:', networkName, '(Chain ID:', chainId, ')');
+      
+      return {
+        chainId: chainId,
+        name: networkName
+      };
+    } catch (error) {
+      this.debugLog('❌ Failed to get current network:', error);
+      throw error;
     }
   }
 
   // Switch network
-  async switchNetwork(networkId) {
+  async switchNetwork(chainId) {
     try {
-      if (!this.supportedNetworks[networkId]) {
-        throw new Error('Unsupported network');
-      }
-
-      console.log('🔄 Switching to network:', this.supportedNetworks[networkId]);
+      this.debugLog('🔄 Switching to network:', chainId);
       
-      await window.ethereum.request({
+      if (!this.provider) {
+        throw new Error('No Web3 provider available');
+      }
+      
+      await this.provider.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${networkId.toString(16)}` }]
+        params: [{ chainId: chainId }]
       });
       
+      this.debugLog('✅ Network switched successfully');
       return true;
     } catch (error) {
-      console.error('❌ Error switching network:', error);
-      
-      // If network doesn't exist, add it
-      if (error.code === 4902) {
-        return await this.addNetwork(networkId);
-      }
-      
-      return false;
+      this.debugLog('❌ Network switch failed:', error);
+      throw error;
     }
   }
 
   // Add network to MetaMask
-  async addNetwork(networkId) {
+  async addNetwork(networkConfig) {
     try {
-      const networkConfig = this.getNetworkConfig(networkId);
+      this.debugLog('➕ Adding network:', networkConfig.name);
       
-      await window.ethereum.request({
+      if (!this.provider) {
+        throw new Error('No Web3 provider available');
+      }
+      
+      await this.provider.request({
         method: 'wallet_addEthereumChain',
         params: [networkConfig]
       });
       
+      this.debugLog('✅ Network added successfully');
       return true;
     } catch (error) {
-      console.error('❌ Error adding network:', error);
-      return false;
+      this.debugLog('❌ Failed to add network:', error);
+      throw error;
     }
   }
 
-  // Get network configuration
-  getNetworkConfig(networkId) {
-    const configs = {
-      11155111: { // Sepolia
-        chainId: '0xaa36a7',
-        chainName: 'Sepolia Testnet',
-        nativeCurrency: { name: 'Sepolia Ether', symbol: 'SEP', decimals: 18 },
-        rpcUrls: ['https://sepolia.infura.io/v3/'],
-        blockExplorerUrls: ['https://sepolia.etherscan.io/']
-      },
-      80001: { // Mumbai
-        chainId: '0x13881',
-        chainName: 'Mumbai Testnet',
-        nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
-        rpcUrls: ['https://rpc-mumbai.maticvigil.com/'],
-        blockExplorerUrls: ['https://mumbai.polygonscan.com/']
-      }
+  // Get network name from chain ID
+  getNetworkName(chainId) {
+    const networks = {
+      1: 'Ethereum Mainnet',
+      3: 'Ropsten Testnet',
+      4: 'Rinkeby Testnet',
+      5: 'Goerli Testnet',
+      42: 'Kovan Testnet',
+      56: 'Binance Smart Chain',
+      97: 'Binance Smart Chain Testnet',
+      137: 'Polygon Mainnet',
+      80001: 'Polygon Mumbai Testnet',
+      1337: 'Localhost',
+      31337: 'Hardhat Network'
     };
     
-    return configs[networkId];
+    return networks[chainId] || `Unknown Network (${chainId})`;
   }
 
-  // Get current account balance
+  // Get account balance
   async getBalance(account = null) {
     try {
-      const address = account || this.currentAccount;
-      if (!address) return '0';
+      const targetAccount = account || this.currentAccount;
+      if (!targetAccount) {
+        throw new Error('No account specified');
+      }
       
-      const balance = await this.web3.eth.getBalance(address);
-      return this.web3.utils.fromWei(balance, 'ether');
+      const balance = await this.web3.eth.getBalance(targetAccount);
+      const ethBalance = this.web3.utils.fromWei(balance, 'ether');
+      
+      this.debugLog('💰 Balance for', targetAccount, ':', ethBalance, 'ETH');
+      
+      return ethBalance;
     } catch (error) {
-      console.error('❌ Error getting balance:', error);
-      return '0';
+      this.debugLog('❌ Failed to get balance:', error);
+      throw error;
     }
   }
 
   // Send transaction
   async sendTransaction(transaction) {
     try {
-      console.log('📤 Sending transaction:', transaction);
+      this.debugLog('📤 Sending transaction:', transaction);
       
-      const tx = await this.web3.eth.sendTransaction({
+      if (!this.currentAccount) {
+        throw new Error('No account connected');
+      }
+      
+      const result = await this.web3.eth.sendTransaction({
         from: this.currentAccount,
         ...transaction
       });
       
-      console.log('✅ Transaction successful:', tx.transactionHash);
-      
-      // Add to pending transactions
-      this.pendingTransactions.push({
-        hash: tx.transactionHash,
-        from: this.currentAccount,
-        to: transaction.to,
-        value: transaction.value || '0',
-        timestamp: Date.now()
-      });
-      
-      // Trigger transaction event
-      this.triggerEvent('transactionSent', {
-        hash: tx.transactionHash,
-        receipt: tx
-      });
-      
-      return tx;
+      this.debugLog('✅ Transaction sent successfully:', result.transactionHash);
+      return result;
     } catch (error) {
-      console.error('❌ Transaction failed:', error);
-      
-      // Trigger error event
-      this.triggerEvent('transactionError', {
-        error: error.message
-      });
-      
+      this.debugLog('❌ Transaction failed:', error);
       throw error;
     }
   }
 
-  // Get gas estimate
-  async estimateGas(transaction) {
+  // Sign message
+  async signMessage(message) {
     try {
-      const gasEstimate = await this.web3.eth.estimateGas({
-        from: this.currentAccount,
-        ...transaction
-      });
+      this.debugLog('✍️ Signing message:', message);
       
-      return gasEstimate;
+      if (!this.currentAccount) {
+        throw new Error('No account connected');
+      }
+      
+      const signature = await this.web3.eth.personal.sign(
+        message,
+        this.currentAccount
+      );
+      
+      this.debugLog('✅ Message signed successfully:', signature);
+      return signature;
     } catch (error) {
-      console.error('❌ Error estimating gas:', error);
-      return null;
+      this.debugLog('❌ Message signing failed:', error);
+      throw error;
     }
   }
 
@@ -320,156 +306,106 @@ export class Web3Manager {
   async getGasPrice() {
     try {
       const gasPrice = await this.web3.eth.getGasPrice();
-      return this.web3.utils.fromWei(gasPrice, 'gwei');
+      const gasPriceGwei = this.web3.utils.fromWei(gasPrice, 'gwei');
+      
+      this.debugLog('⛽ Gas price:', gasPriceGwei, 'Gwei');
+      
+      return {
+        wei: gasPrice,
+        gwei: gasPriceGwei
+      };
     } catch (error) {
-      console.error('❌ Error getting gas price:', error);
-      return null;
+      this.debugLog('❌ Failed to get gas price:', error);
+      throw error;
     }
   }
 
-  // Load smart contract
-  async loadContract(contractName, address = null) {
+  // Estimate gas for transaction
+  async estimateGas(transaction) {
     try {
-      const contractAddress = address || this.contractAddresses[this.networkId];
+      this.debugLog('⛽ Estimating gas for transaction:', transaction);
       
-      if (!contractAddress) {
-        throw new Error(`No contract address for ${contractName} on network ${this.networkId}`);
-      }
+      const gasEstimate = await this.web3.eth.estimateGas(transaction);
       
-      // Load contract ABI (to be implemented)
-      const abi = await this.loadContractABI(contractName);
-      
-      // Create contract instance
-      this.contracts[contractName] = new this.web3.eth.Contract(abi, contractAddress);
-      
-      console.log(`📜 Loaded contract: ${contractName} at ${contractAddress}`);
-      
-      return this.contracts[contractName];
+      this.debugLog('✅ Gas estimate:', gasEstimate);
+      return gasEstimate;
     } catch (error) {
-      console.error(`❌ Error loading contract ${contractName}:`, error);
-      return null;
-    }
-  }
-
-  // Load contract ABI (placeholder)
-  async loadContractABI(contractName) {
-    // This will be implemented when we have actual contracts
-    // For now, return empty array
-    return [];
-  }
-
-  // Show MetaMask install prompt
-  showMetaMaskInstallPrompt() {
-    const message = `
-      <div style="text-align: center; padding: 20px;">
-        <h3>🦊 MetaMask Required</h3>
-        <p>Om de SollyCoin dApp te gebruiken heb je MetaMask nodig.</p>
-        <a href="https://metamask.io/download/" target="_blank" 
-           style="background: #f6851b; color: white; padding: 10px 20px; 
-                  text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px;">
-          Download MetaMask
-        </a>
-      </div>
-    `;
-    
-    if (typeof showUniverseModal === 'function') {
-      showUniverseModal(message, 'MetaMask Installatie');
-    } else {
-      alert('MetaMask is vereist voor deze dApp. Download het op https://metamask.io/download/');
+      this.debugLog('❌ Failed to estimate gas:', error);
+      throw error;
     }
   }
 
   // Event system
-  addEventListener(event, callback) {
-    this.eventListeners.push({ event, callback });
+  on(event, callback) {
+    if (!this.eventListeners[event]) {
+      this.eventListeners[event] = [];
+    }
+    this.eventListeners[event].push(callback);
   }
 
-  removeEventListener(event, callback) {
-    this.eventListeners = this.eventListeners.filter(
-      listener => !(listener.event === event && listener.callback === callback)
-    );
-  }
-
-  triggerEvent(event, data = {}) {
-    this.eventListeners.forEach(listener => {
-      if (listener.event === event) {
-        listener.callback(data);
+  off(event, callback) {
+    if (this.eventListeners[event]) {
+      const index = this.eventListeners[event].indexOf(callback);
+      if (index > -1) {
+        this.eventListeners[event].splice(index, 1);
       }
-    });
+    }
   }
 
-  // Get current status
+  emit(event, data) {
+    if (this.eventListeners[event]) {
+      this.eventListeners[event].forEach(callback => {
+        try {
+          callback(data);
+        } catch (error) {
+          this.debugLog('❌ Event callback error:', error);
+        }
+      });
+    }
+  }
+
+  // Get Web3 instance
+  getWeb3() {
+    return this.web3;
+  }
+
+  // Get provider
+  getProvider() {
+    return this.provider;
+  }
+
+  // Check if connected
+  isWalletConnected() {
+    return this.isConnected && this.currentAccount !== null;
+  }
+
+  // Get connection status
   getStatus() {
     return {
       isConnected: this.isConnected,
       currentAccount: this.currentAccount,
-      networkId: this.networkId,
-      networkName: this.networkName,
-      accounts: this.accounts,
-      pendingTransactions: this.pendingTransactions.length
+      currentNetwork: this.currentNetwork,
+      hasProvider: !!this.provider,
+      hasWeb3: !!this.web3
     };
   }
 
-  // Helper methods for UI
-  getCurrentAccount() {
-    return this.currentAccount;
-  }
-
-  getCurrentNetwork() {
-    return this.networkName;
-  }
-
-  // Cleanup
+  // Cleanup resources
   cleanup() {
-    // Remove event listeners
-    if (window.ethereum) {
-      window.ethereum.removeAllListeners();
-    }
-    
-    this.eventListeners = [];
-    this.contracts = {};
-    this.pendingTransactions = [];
+    this.debugLog('🧹 Cleaning up Web3Manager resources...');
+    this.web3 = null;
+    this.provider = null;
+    this.isConnected = false;
+    this.currentAccount = null;
+    this.currentNetwork = null;
+    this.eventListeners = {};
   }
-
-    /**
-     * Initialiseer contract manager met contract addresses
-     */
-    async initializeContracts() {
-        try {
-            console.log("📋 Initializing smart contracts...");
-            
-            // Contract addresses (update na deployment)
-            const contractAddresses = {
-                SollyCoin: "0x5FbDB2315678afecb367f032d93F642f64180aa3", // Localhost deployment
-                SollyNFT: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",  // Localhost deployment
-                GameFactory: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0" // Localhost deployment
-            };
-            
-            // Initialize contract manager if available
-            if (this.contractManager) {
-                await this.contractManager.initialize(contractAddresses);
-            } else {
-                console.log("📋 ContractManager not available, skipping contract initialization");
-            }
-            
-        } catch (error) {
-            console.error("❌ Contract initialization failed:", error);
-            // Continue zonder contracts voor development
-        }
-    }
-
-    // Initialize method for module compatibility
-    async initialize() {
-      console.log("🌐 Web3Manager initialized");
-      return Promise.resolve();
-    }
-
-    // Set contract manager reference
-    setContractManager(contractManager) {
-      this.contractManager = contractManager;
-      console.log("📋 ContractManager reference set");
-    }
 }
 
+// Maak Web3Manager globaal beschikbaar
+window.Web3Manager = Web3Manager;
+
 // Export voor gebruik in andere modules
-window.Web3Manager = Web3Manager; 
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = Web3Manager;
+} 

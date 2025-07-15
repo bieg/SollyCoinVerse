@@ -32,7 +32,16 @@ function addSolly1AndSolly2(scene) {
     solly1.userData.isSolly1 = true;
     solly1.userData.shape = 'piramide';
     solly1.name = 'Solly1';
-    solly1.scale.set(3.4, 3.4, 3.4);
+    solly1.scale.set(2.55, 2.55, 2.55); // 25% kleiner (was 3.4, nu 2.55)
+    
+    // ROTEER Solly1 zodat het eruitziet als een piramide in plaats van een vierkant vlak
+    // Tetrahedron heeft een punt naar boven, dus we roteren het voor een mooi zijaanzicht
+    solly1.rotation.set(
+        Math.PI * 0.1,  // Lichte kanteling naar voren
+        Math.PI * 0.25, // 45 graden draaiing voor zijaanzicht
+        0               // Geen roll
+    );
+    
     if (solly1.material) {
         solly1.material.color.set(0xFFFFFF);
         solly1.material.opacity = 1;
@@ -52,9 +61,9 @@ function addSolly1AndSolly2(scene) {
         window.solly1Collider = collider;
     }
     scene.add(solly1);
-    // Camera goed zetten
+    // Camera goed zetten voor mooi zijaanzicht van Solly1
     if (window.camera) {
-        window.camera.position.set(0, 0, 2000);
+        window.camera.position.set(0, 200, 2000); // Hoger en verder weg voor beter perspectief
         window.camera.lookAt(0, 0, 0);
     }
     // Direct drag-listeners toevoegen
@@ -66,6 +75,7 @@ function addSolly1AndSolly2(scene) {
     console.log('📐 Opgeslagen shape: piramide');
     console.log('📍 Solly1 positie:', solly1.position);
     console.log('📏 Solly1 schaal:', solly1.scale);
+    console.log('🔄 Solly1 rotatie:', solly1.rotation);
     console.log('👁️ Solly1 zichtbaar:', solly1.visible);
     console.log('🎨 Solly1 materiaal:', solly1.material);
     console.log('🖱️ Drag-listeners toegevoegd:', !!window.addSollyDragListeners);
@@ -1195,8 +1205,7 @@ function onSolly1PointerDown(event) {
     });
     // Controls uit
     if (window.controls) window.controls.enabled = false;
-    // Solly1 groot en rood
-    if (solly1.material) solly1.material.color.setHex(0xFF0000);
+    // Solly1 GROTER maken maar NIET rood (verwijder rode kleur)
     window.solly1.scale.set(3.4, 3.4, 3.4);
     // oude listeners niet meer nodig
     console.log('🟢 [DRAG] Start drag op Solly1');
@@ -1291,20 +1300,27 @@ function onSolly1PointerUp(event) {
     });
     // Controls weer aan
     if (window.controls) window.controls.enabled = true;
-    // Solly1 weer wit en normaal formaat
-    if (solly1.material) solly1.material.color.setHex(0xFFFFFF);
+    // Solly1 weer normaal formaat (verwijder rode kleur fix)
     solly1.scale.set(1, 1, 1);
     // Ontkoppel mousemove/mouseup
     window.removeEventListener('pointermove', onSolly1PointerMove);
     window.removeEventListener('pointerup', onSolly1PointerUp);
     // GEEN camera lookAt!
-    console.log('🔵 [DRAG] Drag beëindigd, alles weer normaal');
-
-    // Collision-check na loslaten
+    
+    // ==== CHECK VOOR DROP OP MINI-SOLLY ====
+    // Reset alle highlights
+    if (window.miniSollys) {
+        window.miniSollys.forEach(mini => {
+            if (mini && mini.material && mini.userData.__origColor) {
+                mini.material.color.copy(mini.userData.__origColor);
+            }
+        });
+    }
+    
+    // Check voor drop op mini-Solly
     evaluateDropOnMiniSolly();
-    // === Zet drop-handled flag ===
-    window.solly1DropHandled = true;
-    console.log('[DEBUG] solly1DropHandled = true na pointer up');
+    
+    console.log('🔴 [DRAG] Drag gestopt op Solly1');
 }
 
 // Alleen Solly1 klikbaar maken
@@ -1414,7 +1430,7 @@ function spawnKaboom(pos) {
     console.log('💥 Mini-Kaboom op positie:', pos);
     
     // Maak meerdere lagen voor een mooier effect
-    createExplosionLayer(pos, 0xFFFF00, 0, 400, 500); // Gele kern
+    createExplosionLayer(pos, 0xFFD700, 0, 400, 500); // Gele kern
     createExplosionLayer(pos, 0xFFA500, 50, 600, 400); // Oranje explosie
     
     // Voeg kleine particles toe
@@ -1502,8 +1518,10 @@ function evaluateDropOnMiniSolly() {
         });
         if (overlapRatio > 0.6) {
             console.log('💥 KABOOM! 2D overlap > 60% met mini-Solly:', mini);
+            // Gebruik de EXACTE positie van de mini-Solly voor de explosie
+            const explosionPosition = mini.position.clone();
             handleSollyOnMini(mini);
-            spawnKaboom(mini.position);
+            spawnKaboom(explosionPosition);
             break;
         }
     }
@@ -1517,8 +1535,9 @@ function handleSollyOnMini(targetMini) {
     window.kaboomCount = (window.kaboomCount || 0) + 1;
     console.log(`💥 Kaboom! Totaal: ${window.kaboomCount}`);
 
-    // Spectaculaire explosie animatie
+    // Spectaculaire explosie animatie op de EXACTE positie van de mini-Solly
     const explosionPos = targetMini.position.clone();
+    console.log('💥 Explosie positie:', explosionPos);
     
     // Meerdere explosie lagen met verschillende kleuren en timing
     createExplosionLayer(explosionPos, 0xFFD700, 0, 600, 600); // Gouden kern
