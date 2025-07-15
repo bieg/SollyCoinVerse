@@ -345,44 +345,29 @@ class CollisionManager {
           <p>Je hebt 4 collisions bereikt! Kies hoe je verder wilt:</p>
           
           <div class="shape-options">
-            <div class="shape-option" data-shape="piramide">
+            <div class="shape-option" data-shape="piramide" onclick="window.collisionManager.handleShapeChoice('piramide')">
               <div class="shape-preview piramide-preview">🔺</div>
               <h3>Piramide</h3>
               <p>Klassieke vorm, perfecte balans</p>
             </div>
             
-            <div class="shape-option" data-shape="vierkant">
+            <div class="shape-option" data-shape="vierkant" onclick="window.collisionManager.handleShapeChoice('vierkant')">
               <div class="shape-preview vierkant-preview">⬜</div>
               <h3>Vierkant</h3>
               <p>Stabiel en betrouwbaar</p>
             </div>
             
-            <div class="shape-option" data-shape="zandloper">
+            <div class="shape-option" data-shape="zandloper" onclick="window.collisionManager.handleShapeChoice('zandloper')">
               <div class="shape-preview zandloper-preview">⏳</div>
               <h3>Zandloper</h3>
               <p>Dynamisch en snel</p>
             </div>
             
-            <div class="shape-option" data-shape="ruit">
+            <div class="shape-option" data-shape="ruit" onclick="window.collisionManager.handleShapeChoice('ruit')">
               <div class="shape-preview ruit-preview">💎</div>
               <h3>Ruit</h3>
               <p>Elegant en precies</p>
             </div>
-          </div>
-          
-          <div class="shape-choice-actions">
-            <button class="shape-choice-btn" onclick="window.collisionManager.handleShapeChoice('piramide')">
-              Kies Piramide
-            </button>
-            <button class="shape-choice-btn" onclick="window.collisionManager.handleShapeChoice('vierkant')">
-              Kies Vierkant
-            </button>
-            <button class="shape-choice-btn" onclick="window.collisionManager.handleShapeChoice('zandloper')">
-              Kies Zandloper
-            </button>
-            <button class="shape-choice-btn" onclick="window.collisionManager.handleShapeChoice('ruit')">
-              Kies Ruit
-            </button>
           </div>
         </div>
       </div>
@@ -436,7 +421,6 @@ class CollisionManager {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 20px;
-          margin-bottom: 30px;
         }
         
         .shape-option {
@@ -446,12 +430,19 @@ class CollisionManager {
           padding: 20px;
           cursor: pointer;
           transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
         
         .shape-option:hover {
           border-color: #FFD700;
           background: rgba(255, 215, 0, 0.1);
           transform: translateY(-5px);
+          box-shadow: 0 8px 20px rgba(255, 215, 0, 0.2);
+        }
+        
+        .shape-option:active {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
         }
         
         .shape-preview {
@@ -469,32 +460,6 @@ class CollisionManager {
           font-size: 0.9em;
           color: #B0B0B0;
           margin: 0;
-        }
-        
-        .shape-choice-actions {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 15px;
-          justify-content: center;
-        }
-        
-        .shape-choice-btn {
-          background: linear-gradient(45deg, #8A2BE2, #9370DB);
-          color: white;
-          border: none;
-          border-radius: 25px;
-          padding: 12px 24px;
-          font-size: 1.1em;
-          font-weight: bold;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
-        }
-        
-        .shape-choice-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(138, 43, 226, 0.6);
-          background: linear-gradient(45deg, #9370DB, #8A2BE2);
         }
         
         @keyframes fadeIn {
@@ -546,6 +511,17 @@ class CollisionManager {
   updateSolly1Shape(shape) {
     if (!window.solly1) return;
     
+    this.debugLog(`🎨 Updating Solly1 shape to: ${shape}`);
+    
+    // Verwijder oude children (voor zandloper)
+    while (window.solly1.children.length > 0) {
+      const child = window.solly1.children[0];
+      window.solly1.remove(child);
+      if (window.scene) {
+        window.scene.remove(child);
+      }
+    }
+    
     // Verwijder oude geometrie
     if (window.solly1.geometry) {
       window.solly1.geometry.dispose();
@@ -553,24 +529,91 @@ class CollisionManager {
     
     // Maak nieuwe geometrie op basis van shape
     let newGeometry;
+    let material;
+    
     switch (shape) {
       case 'vierkant':
         newGeometry = new THREE.BoxGeometry(120, 120, 120);
+        material = new THREE.MeshLambertMaterial({ 
+          color: 0x8A2BE2,
+          transparent: true,
+          opacity: 0.9
+        });
         break;
+        
       case 'zandloper':
-        newGeometry = new THREE.ConeGeometry(60, 240, 4);
+        // Zandloper = twee Sollies met de punt op elkaar
+        newGeometry = new THREE.Group();
+        
+        // Bovenste Solly (piramide naar beneden)
+        const topSolly = new THREE.Mesh(
+          new THREE.ConeGeometry(60, 120, 4),
+          new THREE.MeshLambertMaterial({ 
+            color: 0x8A2BE2,
+            transparent: true,
+            opacity: 0.9
+          })
+        );
+        topSolly.position.y = 60; // Plaats bovenste punt op y=60
+        topSolly.rotation.z = Math.PI; // Draai om zodat punt naar beneden wijst
+        
+        // Onderste Solly (piramide naar boven)
+        const bottomSolly = new THREE.Mesh(
+          new THREE.ConeGeometry(60, 120, 4),
+          new THREE.MeshLambertMaterial({ 
+            color: 0x8A2BE2,
+            transparent: true,
+            opacity: 0.9
+          })
+        );
+        bottomSolly.position.y = -60; // Plaats onderste punt op y=-60
+        
+        // Voeg beide toe aan group
+        newGeometry.add(topSolly);
+        newGeometry.add(bottomSolly);
         break;
+        
       case 'ruit':
         newGeometry = new THREE.OctahedronGeometry(80);
+        material = new THREE.MeshLambertMaterial({ 
+          color: 0x8A2BE2,
+          transparent: true,
+          opacity: 0.9
+        });
         break;
+        
       case 'piramide':
       default:
         newGeometry = new THREE.ConeGeometry(60, 120, 4);
+        material = new THREE.MeshLambertMaterial({ 
+          color: 0x8A2BE2,
+          transparent: true,
+          opacity: 0.9
+        });
         break;
     }
     
-    window.solly1.geometry = newGeometry;
-    window.solly1.userData.shape = shape;
+    if (shape === 'zandloper') {
+      // Voor zandloper: vervang de hele solly1 met de group
+      const oldSolly1 = window.solly1;
+      window.solly1 = newGeometry;
+      window.solly1.position.copy(oldSolly1.position);
+      window.solly1.rotation.copy(oldSolly1.rotation);
+      window.solly1.scale.copy(oldSolly1.scale);
+      window.solly1.userData = oldSolly1.userData;
+      window.solly1.userData.shape = shape;
+      
+      // Verwijder oude en voeg nieuwe toe aan scene
+      if (window.scene) {
+        window.scene.remove(oldSolly1);
+        window.scene.add(window.solly1);
+      }
+    } else {
+      // Voor andere vormen: update alleen geometrie en material
+      window.solly1.geometry = newGeometry;
+      window.solly1.material = material;
+      window.solly1.userData.shape = shape;
+    }
     
     this.debugLog(`🎨 Solly1 shape updated to: ${shape}`);
   }
