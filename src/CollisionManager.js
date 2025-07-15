@@ -42,6 +42,9 @@ class CollisionManager {
     
     // Update game state
     this.updateGameState();
+
+    // Toon direct de ShapeChoice modal na collision
+    this.showShapeChoiceModal();
   }
 
   createCollisionExplosion() {
