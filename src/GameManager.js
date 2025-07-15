@@ -28,7 +28,7 @@ class GameManager {
   }
 
   async loadDefaultConfig() {
-    try {
+    return window.errorHandler.safeExecuteAsync(async () => {
       // Direct de default config instellen in plaats van extern bestand laden
       this.defaultConfig = {
         level: 'beginner',
@@ -40,19 +40,8 @@ class GameManager {
         availableShapes: ['kubus', 'piramide', 'bol']
       };
       console.log('📝 Default config loaded:', this.defaultConfig);
-    } catch (error) {
-      console.error('❌ Error loading default config:', error);
-      // Minimale fallback als er iets misgaat
-      this.defaultConfig = {
-        level: 'beginner',
-        shape: 'piramide',
-        sterren: { totaal: 4000, wit: 4000 },
-        planeten: { rood: 1000, groen: 1000 },
-        sollys: { geel: 1750, blauw: 1750, pink: 0, rood: 1500 },
-        availableLevels: ['beginner', 'intermediate', 'advanced'],
-        availableShapes: ['kubus', 'piramide', 'bol']
-      };
-    }
+      return this.defaultConfig;
+    }, 'loadDefaultConfig', window.errorHandler.getDefaultConfig());
   }
 
   generateUniqueIdentifier() {
@@ -301,48 +290,51 @@ class GameManager {
   }
 
   saveProgress() {
-    if (this.currentUserData) {
-      try {
-        // 🔄 Update dynamische data voordat we opslaan
-        this.currentUserData.lastPlayed = new Date().toISOString();
-        
-        // 🔄 Update game state als die beschikbaar is
-        if (this.gameState) {
-          this.currentUserData.sterren = this.gameState.sterren || this.currentUserData.sterren;
-          this.currentUserData.planeten = this.gameState.planeten || this.currentUserData.planeten;
-          this.currentUserData.sollys = this.gameState.sollys || this.currentUserData.sollys;
-          this.currentUserData.kaboom = this.gameState.kaboom || this.currentUserData.kaboom;
-          
-          // 🔄 Update level, shape en size als die veranderd zijn
-          if (this.gameState.level && this.gameState.level !== this.currentUserData.level) {
-            this.currentUserData.level = this.gameState.level;
-            console.log('🔄 Level updated to:', this.currentUserData.level);
-          }
-          if (this.gameState.shape && this.gameState.shape !== this.currentUserData.shape) {
-            this.currentUserData.shape = this.gameState.shape;
-            console.log('🔄 Shape updated to:', this.currentUserData.shape);
-          }
-          if (this.gameState.size && this.gameState.size !== this.currentUserData.size) {
-            this.currentUserData.size = this.gameState.size;
-            console.log('🔄 Size updated to:', this.currentUserData.size);
-          }
-        }
-        
-        // Use SecurityManager for secure saving
-        const success = this.securityManager.saveSecureData(this.currentUserData);
-        if (success) {
-          console.log('💾 Progress saved securely');
-        } else {
-          console.warn('⚠️ Security validation failed, saving blocked');
-        }
-      } catch (error) {
-        console.error('❌ Error saving progress:', error);
-      }
+    if (!this.currentUserData) {
+      console.warn('⚠️ No user data to save');
+      return false;
     }
+
+    return window.errorHandler.safeExecute(() => {
+      // 🔄 Update dynamische data voordat we opslaan
+      this.currentUserData.lastPlayed = new Date().toISOString();
+      
+      // 🔄 Update game state als die beschikbaar is
+      if (this.gameState) {
+        this.currentUserData.sterren = this.gameState.sterren || this.currentUserData.sterren;
+        this.currentUserData.planeten = this.gameState.planeten || this.currentUserData.planeten;
+        this.currentUserData.sollys = this.gameState.sollys || this.currentUserData.sollys;
+        this.currentUserData.kaboom = this.gameState.kaboom || this.currentUserData.kaboom;
+        
+        // 🔄 Update level, shape en size als die veranderd zijn
+        if (this.gameState.level && this.gameState.level !== this.currentUserData.level) {
+          this.currentUserData.level = this.gameState.level;
+          console.log('🔄 Level updated to:', this.currentUserData.level);
+        }
+        if (this.gameState.shape && this.gameState.shape !== this.currentUserData.shape) {
+          this.currentUserData.shape = this.gameState.shape;
+          console.log('🔄 Shape updated to:', this.currentUserData.shape);
+        }
+        if (this.gameState.size && this.gameState.size !== this.currentUserData.size) {
+          this.currentUserData.size = this.gameState.size;
+          console.log('🔄 Size updated to:', this.currentUserData.size);
+        }
+      }
+      
+      // Use SecurityManager for secure saving
+      const success = this.securityManager.saveSecureData(this.currentUserData);
+      if (success) {
+        console.log('💾 Progress saved securely');
+        return true;
+      } else {
+        console.warn('⚠️ Security validation failed, saving blocked');
+        return false;
+      }
+    }, 'saveProgress', false);
   }
 
   loadProgress() {
-    try {
+    return window.errorHandler.safeExecute(() => {
       // Use SecurityManager for secure loading
       const data = this.securityManager.loadSecureData();
       if (data) {
@@ -353,10 +345,7 @@ class GameManager {
         console.log('📂 No secure progress found, using default');
         return false;
       }
-    } catch (error) {
-      console.error('❌ Error loading progress:', error);
-      return false;
-    }
+    }, 'loadProgress', false);
   }
 
   // Initialize method for module compatibility
