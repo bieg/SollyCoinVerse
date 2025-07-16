@@ -527,6 +527,11 @@ class CollisionManager {
     
     // Toon success message direct
     this.showShapeChangeMessage(shape);
+    
+    // Maak portal met gekozen vorm na 2 seconden
+    setTimeout(() => {
+      this.createShapePortal(shape);
+    }, 2000);
   }
 
   updateSolly1Shape(shape) {
@@ -703,6 +708,151 @@ class CollisionManager {
     
     document.body.appendChild(messageEl);
     setTimeout(() => messageEl.remove(), 2000);
+  }
+
+  createShapePortal(shape) {
+    this.debugLog(`🌀 Creating shape portal for: ${shape}`);
+    
+    if (!window.scene) return;
+    
+    // Verwijder bestaande portal als die er is
+    const existingPortal = window.scene.getObjectByName('ShapePortal');
+    if (existingPortal) {
+      window.scene.remove(existingPortal);
+    }
+    
+    // Maak portal ring
+    const portalRing = new THREE.Mesh(
+      new THREE.RingGeometry(200, 300, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0x8A2BE2,
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      })
+    );
+    portalRing.name = 'ShapePortal';
+    portalRing.position.set(0, 0, -500); // Plaats voor de camera
+    portalRing.rotation.x = -Math.PI / 2; // Draai horizontaal
+    
+    // Maak de gekozen vorm voor in het midden van de portal
+    let shapeMesh;
+    switch (shape) {
+      case 'vierkant':
+        shapeMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(80, 80, 80),
+          new THREE.MeshLambertMaterial({ 
+            color: 0xFFD700,
+            transparent: true,
+            opacity: 0.9
+          })
+        );
+        break;
+        
+      case 'zandloper':
+        // Zandloper = twee Sollies met de punt op elkaar
+        const zandloperGroup = new THREE.Group();
+        
+        // Bovenste Solly (piramide naar beneden)
+        const topSolly = new THREE.Mesh(
+          new THREE.ConeGeometry(40, 80, 4),
+          new THREE.MeshLambertMaterial({ 
+            color: 0xFFD700,
+            transparent: true,
+            opacity: 0.9
+          })
+        );
+        topSolly.position.y = 40;
+        topSolly.rotation.z = Math.PI;
+        
+        // Onderste Solly (piramide naar boven)
+        const bottomSolly = new THREE.Mesh(
+          new THREE.ConeGeometry(40, 80, 4),
+          new THREE.MeshLambertMaterial({ 
+            color: 0xFFD700,
+            transparent: true,
+            opacity: 0.9
+          })
+        );
+        bottomSolly.position.y = -40;
+        
+        zandloperGroup.add(topSolly);
+        zandloperGroup.add(bottomSolly);
+        shapeMesh = zandloperGroup;
+        break;
+        
+      case 'ruit':
+        shapeMesh = new THREE.Mesh(
+          new THREE.OctahedronGeometry(60),
+          new THREE.MeshLambertMaterial({ 
+            color: 0xFFD700,
+            transparent: true,
+            opacity: 0.9
+          })
+        );
+        break;
+        
+      case 'piramide':
+      default:
+        shapeMesh = new THREE.Mesh(
+          new THREE.ConeGeometry(40, 80, 4),
+          new THREE.MeshLambertMaterial({ 
+            color: 0xFFD700,
+            transparent: true,
+            opacity: 0.9
+          })
+        );
+        break;
+    }
+    
+    // Plaats de vorm in het midden van de portal
+    shapeMesh.position.set(0, 0, -500);
+    shapeMesh.name = 'PortalShape';
+    
+    // Voeg portal en vorm toe aan scene
+    window.scene.add(portalRing);
+    window.scene.add(shapeMesh);
+    
+    // Animaties
+    this.animatePortal(portalRing, shapeMesh);
+    
+    this.debugLog(`🌀 Shape portal created with ${shape} in center`);
+  }
+  
+  animatePortal(portalRing, shapeMesh) {
+    const startTime = performance.now();
+    
+    function animate() {
+      const elapsed = performance.now() - startTime;
+      const rotationSpeed = 0.001;
+      
+      // Draai portal ring
+      portalRing.rotation.z += rotationSpeed;
+      
+      // Draai en pulseer de vorm
+      shapeMesh.rotation.y += rotationSpeed * 2;
+      shapeMesh.rotation.x += rotationSpeed * 1.5;
+      
+      // Pulseer opacity van de vorm
+      const pulse = Math.sin(elapsed * 0.003) * 0.2 + 0.8;
+      if (shapeMesh.material) {
+        shapeMesh.material.opacity = pulse;
+      } else if (shapeMesh.children) {
+        // Voor zandloper group
+        shapeMesh.children.forEach(child => {
+          if (child.material) {
+            child.material.opacity = pulse;
+          }
+        });
+      }
+      
+      // Pulseer portal ring
+      portalRing.material.opacity = Math.sin(elapsed * 0.002) * 0.3 + 0.5;
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
   }
 
   // Public methods
