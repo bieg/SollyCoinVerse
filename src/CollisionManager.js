@@ -501,11 +501,11 @@ class CollisionManager {
     // Update Solly1 vorm
     this.updateSolly1Shape(shape);
     
-    // Verberg modal
-    this.hideShapeChoiceModal();
-    
-    // Toon success message
-    this.showShapeChangeMessage(shape);
+    // Verberg modal en wacht tot het volledig weg is voordat bevestiging wordt getoond
+    this.hideShapeChoiceModal(() => {
+      // Toon success message nadat modal volledig weg is
+      this.showShapeChangeMessage(shape);
+    });
   }
 
   updateSolly1Shape(shape) {
@@ -625,11 +625,19 @@ class CollisionManager {
     this.debugLog(`🎨 Solly1 shape updated to: ${shape}`);
   }
 
-  hideShapeChoiceModal() {
+  hideShapeChoiceModal(callback) {
     const modal = document.querySelector('.shape-choice-modal');
     if (modal) {
       modal.style.animation = 'fadeOut 0.3s ease-in';
-      setTimeout(() => modal.remove(), 300);
+      setTimeout(() => {
+        modal.remove();
+        if (callback) {
+          callback();
+        }
+      }, 300);
+    } else if (callback) {
+      // Als er geen modal is, roep callback direct aan
+      callback();
     }
   }
 
