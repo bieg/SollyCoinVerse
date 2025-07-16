@@ -721,9 +721,33 @@ class CollisionManager {
       window.scene.remove(existingPortal);
     }
     
-    // Maak portal ring
+    // Maak portal ring met binnenkant in de vorm van de ShapeChoice
+    let portalGeometry;
+    switch (shape) {
+      case 'vierkant':
+        // Vierkante binnenkant
+        portalGeometry = new THREE.RingGeometry(200, 300, 4);
+        break;
+        
+      case 'zandloper':
+        // Zandloper-vormige binnenkant (8-zijdig voor zandloper effect)
+        portalGeometry = new THREE.RingGeometry(200, 300, 8);
+        break;
+        
+      case 'ruit':
+        // Ruit-vormige binnenkant (4-zijdig voor ruit effect)
+        portalGeometry = new THREE.RingGeometry(200, 300, 4);
+        break;
+        
+      case 'piramide':
+      default:
+        // Piramide-vormige binnenkant (4-zijdig voor piramide effect)
+        portalGeometry = new THREE.RingGeometry(200, 300, 4);
+        break;
+    }
+    
     const portalRing = new THREE.Mesh(
-      new THREE.RingGeometry(200, 300, 32),
+      portalGeometry,
       new THREE.MeshBasicMaterial({
         color: 0x8A2BE2,
         transparent: true,
@@ -732,7 +756,7 @@ class CollisionManager {
       })
     );
     portalRing.name = 'ShapePortal';
-    portalRing.position.set(0, 0, -500); // Plaats voor de camera
+    portalRing.position.set(-800, 0, -500); // Plaats links van het midden
     portalRing.rotation.x = -Math.PI / 2; // Draai horizontaal
     
     // Maak de gekozen vorm voor in het midden van de portal
@@ -805,18 +829,120 @@ class CollisionManager {
         break;
     }
     
-    // Plaats de vorm in het midden van de portal
-    shapeMesh.position.set(0, 0, -500);
+    // Plaats de vorm in het midden van de portal (links)
+    shapeMesh.position.set(-800, 0, -500);
     shapeMesh.name = 'PortalShape';
     
     // Voeg portal en vorm toe aan scene
     window.scene.add(portalRing);
     window.scene.add(shapeMesh);
     
+    // Maak portal dropable
+    this.makePortalDropable(portalRing, shapeMesh);
+    
     // Animaties
     this.animatePortal(portalRing, shapeMesh);
     
-    this.debugLog(`🌀 Shape portal created with ${shape} in center`);
+    this.debugLog(`🌀 Shape portal created with ${shape} in center, positioned left`);
+  }
+  
+  makePortalDropable(portalRing, shapeMesh) {
+    // Voeg drop zone toe
+    const dropZone = new THREE.Mesh(
+      new THREE.CircleGeometry(250, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0x00FF00,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.DoubleSide
+      })
+    );
+    dropZone.name = 'PortalDropZone';
+    dropZone.position.copy(portalRing.position);
+    dropZone.rotation.x = -Math.PI / 2;
+    dropZone.userData.isDropZone = true;
+    dropZone.userData.portalRing = portalRing;
+    dropZone.userData.shapeMesh = shapeMesh;
+    
+    window.scene.add(dropZone);
+    
+    // Voeg event listener toe voor drop detection
+    if (window.solly1) {
+      // Check elke frame of Solly1 over de portal is
+      const checkDrop = () => {
+        if (window.solly1 && window.solly1.position) {
+          const distance = window.solly1.position.distanceTo(dropZone.position);
+          if (distance < 250) {
+            this.handlePortalDrop(portalRing, shapeMesh);
+            // Verwijder drop zone na succesvolle drop
+            window.scene.remove(dropZone);
+            return;
+          }
+        }
+        requestAnimationFrame(checkDrop);
+      };
+      checkDrop();
+    }
+  }
+  
+  handlePortalDrop(portalRing, shapeMesh) {
+    this.debugLog('🎯 Solly1 dropped on portal!');
+    
+    // Speciale effecten bij drop
+    this.createPortalDropEffect(portalRing.position);
+    
+    // Verwijder portal na drop
+    setTimeout(() => {
+      if (window.scene) {
+        window.scene.remove(portalRing);
+        window.scene.remove(shapeMesh);
+      }
+    }, 3000);
+  }
+  
+  createPortalDropEffect(position) {
+    // Maak explosie effect op portal positie
+    this.createExplosionLayer(position, 0x8A2BE2, 0, 800, 800);
+    this.createExplosionLayer(position, 0xFFD700, 100, 1000, 600);
+    
+    // Screen shake
+    this.createScreenShake();
+    
+    // Toon success message
+    const messageEl = document.createElement('div');
+    messageEl.textContent = '🎯 Portal activated!';
+    messageEl.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(45deg, #8A2BE2, #9370DB);
+      color: white;
+      padding: 20px 30px;
+      border-radius: 15px;
+      font-size: 1.3em;
+      font-weight: bold;
+      z-index: 10001;
+      box-shadow: 0 8px 24px rgba(138, 43, 226, 0.4);
+      animation: portalActivatedPulse 2s ease-out;
+    `;
+    
+    // Voeg animatie CSS toe
+    if (!document.getElementById('portal-animations')) {
+      const style = document.createElement('style');
+      style.id = 'portal-animations';
+      style.textContent = `
+        @keyframes portalActivatedPulse {
+          0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+          50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(messageEl);
+    setTimeout(() => messageEl.remove(), 2000);
   }
   
   animatePortal(portalRing, shapeMesh) {
