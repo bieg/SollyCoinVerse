@@ -337,7 +337,7 @@ class CollisionManager {
   showShapeChoiceModal() {
     this.debugLog('🎨 Showing ShapeChoice modal after 4 collisions');
     
-    // Maak modal HTML
+    // Maak modal HTML (zonder onclick handlers)
     const modalHTML = `
       <div class="shape-choice-modal">
         <div class="shape-choice-content">
@@ -345,25 +345,25 @@ class CollisionManager {
           <p>Je hebt 4 collisions bereikt! Kies hoe je verder wilt:</p>
           
           <div class="shape-options">
-            <div class="shape-option" data-shape="piramide" onclick="window.collisionManager.handleShapeChoice('piramide')">
+            <div class="shape-option" data-shape="piramide">
               <div class="shape-preview piramide-preview">🔺</div>
               <h3>Piramide</h3>
               <p>Klassieke vorm, perfecte balans</p>
             </div>
             
-            <div class="shape-option" data-shape="vierkant" onclick="window.collisionManager.handleShapeChoice('vierkant')">
+            <div class="shape-option" data-shape="vierkant">
               <div class="shape-preview vierkant-preview">⬜</div>
               <h3>Vierkant</h3>
               <p>Stabiel en betrouwbaar</p>
             </div>
             
-            <div class="shape-option" data-shape="zandloper" onclick="window.collisionManager.handleShapeChoice('zandloper')">
+            <div class="shape-option" data-shape="zandloper">
               <div class="shape-preview zandloper-preview">⏳</div>
               <h3>Zandloper</h3>
               <p>Dynamisch en snel</p>
             </div>
             
-            <div class="shape-option" data-shape="ruit" onclick="window.collisionManager.handleShapeChoice('ruit')">
+            <div class="shape-option" data-shape="ruit">
               <div class="shape-preview ruit-preview">💎</div>
               <h3>Ruit</h3>
               <p>Elegant en precies</p>
@@ -484,7 +484,19 @@ class CollisionManager {
     // Voeg modal toe aan DOM
     const modalContainer = document.createElement('div');
     modalContainer.innerHTML = modalHTML;
-    document.body.appendChild(modalContainer.firstElementChild);
+    const modal = modalContainer.firstElementChild;
+    document.body.appendChild(modal);
+    
+    // Voeg event listeners toe aan shape options
+    const shapeOptions = modal.querySelectorAll('.shape-option');
+    shapeOptions.forEach(option => {
+      option.addEventListener('click', (event) => {
+        const shape = option.getAttribute('data-shape');
+        if (shape) {
+          this.handleShapeChoice(shape);
+        }
+      });
+    });
     
     // Maak collisionManager globaal beschikbaar
     window.collisionManager = this;
