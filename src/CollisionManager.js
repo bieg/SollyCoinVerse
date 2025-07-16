@@ -644,11 +644,35 @@ class CollisionManager {
     // Positioneer Solly1 in het midden van de scene
     window.solly1.position.set(0, 0, 0);
     
-    // Herstel raycasting na vorm verandering
+    // Herstel raycasting direct na vorm verandering
     if (typeof window.enableSolly1DragOnly === 'function') {
-      setTimeout(() => {
-        window.enableSolly1DragOnly();
-      }, 100);
+      window.enableSolly1DragOnly();
+    }
+    
+    // Zorg ervoor dat Solly1 zichtbaar en klikbaar is
+    if (window.solly1) {
+      window.solly1.visible = true;
+      if (window.solly1.material) {
+        window.solly1.material.visible = true;
+        window.solly1.material.opacity = 1;
+        window.solly1.material.transparent = false;
+      }
+      window.solly1.raycast = THREE.Mesh.prototype.raycast;
+      
+      // Voor zandloper: zorg dat alle children ook raycastable zijn
+      if (window.solly1.children && window.solly1.children.length > 0) {
+        window.solly1.children.forEach(child => {
+          if (child.isMesh) {
+            child.visible = true;
+            if (child.material) {
+              child.material.visible = true;
+              child.material.opacity = 1;
+              child.material.transparent = false;
+            }
+            child.raycast = THREE.Mesh.prototype.raycast;
+          }
+        });
+      }
     }
     
     this.debugLog(`🎨 Solly1 shape updated to: ${shape} and positioned in center`);
