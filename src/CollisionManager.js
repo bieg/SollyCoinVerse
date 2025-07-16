@@ -323,12 +323,8 @@ class CollisionManager {
     if (window.gameManager) {
       const kaboomCount = window.gameManager.getKaboomCount();
       
-      // Na 4 collisions: toon ShapeChoice modal
-      if (kaboomCount === 4) {
-        this.showShapeChoiceModal();
-      }
       // Na 5 collisions: activeer portal
-      else if (kaboomCount >= 5 && window.activatePortal) {
+      if (kaboomCount >= 5 && window.activatePortal) {
         window.activatePortal();
       }
     }
@@ -636,6 +632,9 @@ class CollisionManager {
       window.solly1.userData.shape = shape;
     }
     
+    // Positioneer Solly1 in het midden van de scene
+    window.solly1.position.set(0, 0, 0);
+    
     // Herstel raycasting na vorm verandering
     if (typeof window.enableSolly1DragOnly === 'function') {
       setTimeout(() => {
@@ -643,7 +642,7 @@ class CollisionManager {
       }, 100);
     }
     
-    this.debugLog(`🎨 Solly1 shape updated to: ${shape}`);
+    this.debugLog(`🎨 Solly1 shape updated to: ${shape} and positioned in center`);
   }
 
   hideShapeChoiceModal(callback) {

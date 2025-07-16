@@ -1556,14 +1556,7 @@ function handleSollyOnMini(targetMini) {
     // Extra grote particle explosie
     createMegaExplosionParticles(explosionPos);
     
-    // Toon ShapeChoice modal na collision
-    setTimeout(() => {
-        if (window.collisionManager && window.collisionManager.showShapeChoiceModal) {
-            window.collisionManager.showShapeChoiceModal();
-        } else {
-            console.log('⚠️ CollisionManager of showShapeChoiceModal niet beschikbaar');
-        }
-    }, 1000); // Wacht 1 seconde zodat de explosie eerst te zien is
+    // ShapeChoice modal is niet meer nodig - verwijderd
     
     // Verwijder mini-Solly na explosie
     setTimeout(() => {
