@@ -337,6 +337,12 @@ class CollisionManager {
   showShapeChoiceModal() {
     this.debugLog('🎨 Showing ShapeChoice modal after 4 collisions');
     
+    // Verwijder bestaande modal als die er is
+    const existingModal = document.querySelector('.shape-choice-modal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+    
     // Maak modal HTML (zonder onclick handlers)
     const modalHTML = `
       <div class="shape-choice-modal">
@@ -505,6 +511,12 @@ class CollisionManager {
   handleShapeChoice(shape) {
     this.debugLog(`🎨 Shape chosen: ${shape}`);
     
+    // Voorkom dubbele clicks door modal direct te verwijderen
+    const modal = document.querySelector('.shape-choice-modal');
+    if (modal) {
+      modal.remove();
+    }
+    
     // Update game state
     if (window.gameManager) {
       window.gameManager.changeShape(shape);
@@ -513,11 +525,8 @@ class CollisionManager {
     // Update Solly1 vorm
     this.updateSolly1Shape(shape);
     
-    // Verberg modal en wacht tot het volledig weg is voordat bevestiging wordt getoond
-    this.hideShapeChoiceModal(() => {
-      // Toon success message nadat modal volledig weg is
-      this.showShapeChangeMessage(shape);
-    });
+    // Toon success message direct
+    this.showShapeChangeMessage(shape);
   }
 
   updateSolly1Shape(shape) {
@@ -640,13 +649,11 @@ class CollisionManager {
   hideShapeChoiceModal(callback) {
     const modal = document.querySelector('.shape-choice-modal');
     if (modal) {
-      modal.style.animation = 'fadeOut 0.3s ease-in';
-      setTimeout(() => {
-        modal.remove();
-        if (callback) {
-          callback();
-        }
-      }, 300);
+      // Verwijder modal direct zonder animatie om overlap te voorkomen
+      modal.remove();
+      if (callback) {
+        callback();
+      }
     } else if (callback) {
       // Als er geen modal is, roep callback direct aan
       callback();
