@@ -1521,10 +1521,7 @@ function evaluateDropOnMiniSolly() {
         const area2 = Math.PI * r2 * r2;
         const minArea = Math.min(area1, area2);
         const overlapRatio = overlapArea / minArea;
-        // Log overlap info
-        console.log('[DEBUG] check mini:', mini.uuid, {
-            d2d, r1, r2, overlapArea, area1, area2, overlapRatio
-        });
+        // Debug log verwijderd
         if (overlapRatio > 0.6) {
             console.log('💥 KABOOM! 2D overlap > 60% met mini-Solly:', mini);
             // Gebruik de EXACTE positie van de mini-Solly voor de explosie
@@ -1556,7 +1553,14 @@ function handleSollyOnMini(targetMini) {
     // Extra grote particle explosie
     createMegaExplosionParticles(explosionPos);
     
-    // ShapeChoice modal is niet meer nodig - verwijderd
+    // Toon ShapeChoice modal na elke 4 collisions
+    if (window.kaboomCount % 4 === 0) {
+        setTimeout(() => {
+            if (window.collisionManager && window.collisionManager.showShapeChoiceModal) {
+                window.collisionManager.showShapeChoiceModal();
+            }
+        }, 1000); // Wacht 1 seconde zodat de explosie eerst te zien is
+    }
     
     // Verwijder mini-Solly na explosie
     setTimeout(() => {

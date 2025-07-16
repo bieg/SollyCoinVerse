@@ -323,8 +323,12 @@ class CollisionManager {
     if (window.gameManager) {
       const kaboomCount = window.gameManager.getKaboomCount();
       
+      // Na 4 collisions: toon ShapeChoice modal
+      if (kaboomCount % 4 === 0) {
+        this.showShapeChoiceModal();
+      }
       // Na 5 collisions: activeer portal
-      if (kaboomCount >= 5 && window.activatePortal) {
+      else if (kaboomCount >= 5 && window.activatePortal) {
         window.activatePortal();
       }
     }
