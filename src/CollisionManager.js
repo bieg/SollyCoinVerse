@@ -721,28 +721,28 @@ class CollisionManager {
       window.scene.remove(existingPortal);
     }
     
-    // Maak portal ring met binnenkant in de vorm van de ShapeChoice
+    // Maak portal ring met binnenkant in de vorm van de ShapeChoice (150% groter)
     let portalGeometry;
     switch (shape) {
       case 'vierkant':
         // Vierkante binnenkant
-        portalGeometry = new THREE.RingGeometry(200, 300, 4);
+        portalGeometry = new THREE.RingGeometry(300, 450, 4);
         break;
         
       case 'zandloper':
         // Zandloper-vormige binnenkant (8-zijdig voor zandloper effect)
-        portalGeometry = new THREE.RingGeometry(200, 300, 8);
+        portalGeometry = new THREE.RingGeometry(300, 450, 8);
         break;
         
       case 'ruit':
         // Ruit-vormige binnenkant (4-zijdig voor ruit effect)
-        portalGeometry = new THREE.RingGeometry(200, 300, 4);
+        portalGeometry = new THREE.RingGeometry(300, 450, 4);
         break;
         
       case 'piramide':
       default:
         // Piramide-vormige binnenkant (4-zijdig voor piramide effect)
-        portalGeometry = new THREE.RingGeometry(200, 300, 4);
+        portalGeometry = new THREE.RingGeometry(300, 450, 4);
         break;
     }
     
@@ -756,15 +756,15 @@ class CollisionManager {
       })
     );
     portalRing.name = 'ShapePortal';
-    portalRing.position.set(-800, 0, -500); // Plaats links van het midden
+    portalRing.position.set(-1500, 0, -500); // Veel verder links
     portalRing.rotation.x = -Math.PI / 2; // Draai horizontaal
     
-    // Maak de gekozen vorm voor in het midden van de portal
+    // Maak de gekozen vorm voor in het midden van de portal (150% groter)
     let shapeMesh;
     switch (shape) {
       case 'vierkant':
         shapeMesh = new THREE.Mesh(
-          new THREE.BoxGeometry(80, 80, 80),
+          new THREE.BoxGeometry(120, 120, 120),
           new THREE.MeshLambertMaterial({ 
             color: 0xFFD700,
             transparent: true,
@@ -779,26 +779,26 @@ class CollisionManager {
         
         // Bovenste Solly (piramide naar beneden)
         const topSolly = new THREE.Mesh(
-          new THREE.ConeGeometry(40, 80, 4),
+          new THREE.ConeGeometry(60, 120, 4),
           new THREE.MeshLambertMaterial({ 
             color: 0xFFD700,
             transparent: true,
             opacity: 0.9
           })
         );
-        topSolly.position.y = 40;
+        topSolly.position.y = 60;
         topSolly.rotation.z = Math.PI;
         
         // Onderste Solly (piramide naar boven)
         const bottomSolly = new THREE.Mesh(
-          new THREE.ConeGeometry(40, 80, 4),
+          new THREE.ConeGeometry(60, 120, 4),
           new THREE.MeshLambertMaterial({ 
             color: 0xFFD700,
             transparent: true,
             opacity: 0.9
           })
         );
-        bottomSolly.position.y = -40;
+        bottomSolly.position.y = -60;
         
         zandloperGroup.add(topSolly);
         zandloperGroup.add(bottomSolly);
@@ -807,7 +807,7 @@ class CollisionManager {
         
       case 'ruit':
         shapeMesh = new THREE.Mesh(
-          new THREE.OctahedronGeometry(60),
+          new THREE.OctahedronGeometry(90),
           new THREE.MeshLambertMaterial({ 
             color: 0xFFD700,
             transparent: true,
@@ -819,7 +819,7 @@ class CollisionManager {
       case 'piramide':
       default:
         shapeMesh = new THREE.Mesh(
-          new THREE.ConeGeometry(40, 80, 4),
+          new THREE.ConeGeometry(60, 120, 4),
           new THREE.MeshLambertMaterial({ 
             color: 0xFFD700,
             transparent: true,
@@ -829,27 +829,27 @@ class CollisionManager {
         break;
     }
     
-    // Plaats de vorm in het midden van de portal (links)
-    shapeMesh.position.set(-800, 0, -500);
+    // Plaats de vorm in het midden van de portal (veel verder links)
+    shapeMesh.position.set(-1500, 0, -500);
     shapeMesh.name = 'PortalShape';
     
     // Voeg portal en vorm toe aan scene
     window.scene.add(portalRing);
     window.scene.add(shapeMesh);
     
-    // Maak portal dropable
+    // Maak portal dropable (grotere drop zone)
     this.makePortalDropable(portalRing, shapeMesh);
     
     // Animaties
     this.animatePortal(portalRing, shapeMesh);
     
-    this.debugLog(`🌀 Shape portal created with ${shape} in center, positioned left`);
+    this.debugLog(`🌀 Shape portal created with ${shape} in center, positioned far left`);
   }
   
   makePortalDropable(portalRing, shapeMesh) {
-    // Voeg drop zone toe
+    // Voeg drop zone toe (groter voor 150% portal)
     const dropZone = new THREE.Mesh(
-      new THREE.CircleGeometry(250, 32),
+      new THREE.CircleGeometry(375, 32), // 150% van 250
       new THREE.MeshBasicMaterial({
         color: 0x00FF00,
         transparent: true,
@@ -872,7 +872,7 @@ class CollisionManager {
       const checkDrop = () => {
         if (window.solly1 && window.solly1.position) {
           const distance = window.solly1.position.distanceTo(dropZone.position);
-          if (distance < 250) {
+          if (distance < 375) { // 150% van 250
             this.handlePortalDrop(portalRing, shapeMesh);
             // Verwijder drop zone na succesvolle drop
             window.scene.remove(dropZone);
