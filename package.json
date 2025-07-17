@@ -4,8 +4,8 @@
   "description": "SollyCoin dApp - Een modulaire JavaScript 3D-universum game met blockchain integratie",
   "main": "index.html",
   "scripts": {
-    "start": "python3 -m http.server 5501",
-    "dev": "python3 -m http.server 5501",
+    "start": "python3 -m http.server 5500",
+    "dev": "python3 -m http.server 5500",
     "build": "hardhat compile",
     "test": "hardhat test",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",

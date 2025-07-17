@@ -140,6 +140,13 @@ function displayChosenCoinJSON() {
 async function initSollyverse() {
     if (sollyverseInitialized) return;
     
+    // TOON KABOOM COUNTER NA STAR WARS ANIMATIE
+    const kaboomCounter = document.getElementById('kaboom-counter');
+    if (kaboomCounter) {
+        kaboomCounter.style.display = 'block';
+        console.log('🎯 KABOOM counter zichtbaar gemaakt na Star Wars animatie');
+    }
+    
     // Initialize GameManager en UserInterface
     gameManager = new GameManager();
     userInterface = new UserInterface(gameManager);
@@ -317,7 +324,7 @@ async function initSollyverse() {
             <li>Beweeg camera: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> of pijltjestoetsen</li>
             <li>Zoom: scroll / pinch</li>
             <li>Sleep Solly&nbsp;1 om rond te vliegen</li>
-            <li>Botsing: laat Solly&nbsp;2 (groen) Solly&nbsp;1 raken!</li>
+            <li>Botsing: laat Solly&nbsp;1 met minimaal <strong>60&nbsp;% 2D-overlap</strong> landen op een mini-Solly (geel).</li>
         </ul>`;
         safeShowModal(html, 'Instructies');
     }
@@ -403,14 +410,14 @@ function updatePortalMovement() {
     if (!portalClicked) {
         portalMovement.time += 0.016;
         const time = portalMovement.time;
-        const radius = 2000;
-        const speed = 0.08;
+        const radius = 1500; // Kleinere radius zodat portal dichter bij staat
+        const speed = 0.03; // Nog langzamere beweging
         
         const theta = time * speed;
         const phi = Math.sin(time * speed * 0.3) * (Math.PI / 3);
 
         const x = radius * Math.sin(phi) * Math.cos(theta);
-        const y = radius * Math.sin(phi) * Math.sin(theta) * 0.8;
+        const y = 200 + radius * Math.sin(phi) * Math.sin(theta) * 0.3; // Op dezelfde hoogte als Solly1
         const z = radius * Math.cos(phi);
 
         portal.position.set(x, y, z);
@@ -454,6 +461,19 @@ function showLevelIndicator() {
 function addPointerListener() {
     // Portal click detection
     function onPortalClick(event) {
+        // Skip als er een ShapeChoice modal open is
+        if (window.shapeChoiceModalOpen) {
+            return;
+        }
+        
+        // Skip als er een modal element wordt geklikt
+        const clickedElement = event.target;
+        if (clickedElement.closest('.shape-choice-modal') || 
+            clickedElement.closest('.modal') || 
+            clickedElement.closest('.overlay')) {
+            return;
+        }
+        
         if (!portal || !portalActive) return;
         
         const rect = renderer.domElement.getBoundingClientRect();

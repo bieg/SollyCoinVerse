@@ -235,13 +235,13 @@ Elke SollyCoin is een JSON token met de volgende structuur:
 ### Lokaal ontwikkelen
 ```bash
 # Start een lokale server (bijvoorbeeld met Python)
-python -m http.server 5501
+python -m http.server 5500
 
 # Of met Node.js
 npx serve .
 
 # Open in browser
-open http://localhost:5501
+open http://localhost:5500
 ```
 
 ### 🪙 SollyCoin Import/Export

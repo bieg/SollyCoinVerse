@@ -11,9 +11,9 @@ function debugLog(...args) {
 
 function addSolly1AndSolly2(scene) {
     // Solly2 is niet meer nodig – alleen Solly1 wordt aangemaakt
-    // Solly1 (Wit)
+    // Solly1 (Wit) - Maak een duidelijke piramide
     solly1 = createSolly(60, false, 0xFFFFFF);
-    // Geef pyramide een warm materiaal en zachte glow (vorm blijft pyramide)
+    
     // Gebruik een MeshBasicMaterial zodat belichting geen invloed heeft en Solly1 altijd puur wit toont
     const whiteMat = new THREE.MeshBasicMaterial({
         color: 0xFFFFFF,      // helder wit
@@ -26,21 +26,26 @@ function addSolly1AndSolly2(scene) {
     }
     solly1.material = whiteMat;
     solly1.castShadow = false; solly1.receiveShadow = false;
+    
     // Voeg of vervang aura
     const existingAura = solly1.getObjectByName('solly1-aura');
     if (existingAura) existingAura.removeFromParent(); // Geen gloed meer
+    
     solly1.userData.isSolly1 = true;
     solly1.userData.shape = 'piramide';
     solly1.name = 'Solly1';
-    solly1.scale.set(2.55, 2.55, 2.55); // 25% kleiner (was 3.4, nu 2.55)
+    solly1.scale.set(5.0, 5.0, 5.0); // Nog grotere schaal voor betere zichtbaarheid
     
-    // ROTEER Solly1 zodat het eruitziet als een piramide in plaats van een vierkant vlak
+    // ROTEER Solly1 zodat het eruitziet als een duidelijke DRIEHOEK van zijaanzicht
     // Tetrahedron heeft een punt naar boven, dus we roteren het voor een mooi zijaanzicht
     solly1.rotation.set(
-        Math.PI * 0.1,  // Lichte kanteling naar voren
-        Math.PI * 0.25, // 45 graden draaiing voor zijaanzicht
-        0               // Geen roll
+        Math.PI * 0.2,  // Kanteling naar voren voor betere zichtbaarheid
+        Math.PI * 0.4,  // 72 graden draaiing voor duidelijk zijaanzicht
+        0                // Geen roll
     );
+    
+    // Zet Solly1 op een zichtbare positie
+    solly1.position.set(0, 200, 0); // Hoger zodat het zichtbaar is
     
     if (solly1.material) {
         solly1.material.color.set(0xFFFFFF);
@@ -49,10 +54,12 @@ function addSolly1AndSolly2(scene) {
         solly1.material.visible = true;
     }
     solly1.visible = true;
+    
     // Maak ook een globale verwijzing zodat andere scripts uniform window.solly1 kunnen gebruiken
     window.solly1 = solly1;
+    
     if (!solly1.getObjectByName('Solly1Collider')) {
-        const pickGeom = new THREE.SphereGeometry(600, 24, 24); // grotere click-zone
+        const pickGeom = new THREE.SphereGeometry(1000, 24, 24); // Nog grotere click-zone
         const pickMat  = new THREE.MeshBasicMaterial({ visible: false });
         const collider = new THREE.Mesh(pickGeom, pickMat);
         collider.name = 'Solly1Collider';
@@ -60,19 +67,23 @@ function addSolly1AndSolly2(scene) {
         solly1.add(collider);
         window.solly1Collider = collider;
     }
+    
     scene.add(solly1);
-    // Camera goed zetten voor mooi zijaanzicht van Solly1
+    
+    // Camera goed zetten voor mooi zijaanzicht van Solly1 en portal
     if (window.camera) {
-        window.camera.position.set(0, 200, 2000); // Hoger en verder weg voor beter perspectief
-        window.camera.lookAt(0, 0, 0);
+        window.camera.position.set(0, 800, 4000); // Hogere positie om Solly1 en portal te zien
+        window.camera.lookAt(0, 200, 0); // Kijk naar Solly1 positie
     }
+    
     // Direct drag-listeners toevoegen
     if (window.addSollyDragListeners) {
         window.addSollyDragListeners();
     }
+    
     // Log alles
-    console.log('🌟 Solly1 (wit) en Solly2 (groen) toegevoegd');
-    console.log('📐 Opgeslagen shape: piramide');
+    console.log('🌟 Solly1 (wit driehoek) toegevoegd');
+    console.log('📐 Shape: piramide (Tetrahedron)');
     console.log('📍 Solly1 positie:', solly1.position);
     console.log('📏 Solly1 schaal:', solly1.scale);
     console.log('🔄 Solly1 rotatie:', solly1.rotation);
@@ -94,7 +105,8 @@ function triggerCollision() {
     createCollisionExplosion();
     
     // Start camera animatie naar collision
-    startCameraAnimationToCollision();
+    // Camera animatie uitgeschakeld voor statische camera
+    // startCameraAnimationToCollision();
 }
 
 // Nieuwe explosie animatie functie
@@ -257,8 +269,10 @@ function startCameraAnimationToCollision() {
         if (progress < 1) {
             requestAnimationFrame(animateCamera);
         } else {
-            console.log('🎥 Camera animatie voltooid, start follow animatie...');
-            startCameraFollowAnimation();
+            console.log('🎥 Camera animatie voltooid, portal activeren...');
+            // Camera follow animatie uitgeschakeld voor statische camera
+            // startCameraFollowAnimation();
+            activatePortal();
         }
     }
     
@@ -266,31 +280,9 @@ function startCameraAnimationToCollision() {
 }
 
 function startCameraFollowAnimation() {
-    console.log('🎥 Start camera follow-animatie...');
-    
-    const followStartTime = Date.now();
-    const followStartPosition = camera.position.clone();
-    const followTargetPosition = solly1.position.clone().add(cameraAnimationState.followEndOffset);
-    
-    function animateFollow() {
-        const elapsed = Date.now() - followStartTime;
-        const progress = Math.min(elapsed / cameraAnimationState.followDuration, 1);
-        
-        // Easing
-        const ease = 1 - Math.pow(1 - progress, 3);
-        
-        camera.position.lerpVectors(followStartPosition, followTargetPosition, ease);
-        camera.lookAt(solly1.position);
-        
-        if (progress < 1) {
-            requestAnimationFrame(animateFollow);
-        } else {
-            console.log('🎥 Camera follow-animatie voltooid.');
-            activatePortal();
-        }
-    }
-    
-    animateFollow();
+    console.log('🎥 Camera follow-animatie uitgeschakeld voor statische camera');
+    // Direct portal activeren zonder camera beweging
+    activatePortal();
 }
 
 function activatePortal() {
@@ -301,10 +293,20 @@ function activatePortal() {
         return;
     }
     
-    portal = createPortal(solly1);
-    scene.add(portal);
+    // Gebruik de nieuwe createShapePortal functie in plaats van de oude createPortal
+    // Haal de huidige vorm op van Solly1
+    const currentShape = solly1.userData.shape || 'piramide';
     
-    window.portal = portal;
+    if (window.collisionManager && typeof window.collisionManager.createShapePortal === 'function') {
+        console.log(`🔮 Activating portal with shape: ${currentShape}`);
+        window.collisionManager.createShapePortal(currentShape);
+    } else {
+        console.error("❌ CollisionManager of createShapePortal niet beschikbaar");
+        // Fallback naar oude methode
+        portal = createPortal(solly1);
+        scene.add(portal);
+        window.portal = portal;
+    }
     
     portalActive = true;
     portalMovement.time = 0;
@@ -317,6 +319,22 @@ function activatePortal() {
     document.removeEventListener('mouseup', onDragEnd);
     document.addEventListener('mouseup', onDragEnd);
     console.log('✅ Drag & drop listeners toegevoegd');
+    
+    // Zorg ervoor dat Solly1 goed zichtbaar en klikbaar is
+    if (solly1) {
+        solly1.visible = true;
+        solly1.userData.raycastDisabled = false;
+        if (solly1.material) {
+            if (Array.isArray(solly1.material)) {
+                solly1.material.forEach(m => m.opacity = 1);
+            } else {
+                solly1.material.opacity = 1;
+            }
+        }
+        // Maak Solly1 groter voor betere raycasting
+        solly1.scale.set(1.5, 1.5, 1.5);
+        console.log('🎯 Solly1 klaar voor drag & drop (1.5x groter)');
+    }
     
     document.addEventListener('click', onPortalClick, false);
 }
@@ -383,6 +401,19 @@ function onSollyHoverMove(e) {
 }
 
 function onShapeSollyClick(event) {
+    // Skip als er een ShapeChoice modal open is
+    if (window.shapeChoiceModalOpen) {
+        return;
+    }
+    
+    // Skip als er een modal element wordt geklikt
+    const clickedElement = event.target;
+    if (clickedElement.closest('.shape-choice-modal') || 
+        clickedElement.closest('.modal') || 
+        clickedElement.closest('.overlay')) {
+        return;
+    }
+    
     if (isDragging) return;
     
     const rect = renderer.domElement.getBoundingClientRect();
@@ -394,14 +425,27 @@ function onShapeSollyClick(event) {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
     
-    // Check alleen Solly1, skip alle andere meshes
-    if (solly1 && 
-        solly1.visible && 
-        !solly1.userData?.raycastDisabled && 
-        solly1.material && 
-        solly1.material.opacity > 0) {
+    // Check ALLE objecten in de scene voor debugging
+    const allHits = raycaster.intersectObjects(window.scene.children, true);
+    console.log('🎯 Alle hits bij click:', allHits.map(hit => hit.object.name || hit.object.type));
+    
+    // Check Solly1 met meer tolerantie
+    if (solly1 && solly1.visible) {
+        // Probeer eerst normale intersect
+        let hits = raycaster.intersectObject(solly1, true);
         
-        const hits = raycaster.intersectObject(solly1, true);
+        // Als geen hits, probeer dan met een grotere bounding box
+        if (hits.length === 0) {
+            // Maak een tijdelijke grotere bounding box voor Solly1
+            const originalScale = solly1.scale.clone();
+            solly1.scale.multiplyScalar(3); // Maak 3x groter voor raycasting
+            
+            hits = raycaster.intersectObject(solly1, true);
+            
+            // Herstel originele schaal
+            solly1.scale.copy(originalScale);
+        }
+        
         if (hits.length > 0) {
             console.log('🎯 Solly1 geraakt – start drag');
             startDrag(solly1);
@@ -409,11 +453,32 @@ function onShapeSollyClick(event) {
             event.preventDefault();
             event.stopPropagation();
             return;
+        } else {
+            console.log('❌ Solly1 NIET geraakt!');
         }
     }
     
     // Log alle hits voor debugging
     logRaycastHits(event);
+    
+    // Debug: toon Solly1 positie
+    if (solly1) {
+        console.log('📍 Solly1 positie:', solly1.position);
+        console.log('📍 Solly1 zichtbaar:', solly1.visible);
+        console.log('📍 Solly1 schaal:', solly1.scale);
+        console.log('📍 Solly1 material opacity:', solly1.material ? (Array.isArray(solly1.material) ? solly1.material[0].opacity : solly1.material.opacity) : 'geen material');
+    }
+    
+    // Als we niet op Solly1 klikken, probeer dan de portal
+    if (window.portal && window.portal.children) {
+        const portalHits = raycaster.intersectObjects(window.portal.children, true);
+        if (portalHits.length > 0) {
+            console.log('🎯 Portal geraakt - maar geen drag');
+            return;
+        }
+    }
+    
+    console.log('❌ Niet op/naast Solly1 geklikt');
 }
 
 function moveCameraToSolly1() {
@@ -487,7 +552,7 @@ function startDrag(object) {
         }
     });
     
-    // Maak Solly1 supergroot en felrood tijdens drag
+    // Maak Solly1 groter en felrood tijdens drag (maar niet te groot)
     if (draggedSolly.material) {
         if (Array.isArray(draggedSolly.material)) {
             draggedSolly.material.forEach(m => m.color.setHex(0xFF0000));
@@ -495,14 +560,30 @@ function startDrag(object) {
             draggedSolly.material.color.setHex(0xFF0000);
         }
     }
-    draggedSolly.scale.set(5, 5, 5);
+    draggedSolly.scale.set(2, 2, 2); // Niet te groot, maar wel zichtbaar
     
     // === NIEUW: Zorg dat de zon nooit van kleur verandert ===
     if (window.sollySun && window.sollySun.material && window.sollySun.material.color) {
         window.sollySun.material.color.set(0xFFB200); // altijd oranje-geel
     }
     
+    // Zet cursor op grabbing
+    document.body.style.cursor = 'grabbing';
+    
     console.log('❄️ Alle animaties gepauzeerd voor smooth drag');
+    
+    // Zorg ervoor dat Solly1 goed zichtbaar is voor raycasting
+    if (solly1) {
+        solly1.userData.raycastDisabled = false;
+        solly1.visible = true;
+        if (solly1.material) {
+            if (Array.isArray(solly1.material)) {
+                solly1.material.forEach(m => m.opacity = 1);
+            } else {
+                solly1.material.opacity = 1;
+            }
+        }
+    }
 }
 
 function onDragMove(event) {
@@ -518,9 +599,9 @@ function onDragMove(event) {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
     
-    // Sleep Solly1 op een vlak evenwijdig aan het scherm, door zijn huidige positie
-    const planeNormal = camera.getWorldDirection(new THREE.Vector3()).clone();
-    const plane = new THREE.Plane(planeNormal, -draggedSolly.position.dot(planeNormal));
+    // Sleep Solly1 direct naar de muispositie zonder centrum/spinning
+    // Gebruik een vlak op de Y-as (horizontaal vlak) voor natuurlijke beweging
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const intersection = new THREE.Vector3();
     raycaster.ray.intersectPlane(plane, intersection);
     
@@ -532,6 +613,8 @@ function onDragMove(event) {
         Number.isFinite(intersection.x) && 
         Number.isFinite(intersection.y) && 
         Number.isFinite(intersection.z)) {
+        // Behoud de Y-positie van Solly1 (hoogte blijft hetzelfde)
+        intersection.y = draggedSolly.position.y;
         draggedSolly.position.copy(intersection);
         
         // Update ook de Solly1Collider als die bestaat
@@ -562,7 +645,7 @@ function onDragEnd(event) {
             }
         }
         if (solly1) {
-            solly1.scale.set(1, 1, 1); // Normale grootte
+            solly1.scale.set(0.75, 0.75, 0.75); // 25% kleiner zoals eerder ingesteld
         }
         
         // Zet alle lights weer aan na drag
@@ -585,7 +668,7 @@ function onDragEnd(event) {
                 window.controls.update();
             }
         }
-        document.body.style.cursor = 'pointer';
+        document.body.style.cursor = 'default';
         
         if (controls) {
             controls.enabled = true;
@@ -611,6 +694,36 @@ function onDragEnd(event) {
         
         // Controleer of Solly1 bovenop een miniSolly is gedropt
         evaluateDropOnMiniSolly();
+        
+        // Controleer ook of Solly1 op de portal is gedropt
+        const portalDropZone = window.scene.getObjectByName('PortalDropZone');
+        if (portalDropZone && solly1) {
+          const distance = solly1.position.distanceTo(portalDropZone.position);
+          console.log('🎯 Check portal drop - afstand:', Math.round(distance));
+          if (distance < 1200) {
+            console.log('🎯 Solly1 gedropt op portal via drag & drop!');
+            // Trigger portal drop effect
+            if (window.collisionManager) {
+              window.collisionManager.handlePortalDrop(portalDropZone.userData.portalRing, portalDropZone.userData.shapeMesh);
+            }
+          }
+        }
+        
+        // Controleer ook direct op portal object
+        if (window.portal && solly1) {
+          const portalDistance = solly1.position.distanceTo(window.portal.position);
+          console.log('🎯 Check direct portal drop - afstand:', Math.round(portalDistance));
+          console.log('📍 Solly1 positie:', solly1.position);
+          console.log('📍 Portal positie:', window.portal.position);
+          if (portalDistance < 1200) {
+            console.log('🎯 Solly1 gedropt direct op portal!');
+            // Trigger portal drop effect
+            if (window.collisionManager) {
+              window.collisionManager.handlePortalDrop(window.portal, null);
+            }
+          }
+        }
+        
         // === Zet drop-handled flag ===
         window.solly1DropHandled = true;
         console.log('[DEBUG] solly1DropHandled = true na drag end');
@@ -1111,6 +1224,19 @@ if (window && window.renderer && window.renderer.domElement) {
 window.solly1DragActive = false;
 
 function onSolly1PointerDown(event) {
+    // Skip als er een ShapeChoice modal open is
+    if (window.shapeChoiceModalOpen) {
+        return;
+    }
+    
+    // Skip als er een modal element wordt geklikt
+    const clickedElement = event.target;
+    if (clickedElement.closest('.shape-choice-modal') || 
+        clickedElement.closest('.modal') || 
+        clickedElement.closest('.overlay')) {
+        return;
+    }
+    
     debugLog('🖱️ [DEBUG] PointerDown event op canvas!');
     if (window.solly1) {
         debugLog('🔍 [DEBUG] Solly1 bestaat:', window.solly1);
@@ -1662,3 +1788,13 @@ function getScreenRadius(obj) {
     });
     return maxR;
 }
+
+// FORCEER SHAPECHOICE MODAL - voor testing
+window.forceShowShapeChoice = function() {
+    debugLog('🎨 [DEBUG] Forcing ShapeChoice modal to show...');
+    if (window.collisionManager && window.collisionManager.forceShowShapeChoiceModal) {
+        window.collisionManager.forceShowShapeChoiceModal();
+    } else {
+        debugLog('❌ [DEBUG] CollisionManager niet beschikbaar');
+    }
+};

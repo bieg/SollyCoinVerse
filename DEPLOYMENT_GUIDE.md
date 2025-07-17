@@ -186,7 +186,7 @@ REPORT_GAS=true npm test
 # Start development server
 npm start
 
-# Open browser naar http://localhost:5501
+# Open browser naar http://localhost:5500
 ```
 
 ### Productie Deployment

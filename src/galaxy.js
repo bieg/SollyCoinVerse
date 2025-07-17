@@ -19,9 +19,9 @@ function addGalaxyShells(scene) {
     for (let i = 0; i < shellCount; i++) {
         const shellGeometry = new THREE.SphereGeometry(baseRadius + i * radiusStep, 64, 64);
         const shellMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xB000FF,        // magenta paars
+            color: 0xC000FF,        // iets lichtere magenta paars
             transparent: true, 
-            opacity: 0.08 - i * 0.015, // dunner, subtieler
+            opacity: 0.10 - i * 0.012, // +25% basisopacity en minder sterke afname
             wireframe: true
         });
         const shell = new THREE.Mesh(shellGeometry, shellMaterial);
@@ -183,7 +183,8 @@ function addSollys(scene) {
                 // Random size tussen 0.5x en 2.5x van de base size
                 const randomSizeMultiplier = 0.5 + Math.random() * 2.0;
                 const solly = createSolly(scaledSize * randomSizeMultiplier, isYellow, color);
-                const radius = 6000 + Math.random() * 20000;
+                // VERGROTE VERSpreiding: van 6000-26000 naar 8000-35000
+                const radius = 8000 + Math.random() * 27000;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 
@@ -225,15 +226,13 @@ function addSollys(scene) {
             // Random size tussen 1.0x en 3.5x van de base size (iets groter bereik voor user data)
             const randomSizeMultiplier = 1.0 + Math.random() * 2.5;
             const solly = createSolly(scaledSize * randomSizeMultiplier, isYellow, color);
-            // Spawn verder uit elkaar
-            const radius = 4000 + Math.random() * 8000; // 4000–12000
+            // VERGROTE VERSpreiding: van 4000-12000 naar 6000-20000
+            const radius = 6000 + Math.random() * 14000;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             solly.position.x = radius * Math.sin(phi) * Math.cos(theta);
             solly.position.y = radius * Math.sin(phi) * Math.sin(theta);
             solly.position.z = radius * Math.cos(phi);
-
-
 
             scene.add(solly);
             array.push(solly);
@@ -274,7 +273,8 @@ function addWhiteStars(scene) {
         console.log(`Adding ${count} stars with color ${color}`);
         for (let i = 0; i < count; i++) {
             const star = createStar(scaledSize, color);
-            const radius = 1500 + Math.random() * 6000;
+            // VERGROTE VERSpreiding: van 1500-7500 naar 3000-15000
+            const radius = 3000 + Math.random() * 12000;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             

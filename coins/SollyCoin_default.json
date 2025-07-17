@@ -12,14 +12,14 @@
     "wit": 4000
   },
   "planeten": {
-    "rood": 700,
+    "rood": 650,
     "groen": 750
   },
   "sollys": {
-    "geel": 10.000,
-    "blauw": 7500,
+    "geel": 1000,
+    "blauw": 650,
     "pink": 0,
-    "rood":5000
+    "rood":500
   },
   "createdAt": "2024-01-01T00:00:00.000Z",
   "lastPlayed": "2024-01-01T00:00:00.000Z",

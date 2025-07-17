@@ -138,6 +138,18 @@ class GameManager {
     // Save progress immediately after loading
     this.saveProgress();
 
+    // Initialize KABOOM counter in UI
+    const kaboomCounter = document.getElementById('kaboom-counter');
+    const kaboomNumber = document.getElementById('kaboom-number');
+    if (kaboomCounter && kaboomNumber) {
+      const totalCollisions = this.currentUserData.kaboom || 0;
+      kaboomNumber.textContent = totalCollisions;
+      kaboomCounter.style.display = 'block'; // Altijd zichtbaar
+      console.log('🎯 KABOOM counter geïnitialiseerd:', totalCollisions);
+    } else {
+      console.error('❌ KABOOM counter elementen niet gevonden!');
+    }
+
     return this.currentUserData;
   }
 
