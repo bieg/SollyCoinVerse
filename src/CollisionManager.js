@@ -286,7 +286,7 @@ class CollisionManager {
           overlapPct = (intersectionArea / minArea) * 100;
         }
         
-        this.debugLog(`💥 OVERLAP DETECTED! Mini ${i}: overlap: ${overlap.toFixed(1)}, overlap%: ${overlapPct.toFixed(1)}%`);
+        this.debugLog(`💥 OVERLAP DETECTED! Mini ${i}: overlap%: ${overlapPct.toFixed(1)}%`);
         
         // Alleen collision als overlap >= 60%
         if (overlapPct >= 60) {
@@ -297,7 +297,6 @@ class CollisionManager {
               index: i, 
               overlapPct, 
               distance2D,
-              overlap,
               solly1Radius,
               miniRadius
             };
@@ -313,7 +312,7 @@ class CollisionManager {
     // Trigger collision als er een geldige overlap is
     if (bestCollision) {
       this.debugLog(`🎯 COLLISION TRIGGERED! Mini ${bestCollision.index}: ${bestCollision.overlapPct.toFixed(1)}% overlap`);
-      this.debugLog(`📊 Details: distance=${bestCollision.distance2D.toFixed(1)}, overlap=${bestCollision.overlap.toFixed(1)}, solly1Radius=${bestCollision.solly1Radius.toFixed(1)}, miniRadius=${bestCollision.miniRadius.toFixed(1)}`);
+      this.debugLog(`📊 Details: distance=${bestCollision.distance2D.toFixed(1)}, overlap%=${bestCollision.overlapPct.toFixed(1)}%, solly1Radius=${bestCollision.solly1Radius.toFixed(1)}, miniRadius=${bestCollision.miniRadius.toFixed(1)}`);
       
       this.handleMiniSollyCollision(bestCollision.mini, bestCollision.index);
       
