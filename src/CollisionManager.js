@@ -234,7 +234,7 @@ class CollisionManager {
     if (window.collisionDetected || this.collisionDetected) return;
     
     // Stop bij 4 collisions
-    if (window.gameManager && window.gameManager.getKaboomCount() >= 4) {
+            if (window.gameManager && window.gameManager.getKaboomCount() >= 5) {
       return;
     }
     
@@ -552,7 +552,7 @@ class CollisionManager {
           kaboomCounter.style.transform = 'scale(1)';
         }, 200);
         
-        // Stop bij 4 collisions
+        // Stop bij 5 collisions
         if (totalCollisions >= 4) {
           this.debugLog('🎯 4 collisions bereikt - collision detection gestopt');
           window.collisionDetected = true; // Stop verdere collisions
@@ -579,8 +579,8 @@ class CollisionManager {
     if (window.gameManager) {
       const kaboomCount = window.gameManager.getKaboomCount();
       
-      // Na 4 collisions: toon ShapeChoice modal
-      if (kaboomCount % 4 === 0) {
+              // Na 5 collisions: toon ShapeChoice modal
+              if (kaboomCount % 5 === 0) {
         this.showShapeChoiceModal();
       }
       // Na 5 collisions: activeer portal

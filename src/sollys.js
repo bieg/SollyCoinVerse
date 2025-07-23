@@ -1673,9 +1673,9 @@ function handleSollyOnMini(targetMini) {
     // Extra grote particle explosie
     createMegaExplosionParticles(explosionPos);
     
-    // Toon ShapeChoice modal na elke 4 collisions
+            // Toon ShapeChoice modal na elke 5 collisions
     const currentKaboom = window.gameManager ? window.gameManager.getKaboomCount() : 0;
-    if (currentKaboom % 4 === 0) {
+            if (currentKaboom % 5 === 0) {
         setTimeout(() => {
             if (window.collisionManager && window.collisionManager.showShapeChoiceModal) {
                 window.collisionManager.showShapeChoiceModal();
