@@ -1666,9 +1666,50 @@ class CollisionManager {
     // Start Level 2
     if (window.level2Manager) {
       window.level2Manager.startLevel();
+    } else if (window.Level2Manager) {
+      // Fallback: maak nieuwe instantie als die nog niet bestaat
+      console.log('🔄 Creating new Level2Manager instance');
+      window.level2Manager = new Level2Manager();
+      window.level2Manager.startLevel();
     } else {
-      console.error('❌ Level2Manager not available');
+      console.error('❌ Level2Manager not available - falling back to main game');
+      // Fallback: toon bericht en ga terug naar hoofdgame
+      this.showLevel2UnavailableMessage();
     }
+  }
+
+  // Show message when Level 2 is unavailable
+  showLevel2UnavailableMessage() {
+    const message = document.createElement('div');
+    message.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #8A2BE2, #4B0082);
+      color: white;
+      padding: 30px 40px;
+      border-radius: 15px;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 10000;
+      box-shadow: 0 8px 25px rgba(138, 43, 226, 0.4);
+      text-align: center;
+      border: 2px solid #9370DB;
+    `;
+    message.innerHTML = `
+      🎯 Level 2: De Cubus<br>
+      <span style="font-size: 14px; opacity: 0.9;">Wordt geladen...</span>
+    `;
+    document.body.appendChild(message);
+    
+    // Remove message after 3 seconds
+    setTimeout(() => {
+      if (message.parentNode) {
+        message.remove();
+      }
+    }, 3000);
   }
 
   // Cleanup current game state before starting Level 2

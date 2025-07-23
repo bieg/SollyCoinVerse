@@ -204,6 +204,14 @@ async function initSollyverse() {
     if (window.collisionManager) {
         window.collisionManager.resetCollision();
     }
+    
+    // Initialize Level2Manager
+    if (window.Level2Manager) {
+        window.level2Manager = new Level2Manager();
+        console.log('🎯 Level2Manager initialized');
+    } else {
+        console.error('❌ Level2Manager class not available');
+    }
 
     // Mini-Solly click event: kaboom bij click
     renderer.domElement.addEventListener('click', function(e) {
