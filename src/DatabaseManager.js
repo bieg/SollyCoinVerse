@@ -16,9 +16,6 @@ class DatabaseManager {
 
     async initialize() {
         try {
-            // Maak database directory als deze niet bestaat
-            await this.ensureDatabaseDirectory();
-            
             // Laad bestaande data of maak nieuwe
             await this.loadOrCreateData();
             
@@ -31,15 +28,9 @@ class DatabaseManager {
         }
     }
 
-    async ensureDatabaseDirectory() {
-        // In een browser environment kunnen we geen directories maken,
-        // maar we kunnen wel controleren of de database files bestaan
-        console.log('📁 Checking database structure...');
-    }
-
     async loadOrCreateData() {
         try {
-            // Probeer bestaande data te laden
+            // Probeer bestaande data te laden uit localStorage als fallback
             this.gameData = await this.loadData(this.gameDataFile);
             this.kaboomData = await this.loadData(this.kaboomDataFile);
             this.userData = await this.loadData(this.userDataFile);
@@ -101,22 +92,16 @@ class DatabaseManager {
 
     async loadData(filename) {
         try {
-            // In een browser environment gebruiken we een server-side endpoint
-            // Voor nu gebruiken we een memory-based oplossing
-            const response = await fetch(`/api/database/${filename}`);
-            if (response.ok) {
-                return await response.json();
-            } else {
-                throw new Error(`Failed to load ${filename}`);
-            }
-        } catch (error) {
-            // Fallback: probeer uit localStorage (alleen voor development)
+            // Probeer uit localStorage
             if (typeof localStorage !== 'undefined') {
                 const stored = localStorage.getItem(`sollyverse_${filename}`);
                 if (stored) {
                     return JSON.parse(stored);
                 }
             }
+            throw new Error(`No data found for ${filename}`);
+        } catch (error) {
+            console.error(`❌ Failed to load ${filename}:`, error.message);
             throw error;
         }
     }
@@ -126,27 +111,17 @@ class DatabaseManager {
             // Update timestamp
             data.lastUpdated = new Date().toISOString();
             
-            // In een browser environment gebruiken we een server-side endpoint
-            const response = await fetch(`/api/database/${filename}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Failed to save ${filename}`);
-            }
-            
-            console.log(`💾 Saved ${filename} successfully`);
-        } catch (error) {
-            console.error(`❌ Failed to save ${filename}:`, error);
-            // Fallback: sla op in localStorage (alleen voor development)
+            // Sla op in localStorage
             if (typeof localStorage !== 'undefined') {
                 localStorage.setItem(`sollyverse_${filename}`, JSON.stringify(data));
-                console.log(`💾 Saved ${filename} to localStorage as fallback`);
+                console.log(`💾 Saved ${filename} to localStorage`);
+                return true;
+            } else {
+                throw new Error('localStorage not available');
             }
+        } catch (error) {
+            console.error(`❌ Failed to save ${filename}:`, error.message);
+            throw error;
         }
     }
 
@@ -162,6 +137,7 @@ class DatabaseManager {
                 this.saveData(this.kaboomDataFile, this.kaboomData),
                 this.saveData(this.userDataFile, this.userData)
             ]);
+            console.log('💾 All database data saved successfully');
         } catch (error) {
             console.error('❌ Failed to save all data:', error);
         }
