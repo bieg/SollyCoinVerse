@@ -790,9 +790,6 @@ class CollisionManager {
       modal.remove();
     }
     
-    // RESET COLLISION DETECTION voor nieuwe ronde
-    this.resetCollision();
-    
     // Update game state
     if (window.gameManager) {
       window.gameManager.changeShape(shape);
@@ -801,38 +798,14 @@ class CollisionManager {
     // Update Solly1 vorm
     this.updateSolly1Shape(shape);
     
-    // Breng Solly1 naar een betere positie voor interactie
-    if (window.solly1) {
-      window.solly1.position.set(0, 0, 0); // Reset naar midden
-      window.solly1.visible = true;
-      window.solly1.userData.raycastDisabled = false;
-      if (window.solly1.material) {
-        if (Array.isArray(window.solly1.material)) {
-          window.solly1.material.forEach(m => m.opacity = 1);
-        } else {
-          window.solly1.material.opacity = 1;
-        }
-      }
-      
-      // ZORG ERVOOR DAT SOLLY1 DRAGGABLE IS
-      if (typeof window.addSollyDragListeners === 'function') {
-        window.addSollyDragListeners();
-      }
-      
-      // Zorg ervoor dat Solly1 groter is voor betere raycasting
-      window.solly1.scale.set(2.0, 2.0, 2.0);
-      
-      console.log('🎯 Solly1 klaar voor drag & drop na shape choice');
-    }
-    
     // Toon bericht
     this.showShapeChangeMessage(shape);
     
-    // MAAK PORTAL NA SHAPE CHOICE
+    // START LEVEL 2 NA SHAPE CHOICE
     setTimeout(() => {
-      this.debugLog('🔮 Portal wordt aangemaakt na shape choice');
-      this.createShapePortal(shape);
-    }, 1000); // Wacht 1 seconde na shape choice
+      this.debugLog('🚀 Starting Level 2 after shape choice');
+      this.startLevel2AfterShapeChoice(shape);
+    }, 2000); // Wacht 2 seconden na shape choice
   }
 
 
@@ -1681,6 +1654,55 @@ class CollisionManager {
       }
     });
     this.explosionParticles = [];
+  }
+
+  // Start Level 2 after shape choice
+  startLevel2AfterShapeChoice(shape) {
+    this.debugLog(`🚀 Starting Level 2 after shape choice: ${shape}`);
+    
+    // Cleanup current game state
+    this.cleanupCurrentGameState();
+    
+    // Start Level 2
+    if (window.level2Manager) {
+      window.level2Manager.startLevel();
+    } else {
+      console.error('❌ Level2Manager not available');
+    }
+  }
+
+  // Cleanup current game state before starting Level 2
+  cleanupCurrentGameState() {
+    this.debugLog('🧹 Cleaning up current game state for Level 2');
+    
+    // Reset collision detection
+    this.resetCollision();
+    
+    // Hide Solly1
+    if (window.solly1) {
+      window.solly1.visible = false;
+    }
+    
+    // Remove portal if exists
+    if (window.portal && window.scene) {
+      window.scene.remove(window.portal);
+      window.portal = null;
+      window.portalActive = false;
+    }
+    
+    // Remove any existing portals from scene
+    const portalElements = ['ShapePortal', 'PortalInnerRing', 'PortalClickTarget', 'PortalDropZone'];
+    portalElements.forEach(name => {
+      const element = window.scene.getObjectByName(name);
+      if (element) {
+        window.scene.remove(element);
+      }
+    });
+    
+    // Reset portal state
+    window.portalClicked = false;
+    
+    this.debugLog('✅ Game state cleaned up for Level 2');
   }
 }
 
