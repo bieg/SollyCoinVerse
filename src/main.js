@@ -84,6 +84,9 @@ document.getElementById('import-file').onchange = function(e) {
 
 // Start button handler
 document.getElementById('start-btn').onclick = function() {
+    // Reset sollyConfig voor schone slate
+    sollyConfig = null;
+    
     startscreen.style.display = 'none';
     starwarsIntro.style.display = 'flex';
     setTimeout(() => {
@@ -151,19 +154,20 @@ async function initSollyverse() {
     gameManager = new GameManager();
     userInterface = new UserInterface(gameManager);
 
-    // Probeer eerst opgeslagen voortgang te laden
-    const hasLoadedProgress = gameManager.loadProgress();
-    
-    if (hasLoadedProgress) {
-        console.log('📂 Opgeslagen voortgang geladen van localStorage');
-        userInterface.setStartedWithCoin(true);
-    } else if (sollyConfig) {
-        // Import config als coin data
+    // ALTIJD BEGINNEN MET SCHONE SLATE - Default coin met kaboom op 0
+    if (sollyConfig) {
+        // Alleen als er een specifieke coin is geïmporteerd, gebruik die
+        console.log('🪙 Specifieke coin geïmporteerd - behoud bestaande data');
         gameManager.loadCoinData(sollyConfig);
         userInterface.setStartedWithCoin(true);
     } else {
-        // Laad default coin data
+        // Altijd default coin met schone kaboom counter
+        console.log('🔄 Schone slate - default coin met kaboom op 0');
         const defaultCoin = await loadDefaultConfig();
+        
+        // Zorg ervoor dat kaboom altijd op 0 staat voor nieuwe starts
+        defaultCoin.kaboom = 0;
+        
         gameManager.loadCoinData(defaultCoin);
         userInterface.setStartedWithCoin(false);
     }
@@ -193,8 +197,13 @@ async function initSollyverse() {
     window.gameManager = gameManager;
     window.userInterface = userInterface;
 
-    // Initialize CollisionManager
+    // Initialize CollisionManager met schone slate
     window.collisionManager = new CollisionManager();
+    
+    // Reset collision detection voor schone start
+    if (window.collisionManager) {
+        window.collisionManager.resetCollision();
+    }
 
     // Mini-Solly click event: kaboom bij click
     renderer.domElement.addEventListener('click', function(e) {

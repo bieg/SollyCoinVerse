@@ -93,7 +93,7 @@ class GameManager {
       level: coinData.level || this.defaultConfig.level,
       shape: coinData.shape || this.defaultConfig.shape,
       size: coinData.size || this.getDefaultSizeForLevel(coinData.level || this.defaultConfig.level),
-      kaboom: coinData.kaboom || 0,
+      kaboom: coinData.kaboom || 0, // Zorg ervoor dat kaboom altijd een nummer is
       sterren: coinData.sterren || this.defaultConfig.sterren,
       planeten: coinData.planeten || this.defaultConfig.planeten,
       sollys: coinData.sollys || this.defaultConfig.sollys,
