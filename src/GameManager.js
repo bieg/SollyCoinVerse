@@ -453,6 +453,17 @@ class GameManager {
   exportSollyCoinData() {
     return this.currentUserData || {};
   }
+
+  // Start Level 2
+  startLevel2() {
+    console.log('🎯 GameManager: Starting Level 2');
+    
+    if (window.level2Manager) {
+      window.level2Manager.startLevel();
+    } else {
+      console.error('❌ Level2Manager not available');
+    }
+  }
 } 
 
 window.GameManager = GameManager; 

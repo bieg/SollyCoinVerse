@@ -504,7 +504,7 @@ function showLevelSelectionModal() {
                     transition: all 0.3s ease;
                     box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
                 " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                    🔗 Level 2: Wireframe Kubus
+                    🔗 Level 2: De Cubus
                 </button>
             </div>
             
@@ -539,16 +539,19 @@ function showLevelSelectionModal() {
 }
 
 function startLevel2() {
-    console.log('🚀 Starting Level 2: Wireframe Kubus');
+    console.log('🚀 Starting Level 2: De Cubus');
     
     // Reset portal state
     portalClicked = false;
     
-    // Initialize Chapter 2
-    if(window.initChapter2) {
-        window.initChapter2();
+    // Initialize Level 2 using Level2Manager
+    if(window.Level2Manager) {
+        if (!window.level2Manager) {
+            window.level2Manager = new Level2Manager();
+        }
+        window.level2Manager.startLevel();
     } else {
-        console.error('❌ Chapter 2 niet beschikbaar');
+        console.error('❌ Level2Manager niet beschikbaar');
     }
 }
 
