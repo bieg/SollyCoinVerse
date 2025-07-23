@@ -5,7 +5,7 @@ function animate() {
     if (solly1 && !window.solly1DragActive) {
         console.log('🟡 [animate] Solly1 positie:', solly1.position.x, solly1.position.y, solly1.position.z);
     }
-    if (!isPaused && !window.solly1DragActive) {
+    if (!window.isPaused && !window.solly1DragActive) {
         updateSolly1Movement();
         updateSolly2Movement();
         updatePortalMovement();
@@ -26,7 +26,7 @@ document.addEventListener('keyup', (e) => { keyState[e.code] = false; });
 function updateCameraControls() {
     if (!camera) return;
     let moved = false;
-    const moveSpeed = 40 * (window.universeSpeedFactor || 1);
+    const moveSpeed = 40;
     const forward = new THREE.Vector3();
     camera.getWorldDirection(forward);
     forward.y = 0; forward.normalize();
@@ -87,7 +87,7 @@ function updateSolly1Movement() {
     if (window.solly1MovementPaused) return;
     if (!solly1 || !canSollyMove) return;
     
-    solly1Movement.time += 0.016 * (window.universeSpeedFactor || 1);
+    solly1Movement.time += 0.016;
     const time = solly1Movement.time;
     const amplitude = solly1Movement.amplitude;
     const frequency = solly1Movement.frequency;
@@ -109,7 +109,7 @@ function updateSolly2Movement() {
         
         if (distance > 100) {
             direction.normalize();
-            const speed = 2 * (window.universeSpeedFactor || 1);
+            const speed = 2;
             solly2.position.add(direction.multiplyScalar(speed));
         }
     }
@@ -120,7 +120,7 @@ function updatePortalMovement() {
     if (!portal || !portalActive) return;
     
     if (!portalClicked) {
-        portalMovement.time += 0.016 * (window.universeSpeedFactor || 1);
+        portalMovement.time += 0.016;
         const time = portalMovement.time;
         const radius = 2000;
         const speed = 0.08;
@@ -136,7 +136,7 @@ function updatePortalMovement() {
     }
     
     if (portal.userData && portal.userData.time !== undefined) {
-        portal.userData.time += 0.02 * (window.universeSpeedFactor || 1);
+        portal.userData.time += 0.02;
         const internalTime = portal.userData.time;
 
         const particleCloud = portal.children[0];
