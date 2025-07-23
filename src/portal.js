@@ -38,9 +38,8 @@ function createPortal(sollyObject) {
 
     switch (sollyShape) {
         case 'piramide':
-        case 'kubus':
             {
-                console.log(`🔮 Portal wordt op maat gemaakt voor VORM: ${sollyShape}`);
+                console.log(`🔮 Mystieke portal wordt op maat gemaakt voor VORM: ${sollyShape}`);
                 const boxSize = boundingBox.getSize(new THREE.Vector3());
                 const innerSizeX = boxSize.x * 1.25;
                 const innerSizeZ = boxSize.z * 1.25;
@@ -48,6 +47,55 @@ function createPortal(sollyObject) {
                 const outerSizeX = innerSizeX + thickness;
                 const outerSizeZ = innerSizeZ + thickness;
 
+                // MYSTIEKE PORTAL MET DRIEHOEKIGE BINNENKANT
+                // Buitenste ring (mystieke energie)
+                const outerRingGeometry = new THREE.RingGeometry(outerSizeX * 0.4, outerSizeX * 0.8, 32);
+                const outerRingMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x8A2BE2, // Donkerpaars
+                    transparent: true,
+                    opacity: 0.6,
+                    side: THREE.DoubleSide
+                });
+                const outerRing = new THREE.Mesh(outerRingGeometry, outerRingMaterial);
+                outerRing.rotation.x = -Math.PI / 2;
+                outerRing.userData.isPortalRing = true;
+                portalGroup.add(outerRing);
+
+                // Binnenste ring (mystieke energie) - DRIEHOEKIGE VORM
+                // Gebruik een custom driehoekige vorm in plaats van RingGeometry
+                const triangleShape = new THREE.Shape();
+                const triangleSize = innerSizeX * 0.4;
+                triangleShape.moveTo(0, -triangleSize);
+                triangleShape.lineTo(-triangleSize * 0.866, triangleSize * 0.5);
+                triangleShape.lineTo(triangleSize * 0.866, triangleSize * 0.5);
+                triangleShape.closePath();
+                
+                const innerRingGeometry = new THREE.ShapeGeometry(triangleShape);
+                const innerRingMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x9370DB, // Lichter paars
+                    transparent: true,
+                    opacity: 0.8,
+                    side: THREE.DoubleSide
+                });
+                const innerRing = new THREE.Mesh(innerRingGeometry, innerRingMaterial);
+                innerRing.rotation.x = -Math.PI / 2;
+                innerRing.userData.isPortalRing = true;
+                portalGroup.add(innerRing);
+
+                // LEEG GAT IN HET MIDDEN - DRIEHOEKIGE VORM
+                // Click target voor interactie (driehoek)
+                const clickTargetGeometry = new THREE.ShapeGeometry(triangleShape);
+                const clickTargetMaterial = new THREE.MeshBasicMaterial({ 
+                    transparent: true, 
+                    opacity: 0, 
+                    side: THREE.DoubleSide 
+                });
+                const clickTarget = new THREE.Mesh(clickTargetGeometry, clickTargetMaterial);
+                clickTarget.rotation.x = -Math.PI / 2;
+                clickTarget.userData.isClickTarget = true;
+                portalGroup.add(clickTarget);
+
+                // Particle effect rond de portal
                 for (let i = 0; i < particleCount; i++) {
                     const planeSize = (Math.random() * 2 + 1) * sollyScale * 0.5;
                     const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
@@ -67,37 +115,202 @@ function createPortal(sollyObject) {
                     particleCloud.add(plane);
                 }
 
-                const shape = new THREE.Shape();
-                shape.moveTo(-outerSizeX / 2, -outerSizeZ / 2);
-                shape.lineTo(outerSizeX / 2, -outerSizeZ / 2);
-                shape.lineTo(outerSizeX / 2, outerSizeZ / 2);
-                shape.lineTo(-outerSizeX / 2, outerSizeZ / 2);
-                const hole = new THREE.Path();
-                hole.moveTo(-innerSizeX / 2, -innerSizeZ / 2);
-                hole.lineTo(innerSizeX / 2, -innerSizeZ / 2);
-                hole.lineTo(innerSizeX / 2, innerSizeZ / 2);
-                hole.lineTo(-innerSizeX / 2, innerSizeZ / 2);
-                shape.holes.push(hole);
-                const clickTargetGeometry = new THREE.ShapeGeometry(shape);
-                const clickTargetMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, side: THREE.DoubleSide });
+                portalGroup.add(particleCloud);
+            }
+            break;
+
+        case 'kubus':
+            {
+                console.log(`🔮 Mystieke portal wordt op maat gemaakt voor VORM: ${sollyShape}`);
+                const boxSize = boundingBox.getSize(new THREE.Vector3());
+                const innerSizeX = boxSize.x * 1.25;
+                const innerSizeZ = boxSize.z * 1.25;
+                const thickness = boxSize.x * 1.5;
+                const outerSizeX = innerSizeX + thickness;
+                const outerSizeZ = innerSizeZ + thickness;
+
+                // MYSTIEKE PORTAL MET VIERKANTE BINNENKANT
+                // Buitenste ring (mystieke energie)
+                const outerRingGeometry = new THREE.RingGeometry(outerSizeX * 0.4, outerSizeX * 0.8, 32);
+                const outerRingMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x8A2BE2, // Donkerpaars
+                    transparent: true,
+                    opacity: 0.6,
+                    side: THREE.DoubleSide
+                });
+                const outerRing = new THREE.Mesh(outerRingGeometry, outerRingMaterial);
+                outerRing.rotation.x = -Math.PI / 2;
+                outerRing.userData.isPortalRing = true;
+                portalGroup.add(outerRing);
+
+                // Binnenste ring (mystieke energie) - VIERKANTE VORM
+                // Gebruik een custom vierkante vorm in plaats van RingGeometry
+                const squareShape = new THREE.Shape();
+                const squareSize = innerSizeX * 0.4;
+                squareShape.moveTo(-squareSize, -squareSize);
+                squareShape.lineTo(squareSize, -squareSize);
+                squareShape.lineTo(squareSize, squareSize);
+                squareShape.lineTo(-squareSize, squareSize);
+                squareShape.closePath();
+                
+                const innerRingGeometry = new THREE.ShapeGeometry(squareShape);
+                const innerRingMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x9370DB, // Lichter paars
+                    transparent: true,
+                    opacity: 0.8,
+                    side: THREE.DoubleSide
+                });
+                const innerRing = new THREE.Mesh(innerRingGeometry, innerRingMaterial);
+                innerRing.rotation.x = -Math.PI / 2;
+                innerRing.userData.isPortalRing = true;
+                portalGroup.add(innerRing);
+
+                // LEEG GAT IN HET MIDDEN - VIERKANTE VORM
+                // Click target voor interactie (vierkant)
+                const clickTargetGeometry = new THREE.ShapeGeometry(squareShape);
+                const clickTargetMaterial = new THREE.MeshBasicMaterial({ 
+                    transparent: true, 
+                    opacity: 0, 
+                    side: THREE.DoubleSide 
+                });
                 const clickTarget = new THREE.Mesh(clickTargetGeometry, clickTargetMaterial);
                 clickTarget.rotation.x = -Math.PI / 2;
                 clickTarget.userData.isClickTarget = true;
                 portalGroup.add(clickTarget);
 
-                const glowGeometry = new THREE.SphereGeometry(outerSizeX * 0.8, 32, 32);
-                const glowMaterial = new THREE.MeshBasicMaterial({
-                    color: 0xFF00FF,
-                    transparent: true,
-                    opacity: 0.3,
-                    blending: THREE.AdditiveBlending,
-                    depthWrite: false,
-                    side: THREE.BackSide,
-                    fog: false
-                });
-                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                // Particle effect rond de portal
+                for (let i = 0; i < particleCount; i++) {
+                    const planeSize = (Math.random() * 2 + 1) * sollyScale * 0.5;
+                    const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
+                    const plane = new THREE.Mesh(planeGeometry, particleMaterial.clone());
+
+                    let x, z;
+                    do {
+                        x = THREE.MathUtils.randFloat(-outerSizeX / 2, outerSizeX / 2);
+                        z = THREE.MathUtils.randFloat(-outerSizeZ / 2, outerSizeZ / 2);
+                    } while (Math.abs(x) < innerSizeX / 2 && Math.abs(z) < innerSizeZ / 2);
+
+                    const yOffset = (Math.random() - 0.5) * 20 * sollyScale;
+                    plane.position.set(x, yOffset, z);
+
+                    plane.userData.animationSpeed = Math.random() * 0.5 + 0.5;
+                    plane.userData.yPhase = Math.random() * Math.PI;
+                    particleCloud.add(plane);
+                }
+
                 portalGroup.add(particleCloud);
-                portalGroup.add(glow);
+            }
+            break;
+
+        case 'zandloper':
+            {
+                console.log(`🔮 Mystieke portal wordt op maat gemaakt voor VORM: ${sollyShape}`);
+                const boxSize = boundingBox.getSize(new THREE.Vector3());
+                const innerSizeX = boxSize.x * 1.25;
+                const innerSizeZ = boxSize.z * 1.25;
+                const thickness = boxSize.x * 1.5;
+                const outerSizeX = innerSizeX + thickness;
+                const outerSizeZ = innerSizeZ + thickness;
+
+                // MYSTIEKE PORTAL MET ZANDLOPER BINNENKANT
+                // Buitenste ring (mystieke energie)
+                const outerRingGeometry = new THREE.RingGeometry(outerSizeX * 0.4, outerSizeX * 0.8, 32);
+                const outerRingMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x8A2BE2, // Donkerpaars
+                    transparent: true,
+                    opacity: 0.6,
+                    side: THREE.DoubleSide
+                });
+                const outerRing = new THREE.Mesh(outerRingGeometry, outerRingMaterial);
+                outerRing.rotation.x = -Math.PI / 2;
+                outerRing.userData.isPortalRing = true;
+                portalGroup.add(outerRing);
+
+                // ZANDLOPER VORM - twee piramides op elkaar
+                const zandloperGroup = new THREE.Group();
+                
+                // Bovenste piramide (punt naar boven)
+                const topPyramid = new THREE.Mesh(
+                    new THREE.ConeGeometry(innerSizeX * 0.3, innerSizeX * 0.4, 3),
+                    new THREE.MeshBasicMaterial({
+                        color: 0x9370DB, // Lichter paars
+                        transparent: true,
+                        opacity: 0.8,
+                        side: THREE.DoubleSide
+                    })
+                );
+                topPyramid.position.y = innerSizeX * 0.2;
+                topPyramid.rotation.x = Math.PI; // Draai om zodat punt naar boven wijst
+                zandloperGroup.add(topPyramid);
+                
+                // Onderste piramide (punt naar beneden)
+                const bottomPyramid = new THREE.Mesh(
+                    new THREE.ConeGeometry(innerSizeX * 0.3, innerSizeX * 0.4, 3),
+                    new THREE.MeshBasicMaterial({
+                        color: 0x9370DB, // Lichter paars
+                        transparent: true,
+                        opacity: 0.8,
+                        side: THREE.DoubleSide
+                    })
+                );
+                bottomPyramid.position.y = -innerSizeX * 0.2;
+                zandloperGroup.add(bottomPyramid);
+                
+                zandloperGroup.rotation.x = -Math.PI / 2;
+                zandloperGroup.userData.isPortalRing = true;
+                portalGroup.add(zandloperGroup);
+                
+                // Click target als combinatie van beide piramides
+                const clickTargetGroup = new THREE.Group();
+                
+                const topClickTarget = new THREE.Mesh(
+                    new THREE.ConeGeometry(innerSizeX * 0.3, innerSizeX * 0.4, 3),
+                    new THREE.MeshBasicMaterial({ 
+                        transparent: true, 
+                        opacity: 0, 
+                        side: THREE.DoubleSide 
+                    })
+                );
+                topClickTarget.position.y = innerSizeX * 0.2;
+                topClickTarget.rotation.x = Math.PI;
+                clickTargetGroup.add(topClickTarget);
+                
+                const bottomClickTarget = new THREE.Mesh(
+                    new THREE.ConeGeometry(innerSizeX * 0.3, innerSizeX * 0.4, 3),
+                    new THREE.MeshBasicMaterial({ 
+                        transparent: true, 
+                        opacity: 0, 
+                        side: THREE.DoubleSide 
+                    })
+                );
+                bottomClickTarget.position.y = -innerSizeX * 0.2;
+                clickTargetGroup.add(bottomClickTarget);
+                
+                clickTargetGroup.rotation.x = -Math.PI / 2;
+                clickTargetGroup.userData.isClickTarget = true;
+                portalGroup.add(clickTargetGroup);
+
+                // Particle effect rond de portal
+                for (let i = 0; i < particleCount; i++) {
+                    const planeSize = (Math.random() * 2 + 1) * sollyScale * 0.5;
+                    const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
+                    const plane = new THREE.Mesh(planeGeometry, particleMaterial.clone());
+
+                    let x, z;
+                    do {
+                        x = THREE.MathUtils.randFloat(-outerSizeX / 2, outerSizeX / 2);
+                        z = THREE.MathUtils.randFloat(-outerSizeZ / 2, outerSizeZ / 2);
+                    } while (Math.abs(x) < innerSizeX / 2 && Math.abs(z) < innerSizeZ / 2);
+
+                    const yOffset = (Math.random() - 0.5) * 20 * sollyScale;
+                    plane.position.set(x, yOffset, z);
+
+                    plane.userData.animationSpeed = Math.random() * 0.5 + 0.5;
+                    plane.userData.yPhase = Math.random() * Math.PI;
+                    particleCloud.add(plane);
+                }
+
+                portalGroup.add(particleCloud);
             }
             break;
 
@@ -107,11 +320,52 @@ function createPortal(sollyObject) {
                 const boundingSphere = new THREE.Sphere();
                 boundingBox.getBoundingSphere(boundingSphere);
                 const coreRadius = boundingSphere.radius;
-                console.log(`🔮 Portal wordt op maat gemaakt voor VORM: bol. Kern-radius: ${coreRadius.toFixed(2)}`);
+                console.log(`🔮 Mystieke portal wordt op maat gemaakt voor VORM: bol. Kern-radius: ${coreRadius.toFixed(2)}`);
 
                 const innerRadius = coreRadius * 1.25;
                 const outerRadius = innerRadius + (coreRadius * 1.5);
 
+                // MYSTIEKE PORTAL MET RONDE BINNENKANT
+                // Buitenste ring (mystieke energie)
+                const outerRingGeometry = new THREE.RingGeometry(outerRadius * 0.6, outerRadius * 1.2, 32);
+                const outerRingMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x8A2BE2, // Donkerpaars
+                    transparent: true,
+                    opacity: 0.6,
+                    side: THREE.DoubleSide
+                });
+                const outerRing = new THREE.Mesh(outerRingGeometry, outerRingMaterial);
+                outerRing.rotation.x = -Math.PI / 2;
+                outerRing.userData.isPortalRing = true;
+                portalGroup.add(outerRing);
+
+                // Binnenste ring (mystieke energie) - RONDE VORM
+                const innerRingGeometry = new THREE.RingGeometry(innerRadius * 0.8, innerRadius * 0.6, 32);
+                const innerRingMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x9370DB, // Lichter paars
+                    transparent: true,
+                    opacity: 0.8,
+                    side: THREE.DoubleSide
+                });
+                const innerRing = new THREE.Mesh(innerRingGeometry, innerRingMaterial);
+                innerRing.rotation.x = -Math.PI / 2;
+                innerRing.userData.isPortalRing = true;
+                portalGroup.add(innerRing);
+
+                // LEEG GAT IN HET MIDDEN - RONDE VORM
+                // Click target voor interactie (rond)
+                const clickTargetGeometry = new THREE.CircleGeometry(innerRadius * 0.4, 32);
+                const clickTargetMaterial = new THREE.MeshBasicMaterial({ 
+                    transparent: true, 
+                    opacity: 0, 
+                    side: THREE.DoubleSide 
+                });
+                const clickTarget = new THREE.Mesh(clickTargetGeometry, clickTargetMaterial);
+                clickTarget.rotation.x = -Math.PI / 2;
+                clickTarget.userData.isClickTarget = true;
+                portalGroup.add(clickTarget);
+
+                // Particle effect rond de portal
                 for (let i = 0; i < particleCount; i++) {
                     const planeSize = (Math.random() * 2 + 1) * sollyScale * 0.5;
                     const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
@@ -127,26 +381,7 @@ function createPortal(sollyObject) {
                     particleCloud.add(plane);
                 }
                 
-                const glowGeometry = new THREE.SphereGeometry(outerRadius * 1.2, 32, 32);
-                const glowMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0xFF00FF,
-                    transparent: true, 
-                    opacity: 0.35,
-                    blending: THREE.AdditiveBlending, 
-                    depthWrite: false, 
-                    side: THREE.BackSide,
-                    fog: false
-                });
-                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-
-                const clickTargetGeometry = new THREE.TorusGeometry((innerRadius + outerRadius) / 2, (outerRadius - innerRadius) / 2, 16, 32);
-                const clickTargetMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, side: THREE.DoubleSide });
-                const clickTarget = new THREE.Mesh(clickTargetGeometry, clickTargetMaterial);
-                clickTarget.userData.isClickTarget = true;
-                
                 portalGroup.add(particleCloud);
-                portalGroup.add(glow);
-                portalGroup.add(clickTarget);
             }
             break;
     }
@@ -241,16 +476,12 @@ function showUniverseModal(html, title = '') {
     overlay.className = 'solly-modal-overlay';
     overlay.style.cssText = `
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        inset: 0;
         background: rgba(0, 0, 0, 0.7);
         backdrop-filter: blur(3px);
         z-index: 99998;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: grid;
+        place-items: center;
     `;
     document.body.appendChild(overlay);
     
@@ -266,8 +497,9 @@ function showUniverseModal(html, title = '') {
         background: transparent;
         border: 2px solid rgba(255, 215, 0, 0.6);
         border-radius: 12px;
-        padding: 40px 50px;
-        max-width: 600px;
+        padding: 32px 36px;
+        width: 90vw;
+        max-width: 420px; /* portrait smaller */
         max-height: 80vh;
         overflow-y: auto;
         backdrop-filter: blur(10px);
@@ -307,7 +539,7 @@ function showUniverseModal(html, title = '') {
         </div>
     `;
     
-    document.body.appendChild(modal);
+    overlay.appendChild(modal);
     
     const closeBtn = modal.querySelector('.solly-modal-close');
     const closeModal = () => {
