@@ -148,7 +148,7 @@ class GameManager {
     const kaboomCounter = document.getElementById('kaboom-counter');
     const kaboomNumber = document.getElementById('kaboom-number');
     if (kaboomCounter && kaboomNumber) {
-      const totalCollisions = this.currentUserData.kaboom || 0;
+      const totalCollisions = this.getKaboomCount();
       kaboomNumber.textContent = totalCollisions;
       kaboomCounter.style.display = 'block'; // Altijd zichtbaar
       console.log('🎯 KABOOM counter geïnitialiseerd:', totalCollisions);
@@ -244,13 +244,18 @@ class GameManager {
 
   incrementKaboomCount(level = 1, position = null, shape = null) {
     if (this.currentUserData) {
-      this.currentUserData.kaboom = (this.currentUserData.kaboom || 0) + 1;
-      this.currentUserData.lastPlayed = new Date().toISOString();
-      
-      // Record in database
+      // Record in database first
       if (this.databaseManager && this.databaseManager.isInitialized) {
         this.databaseManager.recordKaboom(level, position, shape);
       }
+      
+      // Sync currentUserData with database
+      const dbCount = this.databaseManager && this.databaseManager.isInitialized ? 
+        this.databaseManager.getKaboomCount() : 
+        (this.currentUserData.kaboom || 0) + 1;
+      
+      this.currentUserData.kaboom = dbCount;
+      this.currentUserData.lastPlayed = new Date().toISOString();
       
       // Update UI immediately
       this.updateKaboomUI();
@@ -264,8 +269,19 @@ class GameManager {
 
   setKaboomCount(count) {
     if (this.currentUserData) {
+      // Update database if available
+      if (this.databaseManager && this.databaseManager.isInitialized) {
+        // Reset database to match the new count
+        this.databaseManager.kaboomData.totalKabooms = count;
+        this.databaseManager.kaboomData.levelKabooms[1] = count; // Assuming level 1
+        this.databaseManager.saveAllData();
+      }
+      
       this.currentUserData.kaboom = count;
       this.currentUserData.lastPlayed = new Date().toISOString();
+      
+      // Update UI
+      this.updateKaboomUI();
       
       // Trigger save after kaboom count change
       setTimeout(() => this.saveProgress(), 1000);
@@ -323,7 +339,7 @@ class GameManager {
     const kaboomCounter = document.getElementById('kaboom-counter');
     const kaboomNumber = document.getElementById('kaboom-number');
     if (kaboomCounter && kaboomNumber) {
-      const totalCollisions = this.currentUserData?.kaboom || 0;
+      const totalCollisions = this.getKaboomCount();
       kaboomNumber.textContent = totalCollisions;
       kaboomCounter.style.display = 'block'; // Altijd zichtbaar
       console.log('🎯 KABOOM counter geïnitialiseerd:', totalCollisions);
@@ -337,7 +353,7 @@ class GameManager {
     const kaboomCounter = document.getElementById('kaboom-counter');
     const kaboomNumber = document.getElementById('kaboom-number');
     if (kaboomCounter && kaboomNumber) {
-      const totalCollisions = this.currentUserData?.kaboom || 0;
+      const totalCollisions = this.getKaboomCount();
       kaboomNumber.textContent = totalCollisions;
       kaboomCounter.style.display = 'block'; // Altijd zichtbaar
       console.log('💥 KABOOM counter bijgewerkt naar:', totalCollisions);
