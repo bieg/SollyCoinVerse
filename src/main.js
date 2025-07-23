@@ -87,6 +87,12 @@ document.getElementById('start-btn').onclick = function() {
     // Reset sollyConfig voor schone slate
     sollyConfig = null;
     
+    // Reset database voor schone kaboom counter
+    if (window.databaseManager && window.databaseManager.isInitialized) {
+        console.log('🔄 Resetting database for clean start');
+        window.databaseManager.resetDatabase();
+    }
+    
     startscreen.style.display = 'none';
     starwarsIntro.style.display = 'flex';
     setTimeout(() => {
@@ -167,6 +173,15 @@ async function initSollyverse() {
         
         // Zorg ervoor dat kaboom altijd op 0 staat voor nieuwe starts
         defaultCoin.kaboom = 0;
+        
+        // Reset database kaboom counter ook
+        if (gameManager.databaseManager && gameManager.databaseManager.isInitialized) {
+            console.log('🔄 Resetting database kaboom counter');
+            gameManager.databaseManager.kaboomData.totalKabooms = 0;
+            gameManager.databaseManager.kaboomData.sessionKabooms = 0;
+            gameManager.databaseManager.kaboomData.levelKabooms = { 1: 0 };
+            gameManager.databaseManager.saveAllData();
+        }
         
         gameManager.loadCoinData(defaultCoin);
         userInterface.setStartedWithCoin(false);

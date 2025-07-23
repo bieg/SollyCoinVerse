@@ -152,6 +152,12 @@ class GameManager {
       kaboomNumber.textContent = totalCollisions;
       kaboomCounter.style.display = 'block'; // Altijd zichtbaar
       console.log('🎯 KABOOM counter geïnitialiseerd:', totalCollisions);
+      
+      // Forceer kaboom counter op 0 voor nieuwe starts
+      if (totalCollisions > 0 && !this.currentUserData.uniqueIdentifier) {
+        console.log('🔄 Forcing kaboom counter to 0 for new start');
+        this.setKaboomCount(0);
+      }
     } else {
       console.error('❌ KABOOM counter elementen niet gevonden!');
     }
