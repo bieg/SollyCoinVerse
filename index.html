@@ -18,6 +18,10 @@
         .overlay, #solly-level-indicator, #cta-info, #cta-instructies, #cta-personaliseer {
             pointer-events: none !important;
         }
+        #kaboom-counter {
+            z-index: 10000 !important;
+            position: fixed !important;
+        }
     </style>
 </head>
 <body>
@@ -43,15 +47,22 @@
         </div>
     </div>
     <div id="solly-level-indicator" style="display:none; position:fixed; left:0; top:0; padding:32px 48px 16px 32px; color:#fff; font-size:1.5em; z-index:100; pointer-events:none; text-shadow:0 2px 8px #000, 0 0 2px #FFD700;"></div>
+    <div id="kaboom-counter" style="position:fixed; left:32px; top:32px; color:#FFFFFF; font-size:3em; z-index:10000; pointer-events:none; text-shadow:0 2px 8px #000; font-weight:bold; display:none;">
+        KABOOM: <span id="kaboom-number">0</span>
+    </div>
     <div id="cta-buttons" style="position: fixed; bottom: 32px; right: 32px; z-index: 10010; display: none; flex-direction: column; gap: 32px; align-items: flex-end;">
         <button id="cta-info" class="cta-btn" title="Info">ℹ️</button>
         <button id="cta-instructies" class="cta-btn" title="Instructies">📖</button>
         <button id="cta-personaliseer" class="cta-btn" title="Personaliseer">🎨</button>
     </div>
     <!-- Load JavaScript files in correct order -->
+    <script src="src/Constants.js"></script>
+    <script src="src/ErrorHandler.js"></script>
     <script src="src/SecurityManager.js"></script>
     <script src="src/GameManager.js"></script>
     <script src="src/UserInterface.js"></script>
+    <script src="src/SollyCore.js"></script>
+    <script src="src/CollisionManager.js"></script>
     <script src="src/galaxy.js"></script>
     <script src="src/portal.js"></script>
     <script src="src/sollys.js"></script>

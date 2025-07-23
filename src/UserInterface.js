@@ -71,6 +71,8 @@ class UserInterface {
     this.gameStarted = started;
     if (started) {
       this.showLoadCoinButton();
+      // Initialize kaboom counter when game starts
+      this.updateKaboomUI();
     }
     this.updateLoadCoinButton();
   }
@@ -193,6 +195,17 @@ class UserInterface {
   // Public method to refresh UI
   refresh() {
     this.updateLoadCoinButton();
+  }
+
+  updateKaboomUI() {
+    if (this.gameManager) {
+      const kaboomCount = this.gameManager.getKaboomCount();
+      const kaboomNumber = document.getElementById('kaboom-number');
+      if (kaboomNumber) {
+        kaboomNumber.textContent = kaboomCount;
+        console.log('💥 KABOOM UI bijgewerkt naar:', kaboomCount);
+      }
+    }
   }
 
   // Initialize method for module compatibility
