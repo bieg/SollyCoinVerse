@@ -531,7 +531,10 @@ class CollisionManager {
   updateGameState() {
     // Update kaboom count
     if (window.gameManager) {
-      window.gameManager.incrementKaboomCount();
+                      // Record kaboom with position and shape data
+                const position = solly1.position.clone();
+                const shape = window.gameManager.getCurrentShape();
+                window.gameManager.incrementKaboomCount(1, position, shape);
       
       // Update KABOOM counter in UI
       const kaboomCounter = document.getElementById('kaboom-counter');

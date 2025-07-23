@@ -1651,8 +1651,11 @@ function handleSollyOnMini(targetMini) {
     if (!targetMini) return;
     
     // Kaboom-teller ophogen via GameManager
-    if (window.gameManager && typeof window.gameManager.incrementKaboomCount === 'function') {
-        window.gameManager.incrementKaboomCount();
+            if (window.gameManager && typeof window.gameManager.incrementKaboomCount === 'function') {
+            // Record kaboom with position and shape data
+            const position = solly1.position.clone();
+            const shape = window.gameManager.getCurrentShape();
+            window.gameManager.incrementKaboomCount(1, position, shape);
         console.log(`💥 Kaboom! Totaal: ${window.gameManager.getKaboomCount()}`);
     } else {
         console.warn('⚠️ GameManager niet beschikbaar voor kaboom increment');

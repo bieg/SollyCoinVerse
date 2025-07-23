@@ -15,6 +15,9 @@ class GameManager {
     // Initialize SecurityManager
     this.securityManager = new SecurityManager();
     
+    // Initialize DatabaseManager
+    this.databaseManager = new DatabaseManager();
+    
     // Load default config
     this.loadDefaultConfig();
     
@@ -233,13 +236,21 @@ class GameManager {
 
   // Kaboom teller methodes
   getKaboomCount() {
+    if (this.databaseManager && this.databaseManager.isInitialized) {
+      return this.databaseManager.getKaboomCount();
+    }
     return this.currentUserData?.kaboom || 0;
   }
 
-  incrementKaboomCount() {
+  incrementKaboomCount(level = 1, position = null, shape = null) {
     if (this.currentUserData) {
       this.currentUserData.kaboom = (this.currentUserData.kaboom || 0) + 1;
       this.currentUserData.lastPlayed = new Date().toISOString();
+      
+      // Record in database
+      if (this.databaseManager && this.databaseManager.isInitialized) {
+        this.databaseManager.recordKaboom(level, position, shape);
+      }
       
       // Update UI immediately
       this.updateKaboomUI();
