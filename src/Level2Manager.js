@@ -85,7 +85,7 @@ class Level2Manager {
         if (oldTerminal) oldTerminal.remove();
         
         // Remove any existing Level 2 UI
-        const existingUI = ['level2-indicator', 'wireframe-counter', 'wireframe-instructions'];
+        const existingUI = ['level2-indicator', 'wireframe-counter', 'wireframe-instructions', 'shape-solid-box'];
         existingUI.forEach(id => {
             const element = document.getElementById(id);
             if (element) element.remove();
@@ -190,6 +190,30 @@ class Level2Manager {
         `;
         instructions.innerHTML = '🎯 Sleep de shapes naar de hoekpunten van de kubus!';
         document.body.appendChild(instructions);
+
+        // Shape Solid Box - Links onder de titel
+        const shapeSolidBox = document.createElement('div');
+        shapeSolidBox.id = 'shape-solid-box';
+        shapeSolidBox.style.cssText = `
+            position: fixed;
+            top: 100px;
+            left: 20px;
+            padding: 20px;
+            margin: 10px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border-radius: 15px;
+            font-family: 'Open Sans', sans-serif;
+            font-weight: bold;
+            font-size: 16px;
+            z-index: 10000;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            border: 2px solid #45a049;
+            min-width: 120px;
+            text-align: center;
+        `;
+        shapeSolidBox.innerHTML = '🟢 Shape Solid';
+        document.body.appendChild(shapeSolidBox);
     }
 
     // Create wireframe cube
@@ -222,6 +246,10 @@ class Level2Manager {
             this.cornerPoints.push(cornerPoint);
             this.wireframeCube.add(cornerPoint);
         });
+
+        // Rotate cube: 45 degrees around Y-axis, then 10 degrees up
+        this.wireframeCube.rotation.y = Math.PI / 4; // 45 degrees
+        this.wireframeCube.rotation.x = Math.PI / 18; // 10 degrees up
 
         this.scene.add(this.wireframeCube);
     }
