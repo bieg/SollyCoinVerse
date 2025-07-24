@@ -85,7 +85,7 @@ class Level2Manager {
         if (oldTerminal) oldTerminal.remove();
         
         // Remove any existing Level 2 UI
-        const existingUI = ['level2-indicator', 'wireframe-counter', 'wireframe-instructions', 'shape-solid-box'];
+        const existingUI = ['level2-indicator', 'wireframe-counter', 'wireframe-instructions', 'shape-choices-box'];
         existingUI.forEach(id => {
             const element = document.getElementById(id);
             if (element) element.remove();
@@ -191,29 +191,29 @@ class Level2Manager {
         instructions.innerHTML = '🎯 Sleep de shapes naar de hoekpunten van de kubus!';
         document.body.appendChild(instructions);
 
-        // Shape Solid Box - Links onder de titel
-        const shapeSolidBox = document.createElement('div');
-        shapeSolidBox.id = 'shape-solid-box';
-        shapeSolidBox.style.cssText = `
+        // Shape Choices Box - Links onder de titel
+        const shapeChoicesBox = document.createElement('div');
+        shapeChoicesBox.id = 'shape-choices-box';
+        shapeChoicesBox.style.cssText = `
             position: fixed;
             top: 100px;
             left: 20px;
             padding: 20px;
             margin: 10px;
-            background: linear-gradient(135deg, #4CAF50, #45a049);
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
             color: white;
             border-radius: 15px;
             font-family: 'Open Sans', sans-serif;
             font-weight: bold;
             font-size: 16px;
             z-index: 10000;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-            border: 2px solid #45a049;
-            min-width: 120px;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            border: 2px solid #FF8E53;
+            min-width: 200px;
             text-align: center;
         `;
-        shapeSolidBox.innerHTML = '🟢 Shape Solid';
-        document.body.appendChild(shapeSolidBox);
+        shapeChoicesBox.innerHTML = '🎨 8 Shape Choices';
+        document.body.appendChild(shapeChoicesBox);
     }
 
     // Create wireframe cube
