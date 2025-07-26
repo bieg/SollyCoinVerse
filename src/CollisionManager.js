@@ -780,6 +780,8 @@ class CollisionManager {
 
   handleShapeChoice(shape) {
     this.debugLog(`🎨 Shape chosen: ${shape}`);
+    this.debugLog(`🔍 DEBUG: Shape parameter type: ${typeof shape}`);
+    this.debugLog(`🔍 DEBUG: Shape parameter value: "${shape}"`);
     
     // Verwijder flag om collisions weer toe te staan
     window.shapeChoiceModalOpen = false;
@@ -802,7 +804,7 @@ class CollisionManager {
     this.showShapeChangeMessage(shape);
     
     // MAAK PORTAL AAN NA SHAPE CHOICE
-    this.debugLog('🔮 Creating portal after shape choice');
+    this.debugLog(`🔮 Creating portal after shape choice with shape: "${shape}"`);
     this.createShapePortal(shape);
     
     // DEBUG: Check of portal echt bestaat
@@ -1041,8 +1043,10 @@ class CollisionManager {
     // MYSTIEKE PORTAL MET VORM-SPECIFIEKE BINNENKANT
     let outerRing, innerRing, clickTarget;
     
+    this.debugLog(`🔍 DEBUG: Switch statement - shape parameter: "${shape}"`);
     switch (shape) {
       case 'vierkant':
+        this.debugLog(`🔍 DEBUG: Creating VIERKANTE portal`);
         // VIERKANTE PORTAL
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
@@ -1075,6 +1079,7 @@ class CollisionManager {
         break;
         
       case 'zandloper':
+        this.debugLog(`🔍 DEBUG: Creating ZANDLOPER portal`);
         // ZANDLOPER PORTAL (twee piramides op elkaar)
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
@@ -1151,6 +1156,7 @@ class CollisionManager {
         break;
         
       case 'ruit':
+        this.debugLog(`🔍 DEBUG: Creating RUIT portal`);
         // RUIT PORTAL (diamant vorm)
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
@@ -1186,6 +1192,7 @@ class CollisionManager {
         
       case 'piramide':
       default:
+        this.debugLog(`🔍 DEBUG: Creating PIRAMIDE portal (default case)`);
         // PIRAMIDE PORTAL (driehoekige vorm)
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
@@ -1254,10 +1261,29 @@ class CollisionManager {
     this.makePortalDropable(outerRing, innerRing);
     
     // Voeg een grote, felgekleurde indicator toe om de portal positie te markeren
+    let indicatorColor = 0xFF0000; // Default rood
+    
+    // Pas kleur aan op basis van shape
+    switch (shape) {
+      case 'vierkant':
+        indicatorColor = 0x00FF00; // Groen voor vierkant
+        break;
+      case 'zandloper':
+        indicatorColor = 0xFF8800; // Oranje voor zandloper
+        break;
+      case 'ruit':
+        indicatorColor = 0x0088FF; // Blauw voor ruit
+        break;
+      case 'piramide':
+      default:
+        indicatorColor = 0xFF0000; // Rood voor piramide
+        break;
+    }
+    
     const portalIndicator = new THREE.Mesh(
       new THREE.SphereGeometry(200, 16, 16),
       new THREE.MeshBasicMaterial({
-        color: 0xFF0000, // Fel rood
+        color: indicatorColor,
         transparent: true,
         opacity: 0.9,
         side: THREE.DoubleSide
