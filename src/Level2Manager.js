@@ -113,8 +113,8 @@ class Level2Manager {
     setupCamera() {
         if (!this.camera) return;
         
-        // Position camera for wireframe cube view
-        this.camera.position.set(0, 0, 2000);
+        // Position camera for wireframe cube view with shape choices visible
+        this.camera.position.set(200, 0, 2000);
         this.camera.lookAt(0, 0, 0);
         
         // Enable camera controls for interactive puzzle
@@ -297,7 +297,7 @@ class Level2Manager {
         
         // Panel configuration
         const panelConfig = {
-            baseX: -1200,  // Left of cube
+            baseX: -1800,  // Far left of screen
             baseY: 400,
             shapeSize: 80,
             gapX: 120,
