@@ -801,11 +801,20 @@ class CollisionManager {
     // Toon bericht
     this.showShapeChangeMessage(shape);
     
-    // START LEVEL 2 NA SHAPE CHOICE
+    // START VORTEX ANIMATIE VOOR LEVEL 2
     setTimeout(() => {
-      this.debugLog('🚀 Starting Level 2 after shape choice');
+      this.debugLog('🌀 Starting vortex animation before Level 2');
+      if (window.scene) {
+        const centerPosition = new THREE.Vector3(0, 0, 0);
+        this.startVortexAnimation(centerPosition, null);
+      }
+    }, 1000); // Start vortex na 1 seconde
+    
+    // START LEVEL 2 NA VORTEX
+    setTimeout(() => {
+      this.debugLog('🚀 Starting Level 2 after vortex animation');
       this.startLevel2AfterShapeChoice(shape);
-    }, 2000); // Wacht 2 seconden na shape choice
+    }, 6000); // Wacht 6 seconden (vortex duurt 5 seconden)
   }
 
 
