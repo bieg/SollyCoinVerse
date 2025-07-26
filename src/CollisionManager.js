@@ -1049,7 +1049,7 @@ class CollisionManager {
           new THREE.MeshBasicMaterial({
             color: 0x8A2BE2,
             transparent: true,
-            opacity: 0.7,
+            opacity: 1.0, // Volledig zichtbaar
             side: THREE.DoubleSide
           })
         );
@@ -1081,7 +1081,7 @@ class CollisionManager {
           new THREE.MeshBasicMaterial({
             color: 0x8A2BE2,
             transparent: true,
-            opacity: 0.7,
+            opacity: 1.0, // Volledig zichtbaar
             side: THREE.DoubleSide
           })
         );
@@ -1157,7 +1157,7 @@ class CollisionManager {
           new THREE.MeshBasicMaterial({
             color: 0x8A2BE2,
             transparent: true,
-            opacity: 0.7,
+            opacity: 1.0, // Volledig zichtbaar
             side: THREE.DoubleSide
           })
         );
@@ -1192,7 +1192,7 @@ class CollisionManager {
           new THREE.MeshBasicMaterial({
             color: 0x8A2BE2,
             transparent: true,
-            opacity: 0.7,
+            opacity: 1.0, // Volledig zichtbaar
             side: THREE.DoubleSide
           })
         );
@@ -1253,6 +1253,31 @@ class CollisionManager {
     // Maak portal dropable (grotere drop zone voor simpele drag-and-drop)
     this.makePortalDropable(outerRing, innerRing);
     
+    // Voeg een grote, felgekleurde indicator toe om de portal positie te markeren
+    const portalIndicator = new THREE.Mesh(
+      new THREE.SphereGeometry(200, 16, 16),
+      new THREE.MeshBasicMaterial({
+        color: 0xFF0000, // Fel rood
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide
+      })
+    );
+    portalIndicator.position.copy(outerRing.position);
+    portalIndicator.position.y += 300; // Boven de portal
+    portalIndicator.name = 'PortalIndicator';
+    window.scene.add(portalIndicator);
+    
+    // Maak de indicator pulseren
+    const pulseIndicator = () => {
+      if (portalIndicator && portalIndicator.parent) {
+        const scale = 1 + Math.sin(Date.now() * 0.005) * 0.3;
+        portalIndicator.scale.set(scale, scale, scale);
+        requestAnimationFrame(pulseIndicator);
+      }
+    };
+    pulseIndicator();
+    
     // GEEN ANIMATIES - portal blijft statisch
     // this.animatePortal(outerRing, null);
     
@@ -1272,7 +1297,7 @@ class CollisionManager {
       new THREE.MeshBasicMaterial({
         color: 0x00FF00,
         transparent: true,
-        opacity: 0.2, // Meer zichtbaar voor debug
+        opacity: 0.8, // Veel zichtbaarder voor debug
         side: THREE.DoubleSide
       })
     );
