@@ -71,9 +71,6 @@ class Level2Manager {
         // Setup event listeners
         this.setupEventListeners();
         
-        // Start cube animation
-        this.startCubeAnimation();
-        
         this.isInitialized = true;
     }
 
@@ -419,31 +416,7 @@ class Level2Manager {
         this.renderer.domElement.addEventListener('pointerup', this.onPointerUp.bind(this));
     }
 
-    // Start cube animation
-    startCubeAnimation() {
-        if (!this.wireframeCube) return;
-        
-        const animateCube = () => {
-            if (this.isActive && this.wireframeCube) {
-                // Slow rotation around Y-axis
-                this.wireframeCube.rotation.y += 0.005;
-                
-                // Gentle floating motion
-                const time = Date.now() * 0.001;
-                this.wireframeCube.position.y = Math.sin(time * 0.5) * 50;
-                
-                // Pulse the wireframe opacity
-                this.wireframeCube.children.forEach(child => {
-                    if (child.material && child.material.opacity !== undefined) {
-                        child.material.opacity = 0.6 + Math.sin(time * 2) * 0.2;
-                    }
-                });
-            }
-            requestAnimationFrame(animateCube);
-        };
-        
-        animateCube();
-    }
+
 
     // Pointer down event
     onPointerDown(event) {
