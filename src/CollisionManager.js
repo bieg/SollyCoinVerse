@@ -801,6 +801,10 @@ class CollisionManager {
     // Toon bericht
     this.showShapeChangeMessage(shape);
     
+    // MAAK PORTAL AAN NA SHAPE CHOICE
+    this.debugLog('🔮 Creating portal after shape choice');
+    this.createShapePortal(shape);
+    
     // START VORTEX ANIMATIE VOOR LEVEL 2
     setTimeout(() => {
       this.debugLog('🌀 Starting vortex animation before Level 2');
