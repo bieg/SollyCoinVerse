@@ -1669,7 +1669,7 @@ class CollisionManager {
   startLevel2AfterShapeChoice(shape) {
     this.debugLog(`🚀 Starting Level 2 after shape choice: ${shape}`);
     
-    // Cleanup current game state
+    // Cleanup current game state AFTER vortex animation
     this.cleanupCurrentGameState();
     
     // Start Level 2
@@ -1728,9 +1728,28 @@ class CollisionManager {
     // Reset collision detection
     this.resetCollision();
     
-    // Hide Solly1
+    // Hide Solly1 (but don't remove - vortex needs it)
     if (window.solly1) {
       window.solly1.visible = false;
+    }
+    
+    // Hide Solly2 (but don't remove - vortex needs it)
+    if (window.solly2) {
+      window.solly2.visible = false;
+    }
+    
+    // Hide planets (but don't remove - vortex needs them)
+    if (window.planets) {
+      window.planets.forEach(planet => {
+        if (planet) planet.visible = false;
+      });
+    }
+    
+    // Hide stars (but don't remove - vortex needs them)
+    if (window.whiteStars) {
+      window.whiteStars.forEach(star => {
+        if (star) star.visible = false;
+      });
     }
     
     // Remove portal if exists
@@ -1752,7 +1771,7 @@ class CollisionManager {
     // Reset portal state
     window.portalClicked = false;
     
-    this.debugLog('✅ Game state cleaned up for Level 2');
+    this.debugLog('✅ Game state cleaned up for Level 2 (objects hidden, not removed)');
   }
 }
 
