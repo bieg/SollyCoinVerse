@@ -807,6 +807,9 @@ class CollisionManager {
     this.debugLog(`🔮 Creating portal after shape choice with shape: "${shape}"`);
     this.createShapePortal(shape);
     
+    // EXTRA: Maak ook een eenvoudige test portal die gegarandeerd zichtbaar is
+    this.createSimpleTestPortal(shape);
+    
     // DEBUG: Check of portal echt bestaat
     setTimeout(() => {
       this.debugLog('🔍 DEBUG: Checking portal existence...');
@@ -1314,6 +1317,93 @@ class CollisionManager {
     this.debugLog(`🌀 Mystieke portal created met ${shape} vorm, positioned at vaste locatie (-400, 200, -200)`);
     this.debugLog(`🔮 Portal toegevoegd aan scene: ${window.scene.children.length} objecten`);
     this.debugLog(`🎯 Portal positie: ${outerRing.position.x}, ${outerRing.position.y}, ${outerRing.position.z}`);
+  }
+  
+  createSimpleTestPortal(shape) {
+    this.debugLog(`🔮 Creating SIMPLE TEST portal for: ${shape}`);
+    
+    if (!window.scene) {
+      this.debugLog('❌ No scene available for simple test portal');
+      return;
+    }
+    
+    // Maak een eenvoudige, grote, felgekleurde portal die onmogelijk te missen is
+    const simplePortal = new THREE.Mesh(
+      new THREE.RingGeometry(500, 800, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0xFF00FF, // Fel magenta
+        transparent: true,
+        opacity: 1.0,
+        side: THREE.DoubleSide
+      })
+    );
+    
+    // Positie in het midden van het scherm
+    simplePortal.position.set(0, 0, 0);
+    simplePortal.rotation.x = -Math.PI / 2;
+    simplePortal.name = 'SimpleTestPortal';
+    
+    // Voeg toe aan scene
+    window.scene.add(simplePortal);
+    
+    // Maak een grote indicator bol
+    const indicator = new THREE.Mesh(
+      new THREE.SphereGeometry(300, 16, 16),
+      new THREE.MeshBasicMaterial({
+        color: 0x00FFFF, // Fel cyaan
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      })
+    );
+    indicator.position.set(0, 400, 0);
+    indicator.name = 'SimpleTestIndicator';
+    window.scene.add(indicator);
+    
+    // Maak de indicator pulseren
+    const pulseSimple = () => {
+      if (indicator && indicator.parent) {
+        const scale = 1 + Math.sin(Date.now() * 0.01) * 0.5;
+        indicator.scale.set(scale, scale, scale);
+        requestAnimationFrame(pulseSimple);
+      }
+    };
+    pulseSimple();
+    
+    // Maak een drop zone
+    const dropZone = new THREE.Mesh(
+      new THREE.CircleGeometry(1000, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0xFFFF00, // Fel geel
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide
+      })
+    );
+    dropZone.position.copy(simplePortal.position);
+    dropZone.rotation.x = -Math.PI / 2;
+    dropZone.name = 'SimpleTestDropZone';
+    window.scene.add(dropZone);
+    
+    // Simpele drop detection
+    const checkSimpleDrop = () => {
+      if (window.solly1 && window.solly1.position && dropZone.parent) {
+        const distance = window.solly1.position.distanceTo(dropZone.position);
+        
+        if (distance < 1000) {
+          console.log('🎯 Solly1 gedropt op SIMPLE TEST portal!');
+          this.handlePortalDrop(simplePortal, null);
+          window.scene.remove(dropZone);
+          return;
+        }
+      }
+      if (dropZone.parent) {
+        requestAnimationFrame(checkSimpleDrop);
+      }
+    };
+    checkSimpleDrop();
+    
+    this.debugLog(`🔮 Simple test portal created at center (0, 0, 0)`);
   }
   
   makePortalDropable(portalRing, shapeMesh) {
