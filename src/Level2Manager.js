@@ -71,6 +71,9 @@ class Level2Manager {
         // Setup event listeners
         this.setupEventListeners();
         
+        // Start cube animation
+        this.startCubeAnimation();
+        
         this.isInitialized = true;
     }
 
@@ -117,12 +120,12 @@ class Level2Manager {
         this.camera.position.set(0, 0, 2000);
         this.camera.lookAt(0, 0, 0);
         
-        // Disable camera controls during puzzle
+        // Enable camera controls for interactive puzzle
         if (this.controls) {
-            this.controls.enabled = false;
-            this.controls.enableZoom = false;
-            this.controls.enablePan = false;
-            this.controls.enableRotate = false;
+            this.controls.enabled = true;
+            this.controls.enableZoom = true;
+            this.controls.enablePan = true;
+            this.controls.enableRotate = true;
         }
     }
 
@@ -414,6 +417,32 @@ class Level2Manager {
         this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown.bind(this));
         this.renderer.domElement.addEventListener('pointermove', this.onPointerMove.bind(this));
         this.renderer.domElement.addEventListener('pointerup', this.onPointerUp.bind(this));
+    }
+
+    // Start cube animation
+    startCubeAnimation() {
+        if (!this.wireframeCube) return;
+        
+        const animateCube = () => {
+            if (this.isActive && this.wireframeCube) {
+                // Slow rotation around Y-axis
+                this.wireframeCube.rotation.y += 0.005;
+                
+                // Gentle floating motion
+                const time = Date.now() * 0.001;
+                this.wireframeCube.position.y = Math.sin(time * 0.5) * 50;
+                
+                // Pulse the wireframe opacity
+                this.wireframeCube.children.forEach(child => {
+                    if (child.material && child.material.opacity !== undefined) {
+                        child.material.opacity = 0.6 + Math.sin(time * 2) * 0.2;
+                    }
+                });
+            }
+            requestAnimationFrame(animateCube);
+        };
+        
+        animateCube();
     }
 
     // Pointer down event
