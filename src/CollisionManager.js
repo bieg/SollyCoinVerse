@@ -805,6 +805,29 @@ class CollisionManager {
     this.debugLog('🔮 Creating portal after shape choice');
     this.createShapePortal(shape);
     
+    // DEBUG: Check of portal echt bestaat
+    setTimeout(() => {
+      this.debugLog('🔍 DEBUG: Checking portal existence...');
+      if (window.portal) {
+        this.debugLog(`✅ Portal exists: ${window.portal.name}`);
+        this.debugLog(`📍 Portal position: ${window.portal.position.x}, ${window.portal.position.y}, ${window.portal.position.z}`);
+        this.debugLog(`👁️ Portal visible: ${window.portal.visible}`);
+      } else {
+        this.debugLog('❌ Portal does not exist!');
+      }
+      
+      // Check scene objects
+      if (window.scene) {
+        const portalObjects = window.scene.children.filter(child => 
+          child.name && child.name.includes('Portal')
+        );
+        this.debugLog(`🔍 Portal objects in scene: ${portalObjects.length}`);
+        portalObjects.forEach(obj => {
+          this.debugLog(`  - ${obj.name}: ${obj.position.x}, ${obj.position.y}, ${obj.position.z}`);
+        });
+      }
+    }, 500); // Check na 0.5 seconde
+    
     // START VORTEX ANIMATIE VOOR LEVEL 2
     setTimeout(() => {
       this.debugLog('🌀 Starting vortex animation before Level 2');
@@ -1214,6 +1237,16 @@ class CollisionManager {
     window.scene.add(innerRing);
     window.scene.add(clickTarget);
     
+    // Maak portal extra zichtbaar
+    outerRing.visible = true;
+    innerRing.visible = true;
+    clickTarget.visible = true;
+    
+    // Zorg ervoor dat portal bovenop andere objecten staat
+    outerRing.renderOrder = 1000;
+    innerRing.renderOrder = 1001;
+    clickTarget.renderOrder = 1002;
+    
     // Markeer innerRing als ShapeMesh voor latere pulses
     innerRing.userData.isShapeMesh = true;
     
@@ -1227,7 +1260,9 @@ class CollisionManager {
     window.portal = outerRing;
     window.portalActive = true;
     
-    this.debugLog(`🌀 Mystieke portal created met ${shape} vorm, positioned at vaste locatie (-800, 200, -400)`);
+    this.debugLog(`🌀 Mystieke portal created met ${shape} vorm, positioned at vaste locatie (-400, 200, -200)`);
+    this.debugLog(`🔮 Portal toegevoegd aan scene: ${window.scene.children.length} objecten`);
+    this.debugLog(`🎯 Portal positie: ${outerRing.position.x}, ${outerRing.position.y}, ${outerRing.position.z}`);
   }
   
   makePortalDropable(portalRing, shapeMesh) {
