@@ -247,9 +247,9 @@ class Level2Manager {
             this.wireframeCube.add(cornerPoint);
         });
 
-        // Rotate cube: 45 degrees around Y-axis, then 10 degrees up
+        // Rotate cube: 45 degrees around Y-axis, then 20 degrees up (10 more)
         this.wireframeCube.rotation.y = Math.PI / 4; // 45 degrees
-        this.wireframeCube.rotation.x = Math.PI / 18; // 10 degrees up
+        this.wireframeCube.rotation.x = Math.PI / 9; // 20 degrees up (was 10)
 
         this.scene.add(this.wireframeCube);
     }
@@ -295,9 +295,9 @@ class Level2Manager {
         // Create 8 shape choices
         const shapes = Array(8).fill(currentShape);
         
-        // Panel configuration
+        // Panel configuration - Block with border and margin from edge
         const panelConfig = {
-            baseX: -1800,  // Far left of screen
+            baseX: -1600,  // Left with margin from edge
             baseY: 400,
             shapeSize: 80,
             gapX: 120,
@@ -370,11 +370,12 @@ class Level2Manager {
     createPanelFrame(config) {
         const frameGroup = new THREE.Group();
         
-        // Frame dimensions
-        const frameWidth = config.gapX * (config.columns - 1) + config.shapeSize;
-        const frameHeight = config.gapY * (config.rows - 1) + config.shapeSize;
+        // Frame dimensions with border padding
+        const borderPadding = 40;
+        const frameWidth = config.gapX * (config.columns - 1) + config.shapeSize + borderPadding * 2;
+        const frameHeight = config.gapY * (config.rows - 1) + config.shapeSize + borderPadding * 2;
         
-        // Create frame lines
+        // Create frame lines with thicker border
         const frameGeometry = new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(-frameWidth/2, frameHeight/2, -110),
             new THREE.Vector3(frameWidth/2, frameHeight/2, -110),
@@ -384,8 +385,8 @@ class Level2Manager {
         ]);
         
         const frameMaterial = new THREE.LineBasicMaterial({ 
-            color: 0x8A2BE2,
-            linewidth: 2
+            color: 0xFF6B6B, // Orange border to match UI
+            linewidth: 4 // Thicker border
         });
         
         const frame = new THREE.Line(frameGeometry, frameMaterial);
