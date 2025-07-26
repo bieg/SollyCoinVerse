@@ -1198,7 +1198,7 @@ class CollisionManager {
     // Positie en rotatie instellen - DUidelijk zichtbaar en vast
     outerRing.rotation.x = -Math.PI / 2;
     outerRing.name = 'ShapePortal';
-    outerRing.position.set(-800, 200, -400); // Vaste positie, duidelijk zichtbaar
+    outerRing.position.set(-400, 200, -200); // Dichterbij positie, makkelijker te bereiken
     
     innerRing.rotation.x = -Math.PI / 2;
     innerRing.position.copy(outerRing.position);
@@ -1233,11 +1233,11 @@ class CollisionManager {
   makePortalDropable(portalRing, shapeMesh) {
     // Voeg drop zone toe (groot voor simpele drag-and-drop)
     const dropZone = new THREE.Mesh(
-      new THREE.CircleGeometry(800, 32), // Grote drop zone voor simpele drag-and-drop
+      new THREE.CircleGeometry(1200, 32), // Grotere drop zone voor makkelijker drop
       new THREE.MeshBasicMaterial({
         color: 0x00FF00,
         transparent: true,
-        opacity: 0.1, // Iets zichtbaar voor debug
+        opacity: 0.2, // Meer zichtbaar voor debug
         side: THREE.DoubleSide
       })
     );
@@ -1258,12 +1258,12 @@ class CollisionManager {
         const distance = window.solly1.position.distanceTo(dropZone.position);
         
         // Debug logging
-        if (distance < 1000) {
-          console.log('🌍 Afstand tot portal:', Math.round(distance), 'threshold: 800');
+        if (distance < 1500) {
+          console.log('🌍 Afstand tot portal:', Math.round(distance), 'threshold: 1200');
         }
         
-        // Simpele drop detection: dichtbij EN niet draggen
-        if (distance < 800 && !window.isDragging) {
+        // Simpele drop detection: dichtbij (ook tijdens drag)
+        if (distance < 1200) {
           console.log('🎯 Solly1 gedropt op portal!');
           this.handlePortalDrop(portalRing, shapeMesh);
           // Verwijder drop zone na succesvolle drop
