@@ -131,14 +131,15 @@ function createStarWarsStars() {
     tempRenderer.domElement.style.pointerEvents = 'none';
     document.body.appendChild(tempRenderer.domElement);
     
-    // Voeg sterren toe
-    const starCount = 2000;
-    const starGeometry = new THREE.SphereGeometry(2, 8, 8);
+    // Voeg sterren toe - GROTER EN ZICHTBAARDER
+    const starCount = 3000;
+    const starGeometry = new THREE.SphereGeometry(4, 8, 8); // Grotere sterren
     const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
     
     for (let i = 0; i < starCount; i++) {
         const star = new THREE.Mesh(starGeometry, starMaterial);
-        const radius = 1000 + Math.random() * 8000;
+        // Verspreid sterren dichter bij de camera voor betere zichtbaarheid
+        const radius = 500 + Math.random() * 3000; // Kleinere radius
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos(2 * Math.random() - 1);
         
@@ -146,11 +147,15 @@ function createStarWarsStars() {
         star.position.y = radius * Math.sin(phi) * Math.sin(theta);
         star.position.z = radius * Math.cos(phi);
         
+        // Maak sommige sterren groter voor variatie
+        const scale = 0.5 + Math.random() * 2;
+        star.scale.set(scale, scale, scale);
+        
         tempScene.add(star);
     }
     
-    // Position camera
-    tempCamera.position.set(0, 0, 5000);
+    // Position camera dichterbij voor betere zichtbaarheid
+    tempCamera.position.set(0, 0, 2000);
     tempCamera.lookAt(0, 0, 0);
     
     // Animate stars
@@ -160,10 +165,15 @@ function createStarWarsStars() {
             requestAnimationFrame(animateStars);
         } else {
             // Cleanup when Star Wars is done
+            console.log('🧹 Cleaning up Star Wars stars');
             document.body.removeChild(tempRenderer.domElement);
             tempRenderer.dispose();
         }
     }
+    
+    console.log(`⭐ Created ${starCount} stars for Star Wars animation`);
+    console.log(`📷 Camera position: ${tempCamera.position.x}, ${tempCamera.position.y}, ${tempCamera.position.z}`);
+    console.log(`🎬 Renderer added to DOM with z-index: ${tempRenderer.domElement.style.zIndex}`);
     
     animateStars();
 }
