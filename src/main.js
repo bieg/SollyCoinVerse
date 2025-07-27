@@ -201,7 +201,7 @@ async function initSollyverse() {
     
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000);
+    renderer.setClearColor(0x0a0a0a); // Donkergrijze achtergrond voor Level 1
     document.body.appendChild(renderer.domElement);
 
     // ✅ Maak globals beschikbaar zodra renderer bestaat
@@ -272,18 +272,33 @@ async function initSollyverse() {
     addGalaxyStars(scene);
     addSollySun(scene);
 
-    // Add game objects
-    addPlanets(scene);
-    addSollys(scene);
-    addWhiteStars(scene);
-    addSolly1AndSolly2(scene);
+    // Add game objects NA Star Wars animatie - met delay voor mooiere introductie
+    setTimeout(() => {
+        console.log('🌟 Voeg planeten toe na Star Wars animatie');
+        addPlanets(scene);
+    }, 1000);
+    
+    setTimeout(() => {
+        console.log('🪙 Voeg Sollies toe na Star Wars animatie');
+        addSollys(scene);
+    }, 2000);
+    
+    setTimeout(() => {
+        console.log('⭐ Voeg witte sterren toe na Star Wars animatie');
+        addWhiteStars(scene);
+    }, 3000);
+    
+    setTimeout(() => {
+        console.log('🎯 Voeg Solly1 en Solly2 toe na Star Wars animatie');
+        addSolly1AndSolly2(scene);
+    }, 4000);
 
-    // Plan collision na 4 seconden
+    // Plan collision na 8 seconden (4 seconden na laatste objecten)
     setTimeout(() => {
         if (!collisionDetected) {
             triggerCollision();
         }
-    }, 4000);
+    }, 8000);
 
     // Event listeners
     document.addEventListener('mousedown', onPortalClick, false);
