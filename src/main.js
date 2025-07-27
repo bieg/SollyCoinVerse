@@ -131,31 +131,34 @@ function createStarWarsStars() {
     tempRenderer.domElement.style.pointerEvents = 'none';
     document.body.appendChild(tempRenderer.domElement);
     
-    // Voeg sterren toe - GROTER EN ZICHTBAARDER
-    const starCount = 3000;
-    const starGeometry = new THREE.SphereGeometry(4, 8, 8); // Grotere sterren
-    const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    // Voeg sterren toe - EENVOUDIGER EN ZICHTBAARDER
+    const starCount = 1000; // Minder sterren voor betere performance
+    const starGeometry = new THREE.SphereGeometry(8, 8, 8); // Nog grotere sterren
+    const starMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xffffff,
+        transparent: true,
+        opacity: 1.0
+    });
     
     for (let i = 0; i < starCount; i++) {
         const star = new THREE.Mesh(starGeometry, starMaterial);
-        // Verspreid sterren dichter bij de camera voor betere zichtbaarheid
-        const radius = 500 + Math.random() * 3000; // Kleinere radius
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
         
-        star.position.x = radius * Math.sin(phi) * Math.cos(theta);
-        star.position.y = radius * Math.sin(phi) * Math.sin(theta);
-        star.position.z = radius * Math.cos(phi);
+        // Verspreid sterren in een 2D vlak voor betere zichtbaarheid
+        const x = (Math.random() - 0.5) * window.innerWidth * 2;
+        const y = (Math.random() - 0.5) * window.innerHeight * 2;
+        const z = -1000; // Vaste diepte
+        
+        star.position.set(x, y, z);
         
         // Maak sommige sterren groter voor variatie
-        const scale = 0.5 + Math.random() * 2;
+        const scale = 1 + Math.random() * 3;
         star.scale.set(scale, scale, scale);
         
         tempScene.add(star);
     }
     
-    // Position camera dichterbij voor betere zichtbaarheid
-    tempCamera.position.set(0, 0, 2000);
+    // Position camera voor 2D weergave
+    tempCamera.position.set(0, 0, 1000);
     tempCamera.lookAt(0, 0, 0);
     
     // Animate stars
@@ -171,9 +174,19 @@ function createStarWarsStars() {
         }
     }
     
+    // Voeg een test ster toe in het midden om te zien of rendering werkt
+    const testStar = new THREE.Mesh(
+        new THREE.SphereGeometry(20, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xFF0000 }) // Rode test ster
+    );
+    testStar.position.set(0, 0, -500);
+    tempScene.add(testStar);
+    console.log('🔴 Added red test star in center');
+    
     console.log(`⭐ Created ${starCount} stars for Star Wars animation`);
     console.log(`📷 Camera position: ${tempCamera.position.x}, ${tempCamera.position.y}, ${tempCamera.position.z}`);
     console.log(`🎬 Renderer added to DOM with z-index: ${tempRenderer.domElement.style.zIndex}`);
+    console.log(`🌌 Stars positioned in 2D plane for better visibility`);
     
     animateStars();
 }
