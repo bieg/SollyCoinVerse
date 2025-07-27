@@ -95,6 +95,13 @@ document.getElementById('start-btn').onclick = function() {
     
     startscreen.style.display = 'none';
     starwarsIntro.style.display = 'flex';
+    
+    // VOEG STERREN TOE TIJDENS STAR WARS ANIMATIE
+    setTimeout(() => {
+        console.log('⭐ Voeg sterren toe tijdens Star Wars animatie');
+        createStarWarsStars();
+    }, 200);
+    
     setTimeout(() => {
         starwarsCrawl.classList.add('starwars-crawl-animate');
     }, 100);
@@ -105,6 +112,61 @@ document.getElementById('start-btn').onclick = function() {
     }, 9000);
     starWarsIntroActive = true;
 };
+
+// Functie om sterren toe te voegen tijdens Star Wars animatie
+function createStarWarsStars() {
+    console.log('🌟 Creating stars for Star Wars animation');
+    
+    // Maak een tijdelijke scene voor de sterren
+    const tempScene = new THREE.Scene();
+    const tempCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
+    const tempRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    
+    tempRenderer.setSize(window.innerWidth, window.innerHeight);
+    tempRenderer.setClearColor(0x000000, 0); // Transparante achtergrond
+    tempRenderer.domElement.style.position = 'fixed';
+    tempRenderer.domElement.style.top = '0';
+    tempRenderer.domElement.style.left = '0';
+    tempRenderer.domElement.style.zIndex = '9998'; // Onder de Star Wars tekst
+    tempRenderer.domElement.style.pointerEvents = 'none';
+    document.body.appendChild(tempRenderer.domElement);
+    
+    // Voeg sterren toe
+    const starCount = 2000;
+    const starGeometry = new THREE.SphereGeometry(2, 8, 8);
+    const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    
+    for (let i = 0; i < starCount; i++) {
+        const star = new THREE.Mesh(starGeometry, starMaterial);
+        const radius = 1000 + Math.random() * 8000;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        
+        star.position.x = radius * Math.sin(phi) * Math.cos(theta);
+        star.position.y = radius * Math.sin(phi) * Math.sin(theta);
+        star.position.z = radius * Math.cos(phi);
+        
+        tempScene.add(star);
+    }
+    
+    // Position camera
+    tempCamera.position.set(0, 0, 5000);
+    tempCamera.lookAt(0, 0, 0);
+    
+    // Animate stars
+    function animateStars() {
+        if (starWarsIntroActive) {
+            tempRenderer.render(tempScene, tempCamera);
+            requestAnimationFrame(animateStars);
+        } else {
+            // Cleanup when Star Wars is done
+            document.body.removeChild(tempRenderer.domElement);
+            tempRenderer.dispose();
+        }
+    }
+    
+    animateStars();
+}
 
 async function loadDefaultConfig() {
     try {
