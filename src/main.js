@@ -267,10 +267,11 @@ async function initSollyverse() {
     directionalLight.position.set(1000, 1000, 1000);
     scene.add(directionalLight);
 
-    // Add galaxy components
+    // Add galaxy components TIJDENS Star Wars animatie
     addGalaxyShells(scene);
     addGalaxyStars(scene);
     addSollySun(scene);
+    addWhiteStars(scene); // Witte sterren ook TIJDENS Star Wars animatie
 
     // Add game objects NA Star Wars animatie - met delay voor mooiere introductie
     setTimeout(() => {
@@ -284,21 +285,16 @@ async function initSollyverse() {
     }, 2000);
     
     setTimeout(() => {
-        console.log('⭐ Voeg witte sterren toe na Star Wars animatie');
-        addWhiteStars(scene);
-    }, 3000);
-    
-    setTimeout(() => {
         console.log('🎯 Voeg Solly1 en Solly2 toe na Star Wars animatie');
         addSolly1AndSolly2(scene);
-    }, 4000);
+    }, 3000);
 
-    // Plan collision na 8 seconden (4 seconden na laatste objecten)
+    // Plan collision na 7 seconden (4 seconden na laatste objecten)
     setTimeout(() => {
         if (!collisionDetected) {
             triggerCollision();
         }
-    }, 8000);
+    }, 7000);
 
     // Event listeners
     document.addEventListener('mousedown', onPortalClick, false);
