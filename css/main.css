@@ -129,40 +129,14 @@ canvas {
     top: 0; 
     width: 100vw; 
     height: 100vh;
-    background: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 60% 60%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 90% 90%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-                linear-gradient(135deg, #000000 0%, #1a1a2e 50%, #16213e 100%); 
+    background: #000000; /* Echte zwarte achtergrond voor Level 1 */
     z-index: 9999; 
     display: flex; 
     align-items: center; 
     justify-content: center;
-    animation: starfield-twinkle 4s ease-in-out infinite;
 }
 
-@keyframes starfield-twinkle {
-    0%, 100% { 
-        background: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                    radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
-                    radial-gradient(circle at 60% 60%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
-                    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-                    radial-gradient(circle at 90% 90%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-                    linear-gradient(135deg, #000000 0%, #1a1a2e 50%, #16213e 100%);
-    }
-    50% { 
-        background: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
-                    radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-                    radial-gradient(circle at 60% 60%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-                    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.12) 0%, transparent 50%),
-                    radial-gradient(circle at 90% 90%, rgba(255, 255, 255, 0.12) 0%, transparent 50%),
-                    linear-gradient(135deg, #000000 0%, #1a1a2e 50%, #16213e 100%);
-    }
-}
+
 
 .starwars-crawl-container {
     width: 90vw; 
