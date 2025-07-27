@@ -144,14 +144,14 @@ function createStarWarsStars() {
     `;
     starwarsModal.appendChild(starsContainer);
     
-    // Voeg sterren toe met CSS - ZICHTBAARDER
-    const starCount = 2000; // Veel meer sterren
+    // Voeg sterren toe met CSS - SUBTIELER
+    const starCount = 1700; // 15% minder sterren
     for (let i = 0; i < starCount; i++) {
         const star = document.createElement('div');
-        const size = 3 + Math.random() * 5; // 3-8px - GROTER
+        const size = 1 + Math.random() * 2; // 1-3px - KLEINER
         const x = Math.random() * 100; // 0-100%
         const y = Math.random() * 100; // 0-100%
-        const opacity = 0.8 + Math.random() * 0.2; // 0.8-1.0 - ZICHTBAARDER
+        const opacity = 0.4 + Math.random() * 0.4; // 0.4-0.8 - SUBTIELER
         
         star.style.cssText = `
             position: absolute;
@@ -162,29 +162,13 @@ function createStarWarsStars() {
             left: ${x}%;
             top: ${y}%;
             opacity: ${opacity};
-            box-shadow: 0 0 ${size * 3}px white;
-            z-index: 9999;
+            box-shadow: 0 0 ${size * 1.5}px rgba(255, 255, 255, 0.6);
         `;
         
         starsContainer.appendChild(star);
     }
     
-    // Voeg een grote test ster toe in het midden
-    const testStar = document.createElement('div');
-    testStar.style.cssText = `
-        position: absolute;
-        width: 20px;
-        height: 20px;
-        background: red;
-        border-radius: 50%;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 10000;
-        box-shadow: 0 0 40px red;
-    `;
-    starsContainer.appendChild(testStar);
-    console.log('🔴 Added red test star in center');
+
     
     console.log(`⭐ Created ${starCount} working stars for Star Wars animation`);
     
