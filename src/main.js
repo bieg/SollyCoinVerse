@@ -108,87 +108,69 @@ document.getElementById('start-btn').onclick = function() {
     setTimeout(() => {
         starwarsIntro.style.display = 'none';
         starWarsIntroActive = false;
+        
+        // Cleanup CSS sterren
+        if (window.cleanupStarWarsStars) {
+            window.cleanupStarWarsStars();
+        }
+        
         initSollyverse();
     }, 9000);
     starWarsIntroActive = true;
 };
 
-// Functie om sterren toe te voegen tijdens Star Wars animatie
+// Functie om sterren toe te voegen tijdens Star Wars animatie - CSS GEBAASEERD
 function createStarWarsStars() {
-    console.log('🌟 Creating stars for Star Wars animation');
+    console.log('🌟 Creating CSS stars for Star Wars animation');
     
-    // Maak een tijdelijke scene voor de sterren
-    const tempScene = new THREE.Scene();
-    const tempCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
-    const tempRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    // Maak een container voor de sterren
+    const starsContainer = document.createElement('div');
+    starsContainer.id = 'starwars-stars';
+    starsContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9998;
+        pointer-events: none;
+        overflow: hidden;
+    `;
+    document.body.appendChild(starsContainer);
     
-    tempRenderer.setSize(window.innerWidth, window.innerHeight);
-    tempRenderer.setClearColor(0x000000, 0); // Transparante achtergrond
-    tempRenderer.domElement.style.position = 'fixed';
-    tempRenderer.domElement.style.top = '0';
-    tempRenderer.domElement.style.left = '0';
-    tempRenderer.domElement.style.zIndex = '9998'; // Onder de Star Wars tekst
-    tempRenderer.domElement.style.pointerEvents = 'none';
-    document.body.appendChild(tempRenderer.domElement);
-    
-    // Voeg sterren toe - EENVOUDIGER EN ZICHTBAARDER
-    const starCount = 1000; // Minder sterren voor betere performance
-    const starGeometry = new THREE.SphereGeometry(8, 8, 8); // Nog grotere sterren
-    const starMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0xffffff,
-        transparent: true,
-        opacity: 1.0
-    });
-    
+    // Voeg sterren toe met CSS
+    const starCount = 500;
     for (let i = 0; i < starCount; i++) {
-        const star = new THREE.Mesh(starGeometry, starMaterial);
+        const star = document.createElement('div');
+        const size = 2 + Math.random() * 4; // 2-6px
+        const x = Math.random() * 100; // 0-100%
+        const y = Math.random() * 100; // 0-100%
+        const opacity = 0.5 + Math.random() * 0.5; // 0.5-1.0
         
-        // Verspreid sterren in een 2D vlak voor betere zichtbaarheid
-        const x = (Math.random() - 0.5) * window.innerWidth * 2;
-        const y = (Math.random() - 0.5) * window.innerHeight * 2;
-        const z = -1000; // Vaste diepte
+        star.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            background: white;
+            border-radius: 50%;
+            left: ${x}%;
+            top: ${y}%;
+            opacity: ${opacity};
+            box-shadow: 0 0 ${size * 2}px white;
+        `;
         
-        star.position.set(x, y, z);
-        
-        // Maak sommige sterren groter voor variatie
-        const scale = 1 + Math.random() * 3;
-        star.scale.set(scale, scale, scale);
-        
-        tempScene.add(star);
+        starsContainer.appendChild(star);
     }
     
-    // Position camera voor 2D weergave
-    tempCamera.position.set(0, 0, 1000);
-    tempCamera.lookAt(0, 0, 0);
+    console.log(`⭐ Created ${starCount} CSS stars for Star Wars animation`);
     
-    // Animate stars
-    function animateStars() {
-        if (starWarsIntroActive) {
-            tempRenderer.render(tempScene, tempCamera);
-            requestAnimationFrame(animateStars);
-        } else {
-            // Cleanup when Star Wars is done
-            console.log('🧹 Cleaning up Star Wars stars');
-            document.body.removeChild(tempRenderer.domElement);
-            tempRenderer.dispose();
+    // Cleanup functie
+    window.cleanupStarWarsStars = function() {
+        if (starsContainer && starsContainer.parentNode) {
+            console.log('🧹 Cleaning up CSS stars');
+            starsContainer.parentNode.removeChild(starsContainer);
         }
-    }
-    
-    // Voeg een test ster toe in het midden om te zien of rendering werkt
-    const testStar = new THREE.Mesh(
-        new THREE.SphereGeometry(20, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0xFF0000 }) // Rode test ster
-    );
-    testStar.position.set(0, 0, -500);
-    tempScene.add(testStar);
-    console.log('🔴 Added red test star in center');
-    
-    console.log(`⭐ Created ${starCount} stars for Star Wars animation`);
-    console.log(`📷 Camera position: ${tempCamera.position.x}, ${tempCamera.position.y}, ${tempCamera.position.z}`);
-    console.log(`🎬 Renderer added to DOM with z-index: ${tempRenderer.domElement.style.zIndex}`);
-    console.log(`🌌 Stars positioned in 2D plane for better visibility`);
-    
-    animateStars();
+    };
 }
 
 async function loadDefaultConfig() {
