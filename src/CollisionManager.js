@@ -803,6 +803,9 @@ class CollisionManager {
     // Toon bericht
     this.showShapeChangeMessage(shape);
     
+    // MAAK EEN SHAPECHOICE OBJECT DAT JE KUNT SLEPEN
+    this.createDraggableShapeChoice(shape);
+    
     // MAAK PORTAL AAN NA SHAPE CHOICE
     this.debugLog(`🔮 Creating portal after shape choice with shape: "${shape}"`);
     this.createShapePortal(shape);
@@ -1404,6 +1407,204 @@ class CollisionManager {
     checkSimpleDrop();
     
     this.debugLog(`🔮 Simple test portal created at center (0, 0, 0)`);
+  }
+  
+  createDraggableShapeChoice(shape) {
+    this.debugLog(`🎨 Creating draggable shape choice for: ${shape}`);
+    
+    if (!window.scene) {
+      this.debugLog('❌ No scene available for draggable shape choice');
+      return;
+    }
+    
+    // Maak een 3D object van de gekozen shape
+    let geometry;
+    switch(shape) {
+      case 'vierkant':
+        geometry = new THREE.BoxGeometry(100, 100, 100);
+        break;
+      case 'zandloper':
+        geometry = new THREE.ConeGeometry(50, 150, 4);
+        break;
+      case 'ruit':
+        geometry = new THREE.OctahedronGeometry(70);
+        break;
+      case 'piramide':
+      default:
+        geometry = new THREE.ConeGeometry(60, 120, 4);
+        break;
+    }
+    
+    // Material met glow effect
+    const material = new THREE.MeshBasicMaterial({ 
+      color: 0x00FF88,
+      transparent: true,
+      opacity: 0.9
+    });
+    
+    const shapeChoice = new THREE.Mesh(geometry, material);
+    
+    // Positie rechts van het scherm
+    shapeChoice.position.set(800, 200, 0);
+    shapeChoice.name = 'DraggableShapeChoice';
+    
+    // User data voor identificatie
+    shapeChoice.userData = {
+      shapeType: shape,
+      isDraggableShapeChoice: true,
+      originalPosition: new THREE.Vector3(800, 200, 0)
+    };
+    
+    // Voeg toe aan scene
+    window.scene.add(shapeChoice);
+    
+    // Maak het object draggable
+    this.makeShapeChoiceDraggable(shapeChoice);
+    
+    this.debugLog(`🎨 Draggable shape choice created: ${shape} at position (800, 200, 0)`);
+  }
+  
+  makeShapeChoiceDraggable(shapeChoice) {
+    let isDragging = false;
+    let dragStartPos = new THREE.Vector3();
+    let originalPos = new THREE.Vector3();
+    
+    // Mouse down event
+    const onMouseDown = (event) => {
+      if (!window.camera || !window.renderer) return;
+      
+      const rect = window.renderer.domElement.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        -((event.clientY - rect.top) / rect.height) * 2 + 1
+      );
+      
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, window.camera);
+      
+      const intersects = raycaster.intersectObject(shapeChoice, true);
+      
+      if (intersects.length > 0) {
+        isDragging = true;
+        dragStartPos.copy(intersects[0].point);
+        originalPos.copy(shapeChoice.position);
+        
+        // Disable camera controls during drag
+        if (window.controls) {
+          window.controls.enabled = false;
+        }
+        
+        event.preventDefault();
+      }
+    };
+    
+    // Mouse move event
+    const onMouseMove = (event) => {
+      if (!isDragging || !window.camera || !window.renderer) return;
+      
+      const rect = window.renderer.domElement.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        -((event.clientY - rect.top) / rect.height) * 2 + 1
+      );
+      
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, window.camera);
+      
+      // Project op een vlak voor smooth movement
+      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+      const intersection = new THREE.Vector3();
+      
+      if (raycaster.ray.intersectPlane(plane, intersection)) {
+        shapeChoice.position.copy(intersection);
+      }
+    };
+    
+    // Mouse up event
+    const onMouseUp = (event) => {
+      if (!isDragging) return;
+      
+      isDragging = false;
+      
+      // Re-enable camera controls
+      if (window.controls) {
+        window.controls.enabled = true;
+      }
+      
+      // Check of het object op de portal is gedropt
+      this.checkShapeChoiceDropOnPortal(shapeChoice);
+    };
+    
+    // Add event listeners
+    window.renderer.domElement.addEventListener('mousedown', onMouseDown);
+    window.renderer.domElement.addEventListener('mousemove', onMouseMove);
+    window.renderer.domElement.addEventListener('mouseup', onMouseUp);
+    
+    this.debugLog(`🎨 Shape choice made draggable`);
+  }
+  
+  checkShapeChoiceDropOnPortal(shapeChoice) {
+    // Check alle portal objecten in de scene
+    const portalObjects = window.scene.children.filter(child => 
+      child.name && (child.name.includes('Portal') || child.name.includes('portal'))
+    );
+    
+    for (const portal of portalObjects) {
+      const distance = shapeChoice.position.distanceTo(portal.position);
+      
+      if (distance < 300) { // Drop threshold
+        this.debugLog(`🎯 Shape choice dropped on portal: ${portal.name}`);
+        this.handleShapeChoicePortalDrop(shapeChoice, portal);
+        return;
+      }
+    }
+    
+    // Als niet op portal gedropt, terug naar originele positie
+    shapeChoice.position.copy(shapeChoice.userData.originalPosition);
+    this.debugLog(`🎨 Shape choice returned to original position`);
+  }
+  
+  handleShapeChoicePortalDrop(shapeChoice, portal) {
+    this.debugLog(`🎯 Shape choice dropped on portal - starting portal animation!`);
+    
+    // Verberg het shape choice object
+    shapeChoice.visible = false;
+    
+    // Start portal animatie
+    this.startPortalAnimation(portal);
+  }
+  
+  startPortalAnimation(portal) {
+    this.debugLog(`🌀 Starting portal animation!`);
+    
+    // Maak portal pulseren
+    const pulsePortal = () => {
+      if (portal && portal.parent) {
+        const scale = 1 + Math.sin(Date.now() * 0.01) * 0.3;
+        portal.scale.set(scale, scale, scale);
+        
+        // Stop na 3 seconden
+        if (Date.now() - this.portalAnimationStart < 3000) {
+          requestAnimationFrame(pulsePortal);
+        } else {
+          this.completePortalAnimation();
+        }
+      }
+    };
+    
+    this.portalAnimationStart = Date.now();
+    pulsePortal();
+  }
+  
+  completePortalAnimation() {
+    this.debugLog(`✅ Portal animation completed - starting Level 2!`);
+    
+    // Start Level 2
+    if (window.level2Manager) {
+      window.level2Manager.startLevel();
+    } else {
+      this.debugLog(`❌ Level2Manager not available`);
+    }
   }
   
   makePortalDropable(portalRing, shapeMesh) {
