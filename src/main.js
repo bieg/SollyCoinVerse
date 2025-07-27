@@ -119,25 +119,30 @@ document.getElementById('start-btn').onclick = function() {
     starWarsIntroActive = true;
 };
 
-// Functie om sterren toe te voegen tijdens Star Wars animatie - GEBASEERD OP WERKENDE VERSIE
+// Functie om sterren toe te voegen tijdens Star Wars animatie - IN STAR WARS MODAL
 function createStarWarsStars() {
-    console.log('🌟 Creating working stars for Star Wars animation');
+    console.log('🌟 Creating stars INSIDE Star Wars modal');
     
-    // Maak een container voor de sterren (zoals in de werkende versie)
+    // Voeg sterren direct toe aan de Star Wars modal
+    const starwarsModal = document.getElementById('starwars-intro');
+    if (!starwarsModal) {
+        console.error('❌ Star Wars modal not found');
+        return;
+    }
+    
+    // Maak een container voor de sterren IN de modal
     const starsContainer = document.createElement('div');
     starsContainer.id = 'starwars-stars';
     starsContainer.style.cssText = `
-        position: fixed;
+        position: absolute;
         top: 0;
         left: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: 9998;
+        width: 100%;
+        height: 100%;
         pointer-events: none;
         overflow: hidden;
-        background: #000000;
     `;
-    document.body.appendChild(starsContainer);
+    starwarsModal.appendChild(starsContainer);
     
     // Voeg sterren toe met CSS - ZICHTBAARDER
     const starCount = 2000; // Veel meer sterren
@@ -186,7 +191,7 @@ function createStarWarsStars() {
     // Cleanup functie
     window.cleanupStarWarsStars = function() {
         if (starsContainer && starsContainer.parentNode) {
-            console.log('🧹 Cleaning up working stars');
+            console.log('🧹 Cleaning up stars from modal');
             starsContainer.parentNode.removeChild(starsContainer);
         }
     };
