@@ -119,11 +119,11 @@ document.getElementById('start-btn').onclick = function() {
     starWarsIntroActive = true;
 };
 
-// Functie om sterren toe te voegen tijdens Star Wars animatie - CSS GEBAASEERD
+// Functie om sterren toe te voegen tijdens Star Wars animatie - GEBASEERD OP WERKENDE VERSIE
 function createStarWarsStars() {
-    console.log('🌟 Creating CSS stars for Star Wars animation');
+    console.log('🌟 Creating working stars for Star Wars animation');
     
-    // Maak een container voor de sterren
+    // Maak een container voor de sterren (zoals in de werkende versie)
     const starsContainer = document.createElement('div');
     starsContainer.id = 'starwars-stars';
     starsContainer.style.cssText = `
@@ -135,17 +135,18 @@ function createStarWarsStars() {
         z-index: 9998;
         pointer-events: none;
         overflow: hidden;
+        background: #000000;
     `;
     document.body.appendChild(starsContainer);
     
-    // Voeg sterren toe met CSS
-    const starCount = 500;
+    // Voeg sterren toe met CSS (zoals in de werkende versie)
+    const starCount = 1000; // Meer sterren zoals in de screenshot
     for (let i = 0; i < starCount; i++) {
         const star = document.createElement('div');
-        const size = 2 + Math.random() * 4; // 2-6px
+        const size = 1 + Math.random() * 3; // 1-4px zoals in de screenshot
         const x = Math.random() * 100; // 0-100%
         const y = Math.random() * 100; // 0-100%
-        const opacity = 0.5 + Math.random() * 0.5; // 0.5-1.0
+        const opacity = 0.3 + Math.random() * 0.7; // 0.3-1.0 voor variatie
         
         star.style.cssText = `
             position: absolute;
@@ -156,18 +157,18 @@ function createStarWarsStars() {
             left: ${x}%;
             top: ${y}%;
             opacity: ${opacity};
-            box-shadow: 0 0 ${size * 2}px white;
+            box-shadow: 0 0 ${size * 1.5}px rgba(255, 255, 255, 0.8);
         `;
         
         starsContainer.appendChild(star);
     }
     
-    console.log(`⭐ Created ${starCount} CSS stars for Star Wars animation`);
+    console.log(`⭐ Created ${starCount} working stars for Star Wars animation`);
     
     // Cleanup functie
     window.cleanupStarWarsStars = function() {
         if (starsContainer && starsContainer.parentNode) {
-            console.log('🧹 Cleaning up CSS stars');
+            console.log('🧹 Cleaning up working stars');
             starsContainer.parentNode.removeChild(starsContainer);
         }
     };
