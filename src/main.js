@@ -72,6 +72,12 @@ document.getElementById('import-file').onchange = function(e) {
             }
             sollyConfig = json;
             document.getElementById('import-error').style.display = 'none';
+            
+            // DIRECT STARTEN MET GEÏMPORTEERDE COIN - GEEN STAR WARS
+            console.log('🪙 SollyCoin geïmporteerd - direct starten zonder Star Wars');
+            startscreen.style.display = 'none';
+            starwarsIntro.style.display = 'none';
+            initSollyverse();
         } catch (err) {
             document.getElementById('import-error').textContent = 'Ongeldig SollyCoin JSON-bestand! (' + err.message + ')';
             document.getElementById('import-error').style.display = 'block';
@@ -196,6 +202,52 @@ function createStarWarsStars() {
             console.log('✅ Stars moved to main scene - they will stay visible');
         }
     };
+}
+
+// Functie om achtergrond sterren te maken voor geïmporteerde coins
+function createBackgroundStars() {
+    console.log('🌟 Creating background stars for imported coin');
+    
+    // Maak een container voor de sterren
+    const starsContainer = document.createElement('div');
+    starsContainer.id = 'background-stars';
+    starsContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 1;
+    `;
+    document.body.appendChild(starsContainer);
+    
+    // Voeg sterren toe met CSS - zelfde als Star Wars
+    const starCount = 1700;
+    for (let i = 0; i < starCount; i++) {
+        const star = document.createElement('div');
+        const size = 1 + Math.random() * 2; // 1-3px
+        const x = Math.random() * 100; // 0-100%
+        const y = Math.random() * 100; // 0-100%
+        const opacity = 0.4 + Math.random() * 0.4; // 0.4-0.8
+        
+        star.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            background: white;
+            border-radius: 50%;
+            left: ${x}%;
+            top: ${y}%;
+            opacity: ${opacity};
+            box-shadow: 0 0 ${size * 1.5}px rgba(255, 255, 255, 0.6);
+        `;
+        
+        starsContainer.appendChild(star);
+    }
+    
+    console.log(`⭐ Created ${starCount} background stars for imported coin`);
 }
 
 async function loadDefaultConfig() {
@@ -364,6 +416,12 @@ async function initSollyverse() {
     addGalaxyStars(scene);
     addSollySun(scene);
     // addWhiteStars(scene); // Verwijderd - sterrenhemel van Star Wars blijft staan
+    
+    // Voor geïmporteerde coins: maak sterrenhemel als er geen Star Wars was
+    if (sollyConfig && !starWarsIntroActive) {
+        console.log('🌟 Creating background stars for imported coin');
+        createBackgroundStars();
+    }
 
     // Add game objects NA Star Wars animatie - sterrenhemel blijft staan als basis
     setTimeout(() => {
