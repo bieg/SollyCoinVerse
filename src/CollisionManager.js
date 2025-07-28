@@ -1375,42 +1375,42 @@ class CollisionManager {
       return;
     }
     
-    // Maak een 3D object van de gekozen shape
+    // Maak een 3D object van de gekozen shape - GROTER voor betere zichtbaarheid
     let geometry;
     switch(shape) {
       case 'vierkant':
-        geometry = new THREE.BoxGeometry(100, 100, 100);
+        geometry = new THREE.BoxGeometry(200, 200, 200);
         break;
       case 'zandloper':
-        geometry = new THREE.ConeGeometry(50, 150, 4);
+        geometry = new THREE.ConeGeometry(100, 300, 4);
         break;
       case 'ruit':
-        geometry = new THREE.OctahedronGeometry(70);
+        geometry = new THREE.OctahedronGeometry(140);
         break;
       case 'piramide':
       default:
-        geometry = new THREE.ConeGeometry(60, 120, 4);
+        geometry = new THREE.ConeGeometry(120, 240, 4);
         break;
     }
     
-    // Material met glow effect
+    // Material met fel glow effect - BETER ZICHTBAAR
     const material = new THREE.MeshBasicMaterial({ 
-      color: 0x00FF88,
+      color: 0xFFD700, // Goud kleur
       transparent: true,
-      opacity: 0.9
+      opacity: 1.0 // Volledig zichtbaar
     });
     
     const shapeChoice = new THREE.Mesh(geometry, material);
     
-    // Positie rechts van het scherm
-    shapeChoice.position.set(800, 200, 0);
+    // Positie in het midden van het scherm - goed zichtbaar
+    shapeChoice.position.set(0, 0, 0);
     shapeChoice.name = 'DraggableShapeChoice';
     
     // User data voor identificatie
     shapeChoice.userData = {
       shapeType: shape,
       isDraggableShapeChoice: true,
-      originalPosition: new THREE.Vector3(800, 200, 0)
+      originalPosition: new THREE.Vector3(0, 0, 0)
     };
     
     // Voeg toe aan scene
@@ -1419,7 +1419,10 @@ class CollisionManager {
     // Maak het object draggable
     this.makeShapeChoiceDraggable(shapeChoice);
     
-    this.debugLog(`🎨 Draggable shape choice created: ${shape} at position (800, 200, 0)`);
+    this.debugLog(`🎨 Draggable shape choice created: ${shape} at position (0, 0, 0) - GROOT EN GOUD KLEUR`);
+    this.debugLog(`🎯 ShapeChoice object added to scene: ${shapeChoice.name}`);
+    this.debugLog(`👁️ ShapeChoice visible: ${shapeChoice.visible}`);
+    this.debugLog(`📍 ShapeChoice position: ${shapeChoice.position.x}, ${shapeChoice.position.y}, ${shapeChoice.position.z}`);
   }
   
   makeShapeChoiceDraggable(shapeChoice) {
