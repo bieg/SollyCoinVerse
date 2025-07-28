@@ -172,11 +172,28 @@ function createStarWarsStars() {
     
     console.log(`⭐ Created ${starCount} working stars for Star Wars animation`);
     
-    // Cleanup functie
+    // Cleanup functie - VERPLAATS STERREN NAAR HOOFDSCENE
     window.cleanupStarWarsStars = function() {
         if (starsContainer && starsContainer.parentNode) {
-            console.log('🧹 Cleaning up stars from modal');
-            starsContainer.parentNode.removeChild(starsContainer);
+            console.log('🌟 Moving stars from Star Wars to main scene');
+            
+            // Verplaats sterren naar de hoofdscene in plaats van ze te verwijderen
+            const mainScene = document.body;
+            mainScene.appendChild(starsContainer);
+            
+            // Pas styling aan voor hoofdscene
+            starsContainer.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                pointer-events: none;
+                overflow: hidden;
+                z-index: 1;
+            `;
+            
+            console.log('✅ Stars moved to main scene - they will stay visible');
         }
     };
 }
@@ -342,13 +359,13 @@ async function initSollyverse() {
     directionalLight.position.set(1000, 1000, 1000);
     scene.add(directionalLight);
 
-    // Add galaxy components TIJDENS Star Wars animatie
+    // Add galaxy components NA Star Wars animatie - sterrenhemel blijft staan
     addGalaxyShells(scene);
     addGalaxyStars(scene);
     addSollySun(scene);
-    addWhiteStars(scene); // Witte sterren ook TIJDENS Star Wars animatie
+    // addWhiteStars(scene); // Verwijderd - sterrenhemel van Star Wars blijft staan
 
-    // Add game objects NA Star Wars animatie - met delay voor mooiere introductie
+    // Add game objects NA Star Wars animatie - sterrenhemel blijft staan als basis
     setTimeout(() => {
         console.log('🌟 Voeg planeten toe na Star Wars animatie');
         addPlanets(scene);
