@@ -1286,29 +1286,8 @@ class CollisionManager {
         break;
     }
     
-    const portalIndicator = new THREE.Mesh(
-      new THREE.SphereGeometry(200, 16, 16),
-      new THREE.MeshBasicMaterial({
-        color: indicatorColor,
-        transparent: true,
-        opacity: 0.9,
-        side: THREE.DoubleSide
-      })
-    );
-    portalIndicator.position.copy(outerRing.position);
-    portalIndicator.position.y += 300; // Boven de portal
-    portalIndicator.name = 'PortalIndicator';
-    window.scene.add(portalIndicator);
-    
-    // Maak de indicator pulseren
-    const pulseIndicator = () => {
-      if (portalIndicator && portalIndicator.parent) {
-        const scale = 1 + Math.sin(Date.now() * 0.005) * 0.3;
-        portalIndicator.scale.set(scale, scale, scale);
-        requestAnimationFrame(pulseIndicator);
-      }
-    };
-    pulseIndicator();
+    // GEEN PORTAL INDICATOR - alleen de portal zelf
+    // Dit voorkomt dat de indicator de drop functionaliteit blokkeert
     
     // GEEN ANIMATIES - portal blijft statisch
     // this.animatePortal(outerRing, null);
@@ -1349,29 +1328,8 @@ class CollisionManager {
     // Voeg toe aan scene
     window.scene.add(simplePortal);
     
-    // Maak een grote indicator bol
-    const indicator = new THREE.Mesh(
-      new THREE.SphereGeometry(300, 16, 16),
-      new THREE.MeshBasicMaterial({
-        color: 0x00FFFF, // Fel cyaan
-        transparent: true,
-        opacity: 0.8,
-        side: THREE.DoubleSide
-      })
-    );
-    indicator.position.set(0, 400, 0);
-    indicator.name = 'SimpleTestIndicator';
-    window.scene.add(indicator);
-    
-    // Maak de indicator pulseren
-    const pulseSimple = () => {
-      if (indicator && indicator.parent) {
-        const scale = 1 + Math.sin(Date.now() * 0.01) * 0.5;
-        indicator.scale.set(scale, scale, scale);
-        requestAnimationFrame(pulseSimple);
-      }
-    };
-    pulseSimple();
+    // GEEN INDICATOR - alleen de portal zelf
+    // Dit voorkomt dat de indicator de drop functionaliteit blokkeert
     
     // Maak een drop zone
     const dropZone = new THREE.Mesh(
@@ -2141,7 +2099,7 @@ class CollisionManager {
     }
     
     // Remove any existing portals from scene
-    const portalElements = ['ShapePortal', 'PortalInnerRing', 'PortalClickTarget', 'PortalDropZone'];
+    const portalElements = ['ShapePortal', 'PortalInnerRing', 'PortalClickTarget', 'PortalDropZone', 'PortalIndicator', 'SimpleTestIndicator'];
     portalElements.forEach(name => {
       const element = window.scene.getObjectByName(name);
       if (element) {
