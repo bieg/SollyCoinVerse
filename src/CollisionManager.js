@@ -1402,27 +1402,43 @@ class CollisionManager {
     
     const shapeChoice = new THREE.Mesh(geometry, material);
     
-    // Positie in het midden van het scherm - goed zichtbaar
-    shapeChoice.position.set(0, 0, 0);
+    // Positie rechts van het scherm - niet conflicterend
+    shapeChoice.position.set(1000, 0, 0);
     shapeChoice.name = 'DraggableShapeChoice';
     
     // User data voor identificatie
     shapeChoice.userData = {
       shapeType: shape,
       isDraggableShapeChoice: true,
-      originalPosition: new THREE.Vector3(0, 0, 0)
+      originalPosition: new THREE.Vector3(1000, 0, 0)
     };
     
     // Voeg toe aan scene
     window.scene.add(shapeChoice);
     
+    // FORCEER ZICHTBAARHEID
+    shapeChoice.visible = true;
+    shapeChoice.renderOrder = 999; // Hoogste render order
+    
     // Maak het object draggable
     this.makeShapeChoiceDraggable(shapeChoice);
     
-    this.debugLog(`🎨 Draggable shape choice created: ${shape} at position (0, 0, 0) - GROOT EN GOUD KLEUR`);
+    this.debugLog(`🎨 Draggable shape choice created: ${shape} at position (1000, 0, 0) - GROOT EN GOUD KLEUR`);
     this.debugLog(`🎯 ShapeChoice object added to scene: ${shapeChoice.name}`);
     this.debugLog(`👁️ ShapeChoice visible: ${shapeChoice.visible}`);
     this.debugLog(`📍 ShapeChoice position: ${shapeChoice.position.x}, ${shapeChoice.position.y}, ${shapeChoice.position.z}`);
+    
+    // DEBUG: Check alle objecten in de scene
+    this.debugLog(`🔍 DEBUG: Scene heeft ${window.scene.children.length} objecten`);
+    window.scene.children.forEach((child, index) => {
+      this.debugLog(`  ${index}: ${child.name || 'unnamed'} - visible: ${child.visible} - type: ${child.type}`);
+    });
+    
+    // DEBUG: Check of er conflicterende objecten zijn
+    const conflictingObjects = window.scene.children.filter(child => 
+      child.position.x === 0 && child.position.y === 0 && child.position.z === 0
+    );
+    this.debugLog(`⚠️ DEBUG: ${conflictingObjects.length} objecten op dezelfde positie (0,0,0)`);
   }
   
   makeShapeChoiceDraggable(shapeChoice) {
