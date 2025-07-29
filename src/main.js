@@ -128,84 +128,59 @@ document.getElementById('start-btn').onclick = function() {
 // Functie om sterren toe te voegen tijdens Star Wars animatie - IN STAR WARS MODAL
 function createStarWarsStars() {
     console.log('🌟 Creating stars INSIDE Star Wars modal');
-    
-    // Voeg sterren direct toe aan de Star Wars modal
     const starwarsModal = document.getElementById('starwars-intro');
     if (!starwarsModal) {
         console.error('❌ Star Wars modal not found');
         return;
     }
-    
-    // Maak een container voor de sterren IN de modal
-    const starsContainer = document.createElement('div');
-    starsContainer.id = 'starwars-stars';
-    starsContainer.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        overflow: hidden;
-    `;
-    starwarsModal.appendChild(starsContainer);
-    
-    // Voeg sterren toe met CSS - SUBTIELER
-    const starCount = 1700; // 15% minder sterren
-    for (let i = 0; i < starCount; i++) {
-        const star = document.createElement('div');
-        const size = 1 + Math.random() * 2; // 1-3px - KLEINER
-        const x = Math.random() * 100; // 0-100%
-        const y = Math.random() * 100; // 0-100%
-        const opacity = 0.4 + Math.random() * 0.4; // 0.4-0.8 - SUBTIELER
-        
-        star.style.cssText = `
-            position: absolute;
-            width: ${size}px;
-            height: ${size}px;
-            background: white;
-            border-radius: 50%;
-            left: ${x}%;
-            top: ${y}%;
-            opacity: ${opacity};
-            box-shadow: 0 0 ${size * 1.5}px rgba(255, 255, 255, 0.6);
-        `;
-        
-        starsContainer.appendChild(star);
-    }
-    
 
-    
-    console.log(`⭐ Created ${starCount} working stars for Star Wars animation`);
-    
-    // Cleanup functie - VERPLAATS STERREN NAAR HOOFDSCENE
-    window.cleanupStarWarsStars = function() {
-        if (starsContainer && starsContainer.parentNode) {
-            console.log('🌟 Moving stars from Star Wars to main scene');
-            
-            // Verplaats sterren naar de hoofdscene in plaats van ze te verwijderen
-            const mainScene = document.body;
-            mainScene.appendChild(starsContainer);
-            
-            // Pas styling aan voor hoofdscene
-            starsContainer.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                pointer-events: none;
-                overflow: hidden;
-                z-index: 1;
-            `;
-            
-            console.log('✅ Stars moved to main scene - they will stay visible');
+    const baseStyles = {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        overflow: 'hidden'
+    };
+
+    const starsContainer = getOrCreateStarsContainer('starwars-stars', starwarsModal, baseStyles);
+    if (starsContainer.childElementCount === 0) {
+        const starCount = 1700;
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            const size = 1 + Math.random() * 2;
+            const x = Math.random() * 100;
+            const y = Math.random() * 100;
+            const opacity = 0.4 + Math.random() * 0.4;
+            star.style.cssText = `position:absolute;width:${size}px;height:${size}px;background:white;border-radius:50%;left:${x}%;top:${y}%;opacity:${opacity};box-shadow:0 0 ${size * 1.5}px rgba(255,255,255,.6);`;
+            starsContainer.appendChild(star);
         }
+        console.log(`⭐ Created ${starCount} stars for Star Wars animation`);
+    }
+
+    window.cleanupStarWarsStars = function () {
+        if (!starsContainer) return;
+        // hernoem id zodat imports het herkennen i.p.v. dupliceren
+        starsContainer.id = 'background-stars';
+        // pas styling aan voor vaste positie in main scene
+        Object.assign(starsContainer.style, {
+            position: 'fixed',
+            width: '100vw',
+            height: '100vh',
+            zIndex: '1'
+        });
+        document.body.appendChild(starsContainer);
+        console.log('✅ Starfield promoted to background-stars');
     };
 }
 
 // Functie om achtergrond sterren te maken voor geïmporteerde coins
 function createBackgroundStars() {
+    if (document.getElementById('background-stars')) {
+        console.log('ℹ️ Background stars already exist – skipping creation');
+        return;
+    }
     console.log('🌟 Creating background stars for imported coin');
     
     // Maak een container voor de sterren
@@ -705,3 +680,15 @@ function triggerCollision() {
 // }
 
 // applyUniverseScaling verwijderd – universe gebruikt vaste basiswaarden
+
+// === ⭐️ UTIL: STERRENCONTAINER  ==================================================
+function getOrCreateStarsContainer(id, parent, baseStyles) {
+    let el = document.getElementById(id);
+    if (!el) {
+        el = document.createElement('div');
+        el.id = id;
+        Object.assign(el.style, baseStyles);
+        parent.appendChild(el);
+    }
+    return el;
+}
