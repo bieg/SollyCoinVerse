@@ -1419,6 +1419,13 @@ class CollisionManager {
     this.debugLog(`🎯 ShapeChoice object added to scene: ${shapeChoice.name}`);
     this.debugLog(`👁️ ShapeChoice visible: ${shapeChoice.visible}`);
     this.debugLog(`📍 ShapeChoice position: ${shapeChoice.position.x}, ${shapeChoice.position.y}, ${shapeChoice.position.z}`);
+    this.debugLog(`🚨 DEBUG: ShapeChoice aangemaakt - check of hij zichtbaar is!`);
+    
+    // Forceer render om shapeChoice zichtbaar te maken
+    if (window.renderer && window.scene && window.camera) {
+      window.renderer.render(window.scene, window.camera);
+      this.debugLog(`🎨 Render geforceerd voor shapeChoice zichtbaarheid`);
+    }
     
     // DEBUG: Check alle objecten in de scene
     this.debugLog(`🔍 DEBUG: Scene heeft ${window.scene.children.length} objecten`);
@@ -1623,20 +1630,28 @@ class CollisionManager {
     
     this.debugLog('🎯 Portal drop zone aangemaakt voor simpele drag-and-drop');
     
-    // Simpele drop detection - check elke frame
+    // Simpele drop detection - check elke frame voor SHAPECHOICE
     const checkDrop = () => {
-      if (window.solly1 && window.solly1.position && dropZone.parent) {
-        const distance = window.solly1.position.distanceTo(dropZone.position);
+      // Zoek naar shapeChoice object in de scene
+      let shapeChoice = null;
+      window.scene.traverse((child) => {
+        if (child.name === 'DraggableShapeChoice') {
+          shapeChoice = child;
+        }
+      });
+      
+      if (shapeChoice && shapeChoice.position && dropZone.parent) {
+        const distance = shapeChoice.position.distanceTo(dropZone.position);
         
         // Debug logging
         if (distance < 1500) {
-          console.log('🌍 Afstand tot portal:', Math.round(distance), 'threshold: 1200');
+          console.log('🌍 ShapeChoice afstand tot portal:', Math.round(distance), 'threshold: 1200');
         }
         
         // Simpele drop detection: dichtbij (ook tijdens drag)
         if (distance < 1200) {
-          console.log('🎯 Solly1 gedropt op portal!');
-          this.handlePortalDrop(portalRing, shapeMesh);
+          console.log('🎯 ShapeChoice gedropt op portal!');
+          this.handleShapeChoicePortalDrop(shapeChoice, portalRing);
           // Verwijder drop zone na succesvolle drop
           window.scene.remove(dropZone);
           return;
@@ -1695,11 +1710,11 @@ class CollisionManager {
       setTimeout(() => messageEl.remove(), 3000);
     }, 1000);
 
-    // Start vortex animatie om het universum op te zuigen
-    this.startVortexAnimation(portalRing.position.clone(), shapeMesh);
-
-    // PORTAL BLIJFT STAAN - verwijder deze NIET
-    this.debugLog('🔮 Portal blijft staan na drop - klaar voor volgende drag-and-drop');
+    // Start Level 2 direct (geen vortex animatie)
+    setTimeout(() => {
+      this.debugLog('🚀 Starting Level 2 after Solly1 portal drop');
+      this.startLevel2AfterShapeChoice();
+    }, 2000); // Wacht 2 seconden voor Level 2
 
     // Reset Solly1 positie voor nieuwe poging (verberg ondertussen)
     if (window.solly1) {
