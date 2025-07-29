@@ -810,7 +810,7 @@ class CollisionManager {
     // MAAK EEN SHAPECHOICE OBJECT DAT JE KUNT SLEPEN
     this.createDraggableShapeChoice(shape);
     
-    // MAAK PORTAL AAN NA SHAPE CHOICE
+    // MAAK PORTAL AAN NA SHAPE CHOICE (WORLD ANIMATED)
     this.debugLog(`🔮 Creating portal after shape choice with shape: "${shape}"`);
     this.createShapePortal(shape);
     
@@ -840,9 +840,8 @@ class CollisionManager {
       }
     }, 500); // Check na 0.5 seconde
     
-    // VORTEX ANIMATIE WORDT NU ALLEEN GESTART NA DROP OP PORTAL
-    // NIET MEER AUTOMATISCH!
-    this.debugLog('🎯 Wacht op drop van shapeChoice op portal voor vortex animatie');
+    // GEEN AUTOMATISCHE VORTEX - WACHT OP DROP
+    this.debugLog('🎯 ShapeChoice gemaakt - wacht op drop op portal voor hoofdstuk 2');
   }
 
 
@@ -1535,16 +1534,38 @@ class CollisionManager {
   }
   
   handleShapeChoicePortalDrop(shapeChoice, portal) {
-    this.debugLog(`🎯 Shape choice dropped on portal - starting vortex animation!`);
+    this.debugLog(`🎯 Shape choice dropped on portal - portal wordt actief!`);
     
     // Verberg het shape choice object
     shapeChoice.visible = false;
     
-    // Start vortex animatie (niet portal animatie)
-    if (window.scene) {
-      const centerPosition = new THREE.Vector3(0, 0, 0);
-      this.startVortexAnimation(centerPosition, shapeChoice);
-    }
+    // Toon bericht dat portal actief is
+    setTimeout(() => {
+      const messageEl = document.createElement('div');
+      messageEl.textContent = 'PORTAL ACTIEF - HOOFDSTUK 2 START';
+      messageEl.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(45deg, #FFD700, #FFA500);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 15px;
+        font-size: 1.5em;
+        font-weight: bold;
+        z-index: 10001;
+        box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4);
+      `;
+      document.body.appendChild(messageEl);
+      setTimeout(() => messageEl.remove(), 3000);
+    }, 500);
+    
+    // Start Level 2 direct (geen vortex animatie)
+    setTimeout(() => {
+      this.debugLog('🚀 Starting Level 2 after portal activation');
+      this.startLevel2AfterShapeChoice();
+    }, 2000); // Wacht 2 seconden voor Level 2
   }
   
   startPortalAnimation(portal) {
@@ -1894,66 +1915,19 @@ class CollisionManager {
         }
 
         this.vortexActive = false;
-        this.debugLog('🌀 Vortex animatie voltooid – alles verdwenen, alleen ShapeChoice over.');
+        this.debugLog('🌀 Vortex animatie voltooid – Level 2 wordt gestart.');
 
-        // Vorm centraliseren en zichtbaar maken
-        if (shapeMesh) {
-          shapeMesh.position.copy(targetPos);
-          shapeMesh.visible = true;
-          this.startShapePulseAndNextChapter(shapeMesh, targetPos);
-        }
+        // Start Level 2 direct
+        this.startLevel2AfterShapeChoice();
       }
     };
 
     animateTwirl();
   }
 
-  // === Pulse 3× en start hoofdstuk 2 ===
-  startShapePulseAndNextChapter(shapeMesh, centerPos) {
-    if (!shapeMesh) return;
-    let pulseCount = 0;
-    const totalPulses = 3;
-    const baseScale = shapeMesh.scale.x || 1;
-    const pulseAmplitude = baseScale * 0.3;
-    const pulseDuration = 400; // ms per halve cyclus (up of down)
-    let pulseStart = performance.now();
-    const animatePulse = () => {
-      const now = performance.now();
-      const t = (now - pulseStart) / (pulseDuration * 2); // volledige cyclus up+down
-      if (t >= 1) {
-        pulseCount++;
-        pulseStart = now;
-        if (pulseCount >= totalPulses) {
-          // Klaar: vorm verwijderen en Level 2 starten
-          if (shapeMesh.parent) shapeMesh.parent.remove(shapeMesh);
-          this.startLevel2AfterShapeChoice();
-          return;
-        }
-      }
-      // Bereken scale (sinus tussen -1..1)
-      const phase = ((now - pulseStart) % (pulseDuration * 2)) / (pulseDuration * 2);
-      const scaleOffset = Math.sin(phase * Math.PI * 2) * pulseAmplitude;
-      const newScale = baseScale + scaleOffset;
-      shapeMesh.scale.set(newScale, newScale, newScale);
-      requestAnimationFrame(animatePulse);
-    };
-    animatePulse();
-  }
+  // === Deze functie is verwijderd - Level 2 start nu direct na portal drop ===
 
-  proceedToNextChapter() {
-    console.log('➡️ Automatisch doorgaan naar hoofdstuk 2');
-    if (window.chapterManager && typeof window.chapterManager.completeLevel === 'function') {
-      const currentLevel = window.chapterManager.getCurrentLevel ? window.chapterManager.getCurrentLevel() : 1;
-      window.chapterManager.completeLevel(currentLevel);
-    } else {
-      // Placeholder: herlaad pagina of toon bericht
-      const msg = document.createElement('div');
-      msg.textContent = 'Hoofdstuk 2 (Brutalism style) laad...';
-      msg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#000;color:#fff;padding:24px 40px;font-size:1.6em;z-index:10002;';
-      document.body.appendChild(msg);
-      setTimeout(()=>{ location.reload(); }, 1500);
-    }
-  }
+  // === Deze functie is verwijderd - Level 2 start nu direct na portal drop ===
 
   // Voeg click listener toe op shape om volgend hoofdstuk te starten
   setupShapeClickForNextChapter(shapeMesh) {
