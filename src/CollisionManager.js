@@ -787,6 +787,9 @@ class CollisionManager {
     this.debugLog(`🔍 DEBUG: Shape parameter value: "${shape}"`);
     this.debugLog(`🚨 DEBUG: handleShapeChoice aangeroepen - shapeChoice modal wordt verwerkt!`);
     
+    // STOP ALLES - VERBERG ALLE GAME OBJECTEN
+    this.hideAllGameObjects();
+    
     // Verwijder flag om collisions weer toe te staan
     window.shapeChoiceModalOpen = false;
     
@@ -814,8 +817,8 @@ class CollisionManager {
     this.debugLog(`🔮 Creating portal after shape choice with shape: "${shape}"`);
     this.createShapePortal(shape);
     
-    // EXTRA: Maak ook een eenvoudige test portal die gegarandeerd zichtbaar is
-    this.createSimpleTestPortal(shape);
+    // GEEN EXTRA PORTALS - ALLEEN DE HOOFDPORTAL
+    // this.createSimpleTestPortal(shape); // UITGESCHAKELD
     
     // DEBUG: Check of portal echt bestaat
     setTimeout(() => {
@@ -840,8 +843,8 @@ class CollisionManager {
       }
     }, 500); // Check na 0.5 seconde
     
-    // GEEN AUTOMATISCHE VORTEX - WACHT OP DROP
-    this.debugLog('🎯 ShapeChoice gemaakt - wacht op drop op portal voor hoofdstuk 2');
+    // STOP ALLES - WACHT OP DROP
+    this.debugLog('🎯 ALLES GESTOPT - Alleen portal en shapeChoice zichtbaar - wacht op drop!');
   }
 
 
@@ -1367,35 +1370,37 @@ class CollisionManager {
       return;
     }
     
-    // Maak een 3D object van de gekozen shape - GROTER voor betere zichtbaarheid
+    // Maak een 3D object van de gekozen shape - EXTRA GROOT voor betere zichtbaarheid
     let geometry;
     switch(shape) {
       case 'vierkant':
-        geometry = new THREE.BoxGeometry(200, 200, 200);
+        geometry = new THREE.BoxGeometry(400, 400, 400); // 2x groter
         break;
       case 'zandloper':
-        geometry = new THREE.ConeGeometry(100, 300, 4);
+        geometry = new THREE.ConeGeometry(200, 600, 4); // 2x groter
         break;
       case 'ruit':
-        geometry = new THREE.OctahedronGeometry(140);
+        geometry = new THREE.OctahedronGeometry(280); // 2x groter
         break;
       case 'piramide':
       default:
-        geometry = new THREE.ConeGeometry(120, 240, 4);
+        geometry = new THREE.ConeGeometry(240, 480, 4); // 2x groter
         break;
     }
     
-    // Material met fel glow effect - BETER ZICHTBAAR
+    // Material met EXTRA FEL glow effect - MAXIMAAL ZICHTBAAR
     const material = new THREE.MeshBasicMaterial({ 
       color: 0xFFD700, // Goud kleur
       transparent: true,
-      opacity: 1.0 // Volledig zichtbaar
+      opacity: 1.0, // Volledig zichtbaar
+      emissive: 0xFFD700, // Glow effect
+      emissiveIntensity: 0.5 // Helder glow
     });
     
     const shapeChoice = new THREE.Mesh(geometry, material);
     
-    // Positie BOVEN de portal - perfect voor drop
-    shapeChoice.position.set(0, 500, 0);
+    // Positie BOVEN de portal - EXTRA HOOG voor betere zichtbaarheid
+    shapeChoice.position.set(0, 800, 0); // Hoger dan portal
     shapeChoice.name = 'DraggableShapeChoice';
     
     // User data voor identificatie
@@ -1940,9 +1945,58 @@ class CollisionManager {
     animateTwirl();
   }
 
-  // === Deze functie is verwijderd - Level 2 start nu direct na portal drop ===
-
-  // === Deze functie is verwijderd - Level 2 start nu direct na portal drop ===
+  // === Verberg alle game objecten na shapeChoice ===
+  hideAllGameObjects() {
+    this.debugLog('🚨 STOP ALLES - Verberg alle game objecten!');
+    
+    if (!window.scene) return;
+    
+    // Verberg alle objecten behalve portal en shapeChoice
+    window.scene.traverse((child) => {
+      if (child.name === 'DraggableShapeChoice' || 
+          child.name && child.name.includes('Portal')) {
+        // Laat portal en shapeChoice zichtbaar
+        child.visible = true;
+        this.debugLog(`👁️ ${child.name} blijft zichtbaar`);
+      } else if (child.type === 'Mesh' || child.type === 'Group') {
+        // Verberg alle andere objecten
+        child.visible = false;
+        this.debugLog(`🙈 ${child.name || 'unnamed'} verborgen`);
+      }
+    });
+    
+    // Verberg ook Solly1 en Solly2 specifiek
+    if (window.solly1) {
+      window.solly1.visible = false;
+      this.debugLog('🙈 Solly1 verborgen');
+    }
+    if (window.solly2) {
+      window.solly2.visible = false;
+      this.debugLog('🙈 Solly2 verborgen');
+    }
+    
+    // Verberg planeten
+    if (window.planets) {
+      window.planets.forEach(planet => {
+        if (planet) planet.visible = false;
+      });
+      this.debugLog('🙈 Planeten verborgen');
+    }
+    
+    // Verberg sterren
+    if (window.whiteStars) {
+      window.whiteStars.forEach(star => {
+        if (star) star.visible = false;
+      });
+      this.debugLog('🙈 Sterren verborgen');
+    }
+    
+    // Forceer render
+    if (window.renderer && window.scene && window.camera) {
+      window.renderer.render(window.scene, window.camera);
+      this.debugLog('🎨 Render geforceerd na verbergen objecten');
+    }
+  }
 
   // Voeg click listener toe op shape om volgend hoofdstuk te starten
   setupShapeClickForNextChapter(shapeMesh) {
