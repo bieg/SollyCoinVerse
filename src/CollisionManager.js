@@ -28,6 +28,7 @@ class CollisionManager {
     if (this.collisionDetected) return;
     
     this.debugLog('💥 Collision triggered!');
+    this.debugLog('🚨 DEBUG: triggerCollision aangeroepen - collision wordt getriggerd!');
     this.collisionDetected = true;
     
     // Pauzeer beweging
@@ -555,6 +556,7 @@ class CollisionManager {
         // Stop bij 5 collisions
         if (totalCollisions >= 4) {
           this.debugLog('🎯 4 collisions bereikt - collision detection gestopt');
+          this.debugLog('🚨 DEBUG: 4 collisions bereikt - shapeChoice modal wordt getoond!');
           window.collisionDetected = true; // Stop verdere collisions
           
           // Toon automatisch de ShapeChoice modal
@@ -598,6 +600,7 @@ class CollisionManager {
 
   showShapeChoiceModal() {
     this.debugLog('🎨 Showing ShapeChoice modal after 4 collisions');
+    this.debugLog('🚨 DEBUG: showShapeChoiceModal aangeroepen - modal wordt getoond!');
     
     // Zet flag om collisions te blokkeren
     window.shapeChoiceModalOpen = true;
@@ -782,6 +785,7 @@ class CollisionManager {
     this.debugLog(`🎨 Shape chosen: ${shape}`);
     this.debugLog(`🔍 DEBUG: Shape parameter type: ${typeof shape}`);
     this.debugLog(`🔍 DEBUG: Shape parameter value: "${shape}"`);
+    this.debugLog(`🚨 DEBUG: handleShapeChoice aangeroepen - shapeChoice modal wordt verwerkt!`);
     
     // Verwijder flag om collisions weer toe te staan
     window.shapeChoiceModalOpen = false;
