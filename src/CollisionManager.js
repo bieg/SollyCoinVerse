@@ -840,20 +840,9 @@ class CollisionManager {
       }
     }, 500); // Check na 0.5 seconde
     
-    // START VORTEX ANIMATIE VOOR LEVEL 2
-    setTimeout(() => {
-      this.debugLog('🌀 Starting vortex animation before Level 2');
-      if (window.scene) {
-        const centerPosition = new THREE.Vector3(0, 0, 0);
-        this.startVortexAnimation(centerPosition, null);
-      }
-    }, 1000); // Start vortex na 1 seconde
-    
-    // START LEVEL 2 NA VORTEX
-    setTimeout(() => {
-      this.debugLog('🚀 Starting Level 2 after vortex animation');
-      this.startLevel2AfterShapeChoice(shape);
-    }, 6000); // Wacht 6 seconden (vortex duurt 5 seconden)
+    // VORTEX ANIMATIE WORDT NU ALLEEN GESTART NA DROP OP PORTAL
+    // NIET MEER AUTOMATISCH!
+    this.debugLog('🎯 Wacht op drop van shapeChoice op portal voor vortex animatie');
   }
 
 
@@ -1546,13 +1535,16 @@ class CollisionManager {
   }
   
   handleShapeChoicePortalDrop(shapeChoice, portal) {
-    this.debugLog(`🎯 Shape choice dropped on portal - starting portal animation!`);
+    this.debugLog(`🎯 Shape choice dropped on portal - starting vortex animation!`);
     
     // Verberg het shape choice object
     shapeChoice.visible = false;
     
-    // Start portal animatie
-    this.startPortalAnimation(portal);
+    // Start vortex animatie (niet portal animatie)
+    if (window.scene) {
+      const centerPosition = new THREE.Vector3(0, 0, 0);
+      this.startVortexAnimation(centerPosition, shapeChoice);
+    }
   }
   
   startPortalAnimation(portal) {
@@ -1932,9 +1924,9 @@ class CollisionManager {
         pulseCount++;
         pulseStart = now;
         if (pulseCount >= totalPulses) {
-          // Klaar: vorm verwijderen en hoofdstuk 2 starten
+          // Klaar: vorm verwijderen en Level 2 starten
           if (shapeMesh.parent) shapeMesh.parent.remove(shapeMesh);
-          this.proceedToNextChapter();
+          this.startLevel2AfterShapeChoice();
           return;
         }
       }
