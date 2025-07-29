@@ -1402,15 +1402,15 @@ class CollisionManager {
     
     const shapeChoice = new THREE.Mesh(geometry, material);
     
-    // Positie rechts van het scherm - niet conflicterend
-    shapeChoice.position.set(1000, 0, 0);
+    // Positie BOVEN de portal - perfect voor drop
+    shapeChoice.position.set(0, 500, 0);
     shapeChoice.name = 'DraggableShapeChoice';
     
     // User data voor identificatie
     shapeChoice.userData = {
       shapeType: shape,
       isDraggableShapeChoice: true,
-      originalPosition: new THREE.Vector3(1000, 0, 0)
+      originalPosition: new THREE.Vector3(0, 500, 0)
     };
     
     // Voeg toe aan scene
@@ -1423,7 +1423,7 @@ class CollisionManager {
     // Maak het object draggable
     this.makeShapeChoiceDraggable(shapeChoice);
     
-    this.debugLog(`🎨 Draggable shape choice created: ${shape} at position (1000, 0, 0) - GROOT EN GOUD KLEUR`);
+    this.debugLog(`🎨 Draggable shape choice created: ${shape} at position (0, 500, 0) - BOVEN DE PORTAL`);
     this.debugLog(`🎯 ShapeChoice object added to scene: ${shapeChoice.name}`);
     this.debugLog(`👁️ ShapeChoice visible: ${shapeChoice.visible}`);
     this.debugLog(`📍 ShapeChoice position: ${shapeChoice.position.x}, ${shapeChoice.position.y}, ${shapeChoice.position.z}`);
@@ -1529,8 +1529,8 @@ class CollisionManager {
     for (const portal of portalObjects) {
       const distance = shapeChoice.position.distanceTo(portal.position);
       
-      if (distance < 300) { // Drop threshold
-        this.debugLog(`🎯 Shape choice dropped on portal: ${portal.name}`);
+      if (distance < 500) { // Grotere drop threshold voor makkelijker drop
+        this.debugLog(`🎯 Shape choice dropped on portal: ${portal.name} - distance: ${distance}`);
         this.handleShapeChoicePortalDrop(shapeChoice, portal);
         return;
       }
