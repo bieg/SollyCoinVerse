@@ -5,6 +5,12 @@ class UserInterface {
     this.startedWithCoin = false;
     this.gameStarted = false; // Track of game is gestart
     this.createUI();
+    
+    // Luister naar kaboom updates via EventBus
+    this.eventBus = window.eventBus || null;
+    if (this.eventBus) {
+      this.eventBus.on('kaboomUpdated', () => this.updateKaboomUI());
+    }
   }
 
   createUI() {

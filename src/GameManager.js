@@ -12,6 +12,9 @@ class GameManager {
     this.setupEventListeners();
     this.defaultConfig = null;
     
+    // Koppel aan centrale EventBus
+    this.eventBus = window.eventBus || null;
+    
     // Initialize SecurityManager
     this.securityManager = new SecurityManager();
     
@@ -263,7 +266,11 @@ class GameManager {
       this.currentUserData.kaboom = dbCount;
       this.currentUserData.lastPlayed = new Date().toISOString();
       
-      // Update UI immediately
+      // Notify UI via EventBus
+      if (this.eventBus) {
+        this.eventBus.emit('kaboomUpdated', { total: this.currentUserData.kaboom });
+      }
+      // Fallback: direct UI update
       this.updateKaboomUI();
       
       // Trigger save after kaboom increment
@@ -286,7 +293,11 @@ class GameManager {
       this.currentUserData.kaboom = count;
       this.currentUserData.lastPlayed = new Date().toISOString();
       
-      // Update UI
+      // Notify UI via EventBus
+      if (this.eventBus) {
+        this.eventBus.emit('kaboomUpdated', { total: this.currentUserData.kaboom });
+      }
+      // Fallback UI update
       this.updateKaboomUI();
       
       // Trigger save after kaboom count change
