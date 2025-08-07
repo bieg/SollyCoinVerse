@@ -28,7 +28,6 @@ class CollisionManager {
     if (this.collisionDetected) return;
     
     this.debugLog('💥 Collision triggered!');
-    this.debugLog('🚨 DEBUG: triggerCollision aangeroepen - collision wordt getriggerd!');
     this.collisionDetected = true;
     
     // Pauzeer beweging
@@ -556,7 +555,6 @@ class CollisionManager {
         // Stop bij 5 collisions
         if (totalCollisions >= 4) {
           this.debugLog('🎯 4 collisions bereikt - collision detection gestopt');
-          this.debugLog('🚨 DEBUG: 4 collisions bereikt - shapeChoice modal wordt getoond!');
           window.collisionDetected = true; // Stop verdere collisions
           
           // Toon automatisch de ShapeChoice modal
@@ -600,7 +598,6 @@ class CollisionManager {
 
   showShapeChoiceModal() {
     this.debugLog('🎨 Showing ShapeChoice modal after 4 collisions');
-    this.debugLog('🚨 DEBUG: showShapeChoiceModal aangeroepen - modal wordt getoond!');
     
     // Zet flag om collisions te blokkeren
     window.shapeChoiceModalOpen = true;
@@ -785,10 +782,6 @@ class CollisionManager {
     this.debugLog(`🎨 Shape chosen: ${shape}`);
     this.debugLog(`🔍 DEBUG: Shape parameter type: ${typeof shape}`);
     this.debugLog(`🔍 DEBUG: Shape parameter value: "${shape}"`);
-    this.debugLog(`🚨 DEBUG: handleShapeChoice aangeroepen - shapeChoice modal wordt verwerkt!`);
-    
-    // STOP ALLES - VERBERG ALLE GAME OBJECTEN
-    this.hideAllGameObjects();
     
     // Verwijder flag om collisions weer toe te staan
     window.shapeChoiceModalOpen = false;
@@ -813,12 +806,12 @@ class CollisionManager {
     // MAAK EEN SHAPECHOICE OBJECT DAT JE KUNT SLEPEN
     this.createDraggableShapeChoice(shape);
     
-    // MAAK PORTAL AAN NA SHAPE CHOICE (WORLD ANIMATED)
+    // MAAK PORTAL AAN NA SHAPE CHOICE
     this.debugLog(`🔮 Creating portal after shape choice with shape: "${shape}"`);
     this.createShapePortal(shape);
     
-    // GEEN EXTRA PORTALS - ALLEEN DE HOOFDPORTAL
-    // this.createSimpleTestPortal(shape); // UITGESCHAKELD
+    // EXTRA: Maak ook een eenvoudige test portal die gegarandeerd zichtbaar is
+    this.createSimpleTestPortal(shape);
     
     // DEBUG: Check of portal echt bestaat
     setTimeout(() => {
@@ -843,8 +836,20 @@ class CollisionManager {
       }
     }, 500); // Check na 0.5 seconde
     
-    // STOP ALLES - WACHT OP DROP
-    this.debugLog('🎯 ALLES GESTOPT - Alleen portal en shapeChoice zichtbaar - wacht op drop!');
+    // START VORTEX ANIMATIE VOOR LEVEL 2
+    setTimeout(() => {
+      this.debugLog('🌀 Starting vortex animation before Level 2');
+      if (window.scene) {
+        const centerPosition = new THREE.Vector3(0, 0, 0);
+        this.startVortexAnimation(centerPosition, null);
+      }
+    }, 1000); // Start vortex na 1 seconde
+    
+    // START LEVEL 2 NA VORTEX
+    setTimeout(() => {
+      this.debugLog('🚀 Starting Level 2 after vortex animation');
+      this.startLevel2AfterShapeChoice(shape);
+    }, 6000); // Wacht 6 seconden (vortex duurt 5 seconden)
   }
 
 
@@ -1281,8 +1286,29 @@ class CollisionManager {
         break;
     }
     
-    // GEEN PORTAL INDICATOR - alleen de portal zelf
-    // Dit voorkomt dat de indicator de drop functionaliteit blokkeert
+    const portalIndicator = new THREE.Mesh(
+      new THREE.SphereGeometry(200, 16, 16),
+      new THREE.MeshBasicMaterial({
+        color: indicatorColor,
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide
+      })
+    );
+    portalIndicator.position.copy(outerRing.position);
+    portalIndicator.position.y += 300; // Boven de portal
+    portalIndicator.name = 'PortalIndicator';
+    window.scene.add(portalIndicator);
+    
+    // Maak de indicator pulseren
+    const pulseIndicator = () => {
+      if (portalIndicator && portalIndicator.parent) {
+        const scale = 1 + Math.sin(Date.now() * 0.005) * 0.3;
+        portalIndicator.scale.set(scale, scale, scale);
+        requestAnimationFrame(pulseIndicator);
+      }
+    };
+    pulseIndicator();
     
     // GEEN ANIMATIES - portal blijft statisch
     // this.animatePortal(outerRing, null);
@@ -1323,8 +1349,29 @@ class CollisionManager {
     // Voeg toe aan scene
     window.scene.add(simplePortal);
     
-    // GEEN INDICATOR - alleen de portal zelf
-    // Dit voorkomt dat de indicator de drop functionaliteit blokkeert
+    // Maak een grote indicator bol
+    const indicator = new THREE.Mesh(
+      new THREE.SphereGeometry(300, 16, 16),
+      new THREE.MeshBasicMaterial({
+        color: 0x00FFFF, // Fel cyaan
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      })
+    );
+    indicator.position.set(0, 400, 0);
+    indicator.name = 'SimpleTestIndicator';
+    window.scene.add(indicator);
+    
+    // Maak de indicator pulseren
+    const pulseSimple = () => {
+      if (indicator && indicator.parent) {
+        const scale = 1 + Math.sin(Date.now() * 0.01) * 0.5;
+        indicator.scale.set(scale, scale, scale);
+        requestAnimationFrame(pulseSimple);
+      }
+    };
+    pulseSimple();
     
     // Maak een drop zone
     const dropZone = new THREE.Mesh(
@@ -1370,79 +1417,51 @@ class CollisionManager {
       return;
     }
     
-    // Maak een 3D object van de gekozen shape - EXTRA GROOT voor betere zichtbaarheid
+    // Maak een 3D object van de gekozen shape
     let geometry;
     switch(shape) {
       case 'vierkant':
-        geometry = new THREE.BoxGeometry(400, 400, 400); // 2x groter
+        geometry = new THREE.BoxGeometry(100, 100, 100);
         break;
       case 'zandloper':
-        geometry = new THREE.ConeGeometry(200, 600, 4); // 2x groter
+        geometry = new THREE.ConeGeometry(50, 150, 4);
         break;
       case 'ruit':
-        geometry = new THREE.OctahedronGeometry(280); // 2x groter
+        geometry = new THREE.OctahedronGeometry(70);
         break;
       case 'piramide':
       default:
-        geometry = new THREE.ConeGeometry(240, 480, 4); // 2x groter
+        geometry = new THREE.ConeGeometry(60, 120, 4);
         break;
     }
     
-    // Material met EXTRA FEL glow effect - MAXIMAAL ZICHTBAAR
+    // Material met glow effect
     const material = new THREE.MeshBasicMaterial({ 
-      color: 0xFFD700, // Goud kleur
+      color: 0x00FF88,
       transparent: true,
-      opacity: 1.0, // Volledig zichtbaar
-      emissive: 0xFFD700, // Glow effect
-      emissiveIntensity: 0.5 // Helder glow
+      opacity: 0.9
     });
     
     const shapeChoice = new THREE.Mesh(geometry, material);
     
-    // Positie BOVEN de portal - EXTRA HOOG voor betere zichtbaarheid
-    shapeChoice.position.set(0, 800, 0); // Hoger dan portal
+    // Positie rechts van het scherm
+    shapeChoice.position.set(800, 200, 0);
     shapeChoice.name = 'DraggableShapeChoice';
     
     // User data voor identificatie
     shapeChoice.userData = {
       shapeType: shape,
       isDraggableShapeChoice: true,
-      originalPosition: new THREE.Vector3(0, 500, 0)
+      originalPosition: new THREE.Vector3(800, 200, 0)
     };
     
     // Voeg toe aan scene
     window.scene.add(shapeChoice);
     
-    // FORCEER ZICHTBAARHEID
-    shapeChoice.visible = true;
-    shapeChoice.renderOrder = 999; // Hoogste render order
-    
     // Maak het object draggable
     this.makeShapeChoiceDraggable(shapeChoice);
     
-    this.debugLog(`🎨 Draggable shape choice created: ${shape} at position (0, 500, 0) - BOVEN DE PORTAL`);
-    this.debugLog(`🎯 ShapeChoice object added to scene: ${shapeChoice.name}`);
-    this.debugLog(`👁️ ShapeChoice visible: ${shapeChoice.visible}`);
-    this.debugLog(`📍 ShapeChoice position: ${shapeChoice.position.x}, ${shapeChoice.position.y}, ${shapeChoice.position.z}`);
-    this.debugLog(`🚨 DEBUG: ShapeChoice aangemaakt - check of hij zichtbaar is!`);
-    
-    // Forceer render om shapeChoice zichtbaar te maken
-    if (window.renderer && window.scene && window.camera) {
-      window.renderer.render(window.scene, window.camera);
-      this.debugLog(`🎨 Render geforceerd voor shapeChoice zichtbaarheid`);
-    }
-    
-    // DEBUG: Check alle objecten in de scene
-    this.debugLog(`🔍 DEBUG: Scene heeft ${window.scene.children.length} objecten`);
-    window.scene.children.forEach((child, index) => {
-      this.debugLog(`  ${index}: ${child.name || 'unnamed'} - visible: ${child.visible} - type: ${child.type}`);
-    });
-    
-    // DEBUG: Check of er conflicterende objecten zijn
-    const conflictingObjects = window.scene.children.filter(child => 
-      child.position.x === 0 && child.position.y === 0 && child.position.z === 0
-    );
-    this.debugLog(`⚠️ DEBUG: ${conflictingObjects.length} objecten op dezelfde positie (0,0,0)`);
+    this.debugLog(`🎨 Draggable shape choice created: ${shape} at position (800, 200, 0)`);
   }
   
   makeShapeChoiceDraggable(shapeChoice) {
@@ -1533,8 +1552,8 @@ class CollisionManager {
     for (const portal of portalObjects) {
       const distance = shapeChoice.position.distanceTo(portal.position);
       
-      if (distance < 500) { // Grotere drop threshold voor makkelijker drop
-        this.debugLog(`🎯 Shape choice dropped on portal: ${portal.name} - distance: ${distance}`);
+      if (distance < 300) { // Drop threshold
+        this.debugLog(`🎯 Shape choice dropped on portal: ${portal.name}`);
         this.handleShapeChoicePortalDrop(shapeChoice, portal);
         return;
       }
@@ -1546,38 +1565,13 @@ class CollisionManager {
   }
   
   handleShapeChoicePortalDrop(shapeChoice, portal) {
-    this.debugLog(`🎯 Shape choice dropped on portal - portal wordt actief!`);
+    this.debugLog(`🎯 Shape choice dropped on portal - starting portal animation!`);
     
     // Verberg het shape choice object
     shapeChoice.visible = false;
     
-    // Toon bericht dat portal actief is
-    setTimeout(() => {
-      const messageEl = document.createElement('div');
-      messageEl.textContent = 'PORTAL ACTIEF - HOOFDSTUK 2 START';
-      messageEl.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: linear-gradient(45deg, #FFD700, #FFA500);
-        color: white;
-        padding: 20px 30px;
-        border-radius: 15px;
-        font-size: 1.5em;
-        font-weight: bold;
-        z-index: 10001;
-        box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4);
-      `;
-      document.body.appendChild(messageEl);
-      setTimeout(() => messageEl.remove(), 3000);
-    }, 500);
-    
-    // Start Level 2 direct (geen vortex animatie)
-    setTimeout(() => {
-      this.debugLog('🚀 Starting Level 2 after portal activation');
-      this.startLevel2AfterShapeChoice();
-    }, 2000); // Wacht 2 seconden voor Level 2
+    // Start portal animatie
+    this.startPortalAnimation(portal);
   }
   
   startPortalAnimation(portal) {
@@ -1635,28 +1629,20 @@ class CollisionManager {
     
     this.debugLog('🎯 Portal drop zone aangemaakt voor simpele drag-and-drop');
     
-    // Simpele drop detection - check elke frame voor SHAPECHOICE
+    // Simpele drop detection - check elke frame
     const checkDrop = () => {
-      // Zoek naar shapeChoice object in de scene
-      let shapeChoice = null;
-      window.scene.traverse((child) => {
-        if (child.name === 'DraggableShapeChoice') {
-          shapeChoice = child;
-        }
-      });
-      
-      if (shapeChoice && shapeChoice.position && dropZone.parent) {
-        const distance = shapeChoice.position.distanceTo(dropZone.position);
+      if (window.solly1 && window.solly1.position && dropZone.parent) {
+        const distance = window.solly1.position.distanceTo(dropZone.position);
         
         // Debug logging
         if (distance < 1500) {
-          console.log('🌍 ShapeChoice afstand tot portal:', Math.round(distance), 'threshold: 1200');
+          console.log('🌍 Afstand tot portal:', Math.round(distance), 'threshold: 1200');
         }
         
         // Simpele drop detection: dichtbij (ook tijdens drag)
         if (distance < 1200) {
-          console.log('🎯 ShapeChoice gedropt op portal!');
-          this.handleShapeChoicePortalDrop(shapeChoice, portalRing);
+          console.log('🎯 Solly1 gedropt op portal!');
+          this.handlePortalDrop(portalRing, shapeMesh);
           // Verwijder drop zone na succesvolle drop
           window.scene.remove(dropZone);
           return;
@@ -1715,11 +1701,11 @@ class CollisionManager {
       setTimeout(() => messageEl.remove(), 3000);
     }, 1000);
 
-    // Start Level 2 direct (geen vortex animatie)
-    setTimeout(() => {
-      this.debugLog('🚀 Starting Level 2 after Solly1 portal drop');
-      this.startLevel2AfterShapeChoice();
-    }, 2000); // Wacht 2 seconden voor Level 2
+    // Start vortex animatie om het universum op te zuigen
+    this.startVortexAnimation(portalRing.position.clone(), shapeMesh);
+
+    // PORTAL BLIJFT STAAN - verwijder deze NIET
+    this.debugLog('🔮 Portal blijft staan na drop - klaar voor volgende drag-and-drop');
 
     // Reset Solly1 positie voor nieuwe poging (verberg ondertussen)
     if (window.solly1) {
@@ -1935,66 +1921,64 @@ class CollisionManager {
         }
 
         this.vortexActive = false;
-        this.debugLog('🌀 Vortex animatie voltooid – Level 2 wordt gestart.');
+        this.debugLog('🌀 Vortex animatie voltooid – alles verdwenen, alleen ShapeChoice over.');
 
-        // Start Level 2 direct
-        this.startLevel2AfterShapeChoice();
+        // Vorm centraliseren en zichtbaar maken
+        if (shapeMesh) {
+          shapeMesh.position.copy(targetPos);
+          shapeMesh.visible = true;
+          this.startShapePulseAndNextChapter(shapeMesh, targetPos);
+        }
       }
     };
 
     animateTwirl();
   }
 
-  // === Verberg alle game objecten na shapeChoice ===
-  hideAllGameObjects() {
-    this.debugLog('🚨 STOP ALLES - Verberg alle game objecten!');
-    
-    if (!window.scene) return;
-    
-    // Verberg alle objecten behalve portal en shapeChoice
-    window.scene.traverse((child) => {
-      if (child.name === 'DraggableShapeChoice' || 
-          child.name && child.name.includes('Portal')) {
-        // Laat portal en shapeChoice zichtbaar
-        child.visible = true;
-        this.debugLog(`👁️ ${child.name} blijft zichtbaar`);
-      } else if (child.type === 'Mesh' || child.type === 'Group') {
-        // Verberg alle andere objecten
-        child.visible = false;
-        this.debugLog(`🙈 ${child.name || 'unnamed'} verborgen`);
+  // === Pulse 3× en start hoofdstuk 2 ===
+  startShapePulseAndNextChapter(shapeMesh, centerPos) {
+    if (!shapeMesh) return;
+    let pulseCount = 0;
+    const totalPulses = 3;
+    const baseScale = shapeMesh.scale.x || 1;
+    const pulseAmplitude = baseScale * 0.3;
+    const pulseDuration = 400; // ms per halve cyclus (up of down)
+    let pulseStart = performance.now();
+    const animatePulse = () => {
+      const now = performance.now();
+      const t = (now - pulseStart) / (pulseDuration * 2); // volledige cyclus up+down
+      if (t >= 1) {
+        pulseCount++;
+        pulseStart = now;
+        if (pulseCount >= totalPulses) {
+          // Klaar: vorm verwijderen en hoofdstuk 2 starten
+          if (shapeMesh.parent) shapeMesh.parent.remove(shapeMesh);
+          this.proceedToNextChapter();
+          return;
+        }
       }
-    });
-    
-    // Verberg ook Solly1 en Solly2 specifiek
-    if (window.solly1) {
-      window.solly1.visible = false;
-      this.debugLog('🙈 Solly1 verborgen');
-    }
-    if (window.solly2) {
-      window.solly2.visible = false;
-      this.debugLog('🙈 Solly2 verborgen');
-    }
-    
-    // Verberg planeten
-    if (window.planets) {
-      window.planets.forEach(planet => {
-        if (planet) planet.visible = false;
-      });
-      this.debugLog('🙈 Planeten verborgen');
-    }
-    
-    // Verberg sterren
-    if (window.whiteStars) {
-      window.whiteStars.forEach(star => {
-        if (star) star.visible = false;
-      });
-      this.debugLog('🙈 Sterren verborgen');
-    }
-    
-    // Forceer render
-    if (window.renderer && window.scene && window.camera) {
-      window.renderer.render(window.scene, window.camera);
-      this.debugLog('🎨 Render geforceerd na verbergen objecten');
+      // Bereken scale (sinus tussen -1..1)
+      const phase = ((now - pulseStart) % (pulseDuration * 2)) / (pulseDuration * 2);
+      const scaleOffset = Math.sin(phase * Math.PI * 2) * pulseAmplitude;
+      const newScale = baseScale + scaleOffset;
+      shapeMesh.scale.set(newScale, newScale, newScale);
+      requestAnimationFrame(animatePulse);
+    };
+    animatePulse();
+  }
+
+  proceedToNextChapter() {
+    console.log('➡️ Automatisch doorgaan naar hoofdstuk 2');
+    if (window.chapterManager && typeof window.chapterManager.completeLevel === 'function') {
+      const currentLevel = window.chapterManager.getCurrentLevel ? window.chapterManager.getCurrentLevel() : 1;
+      window.chapterManager.completeLevel(currentLevel);
+    } else {
+      // Placeholder: herlaad pagina of toon bericht
+      const msg = document.createElement('div');
+      msg.textContent = 'Hoofdstuk 2 (Brutalism style) laad...';
+      msg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#000;color:#fff;padding:24px 40px;font-size:1.6em;z-index:10002;';
+      document.body.appendChild(msg);
+      setTimeout(()=>{ location.reload(); }, 1500);
     }
   }
 
@@ -2157,7 +2141,7 @@ class CollisionManager {
     }
     
     // Remove any existing portals from scene
-    const portalElements = ['ShapePortal', 'PortalInnerRing', 'PortalClickTarget', 'PortalDropZone', 'PortalIndicator', 'SimpleTestIndicator'];
+    const portalElements = ['ShapePortal', 'PortalInnerRing', 'PortalClickTarget', 'PortalDropZone'];
     portalElements.forEach(name => {
       const element = window.scene.getObjectByName(name);
       if (element) {

@@ -15,6 +15,7 @@ let sollyConfig = null;
 let gameManager = null;
 let userInterface = null;
 let sollyverseInitialized = false;
+let web3Manager = null;
 
 // Globale variabelen
 let scene, camera, renderer, controls;
@@ -87,6 +88,28 @@ document.getElementById('import-file').onchange = function(e) {
     };
     reader.readAsText(file);
 };
+
+// Connect Wallet button handler
+const connectWalletBtn = document.getElementById('connect-wallet-btn');
+if (connectWalletBtn) {
+    connectWalletBtn.onclick = async function() {
+        if (!web3Manager) {
+            web3Manager = new Web3Manager();
+            const initialized = await web3Manager.initialize();
+            if (!initialized) {
+                alert('Geen wallet provider gevonden (installeer MetaMask).');
+                return;
+            }
+        }
+        try {
+            const account = await web3Manager.connectWallet();
+            alert('Wallet verbonden: ' + account);
+        } catch (err) {
+            console.error('Wallet verbinden mislukt:', err);
+            alert('Wallet verbinden mislukt!');
+        }
+    };
+}
 
 // Start button handler
 document.getElementById('start-btn').onclick = function() {

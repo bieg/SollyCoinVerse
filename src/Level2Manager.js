@@ -675,43 +675,27 @@ class Level2Manager {
             this.camera.lookAt(0, 0, 0);
         }
         
-        // GEEN RESTART - gewoon terug naar hoofdgame
-        this.restoreMainGameObjects();
+        // Restart main game objects
+        this.restartMainGame();
         
         this.isActive = false;
         this.isInitialized = false;
     }
 
-    // Restore main game objects (geen restart)
-    restoreMainGameObjects() {
+    // Restart main game objects
+    restartMainGame() {
         if (!this.scene) return;
         
-        console.log('🔄 Restoring main game objects (no restart)');
+        // Re-add galaxy components
+        if (typeof addGalaxyShells === 'function') addGalaxyShells(this.scene);
+        if (typeof addGalaxyStars === 'function') addGalaxyStars(this.scene);
+        if (typeof addSollySun === 'function') addSollySun(this.scene);
         
-        // Maak bestaande objecten weer zichtbaar
-        if (window.solly1) {
-            window.solly1.visible = true;
-        }
-        
-        if (window.solly2) {
-            window.solly2.visible = true;
-        }
-        
-        // Maak planeten weer zichtbaar
-        if (window.planets) {
-            window.planets.forEach(planet => {
-                if (planet) planet.visible = true;
-            });
-        }
-        
-        // Maak sterren weer zichtbaar
-        if (window.whiteStars) {
-            window.whiteStars.forEach(star => {
-                if (star) star.visible = true;
-            });
-        }
-        
-        console.log('✅ Main game objects restored (no restart)');
+        // Re-add game objects
+        if (typeof addPlanets === 'function') addPlanets(this.scene);
+        if (typeof addSollys === 'function') addSollys(this.scene);
+        if (typeof addWhiteStars === 'function') addWhiteStars(this.scene);
+        if (typeof addSolly1AndSolly2 === 'function') addSolly1AndSolly2(this.scene);
     }
 
     // Cleanup Level 2
