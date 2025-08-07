@@ -1,11 +1,12 @@
 // DatabaseManager.js - Persistent database voor Sollyverse zonder local storage
 class DatabaseManager {
-    constructor() {
+    constructor(adapter = (window && window.storageAdapter) ? window.storageAdapter : new MemoryAdapter()) {
         this.dbPath = 'database/';
         this.gameDataFile = 'game_data.json';
         this.kaboomDataFile = 'kaboom_data.json';
         this.userDataFile = 'user_data.json';
         this.isInitialized = false;
+        this.storage = adapter;
         this.gameData = null;
         this.kaboomData = null;
         this.userData = null;
@@ -30,7 +31,7 @@ class DatabaseManager {
 
     async loadOrCreateData() {
         try {
-            // Probeer bestaande data te laden uit localStorage als fallback
+            // Laad data via adapter (IndexedDB of memory)
             this.gameData = await this.loadData(this.gameDataFile);
             this.kaboomData = await this.loadData(this.kaboomDataFile);
             this.userData = await this.loadData(this.userDataFile);
@@ -92,13 +93,8 @@ class DatabaseManager {
 
     async loadData(filename) {
         try {
-            // Probeer uit localStorage
-            if (typeof localStorage !== 'undefined') {
-                const stored = localStorage.getItem(`sollyverse_${filename}`);
-                if (stored) {
-                    return JSON.parse(stored);
-                }
-            }
+            const stored = await this.storage.getItem(`sollyverse_${filename}`);
+            if (stored) return stored;
             throw new Error(`No data found for ${filename}`);
         } catch (error) {
             console.error(`❌ Failed to load ${filename}:`, error.message);
@@ -111,14 +107,9 @@ class DatabaseManager {
             // Update timestamp
             data.lastUpdated = new Date().toISOString();
             
-            // Sla op in localStorage
-            if (typeof localStorage !== 'undefined') {
-                localStorage.setItem(`sollyverse_${filename}`, JSON.stringify(data));
-                console.log(`💾 Saved ${filename} to localStorage`);
-                return true;
-            } else {
-                throw new Error('localStorage not available');
-            }
+            await this.storage.setItem(`sollyverse_${filename}`, data);
+            console.log(`💾 Saved ${filename} via StorageAdapter`);
+            return true;
         } catch (error) {
             console.error(`❌ Failed to save ${filename}:`, error.message);
             throw error;
