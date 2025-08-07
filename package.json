@@ -3,11 +3,18 @@
   "version": "1.0.0",
   "description": "SollyCoin dApp - Een modulaire JavaScript 3D-universum game met blockchain integratie",
   "main": "index.html",
+  "lint-staged": {
+    "src/**/*.js": ["eslint --fix", "prettier --write"]
+  },
   "scripts": {
     "start": "python3 -m http.server 5500",
     "dev": "python3 -m http.server 5500",
     "build": "hardhat compile",
     "test": "hardhat test",
+    "lint": "eslint \"src/**/*.js\"",
+    "format": "prettier --write \"src/**/*.js\"",
+    "prepare": "husky install",
+    "typecheck": "tsc --noEmit",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
     "deploy:mumbai": "hardhat run scripts/deploy.js --network polygon_mumbai",
@@ -28,6 +35,11 @@
   "author": "SollyCoin Team",
   "license": "MIT",
   "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.0",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@openzeppelin/contracts": "^5.3.0",
     "dotenv": "^16.3.1",

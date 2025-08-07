@@ -12,16 +12,16 @@ let blueSollys = [];
 let whiteStars = [];
 
 function addGalaxyShells(scene) {
-    // Create multiple shell layers
-    const shellCount = 5; // meer schillen
-    const baseRadius = 8000;
-    const radiusStep = 6000; // nog grotere afstand tussen schillen
+    // Create multiple shell layers voor Level 1 - subtielere shells
+    const shellCount = 3; // Minder schillen voor subtielere achtergrond
+    const baseRadius = 12000;
+    const radiusStep = 8000; // Grotere afstand tussen schillen
     for (let i = 0; i < shellCount; i++) {
         const shellGeometry = new THREE.SphereGeometry(baseRadius + i * radiusStep, 64, 64);
         const shellMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xC000FF,        // iets lichtere magenta paars
+            color: 0x1a1a2e,        // Donkerblauw-grijs voor subtiele achtergrond
             transparent: true, 
-            opacity: 0.10 - i * 0.012, // +25% basisopacity en minder sterke afname
+            opacity: 0.05 - i * 0.015, // Zeer subtiele opacity
             wireframe: true
         });
         const shell = new THREE.Mesh(shellGeometry, shellMaterial);
@@ -30,9 +30,9 @@ function addGalaxyShells(scene) {
 }
 
 function addGalaxyStars(scene) {
-    const starCount = 2000;
-    const starGeometry = new THREE.SphereGeometry(4, 8, 8);
-    const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const starCount = 4000; // Meer sterren voor Level 1
+    const starGeometry = new THREE.SphereGeometry(3, 8, 8); // Iets kleinere sterren
+    const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Witte sterren
     
     // Use instanced mesh for better performance
     if (typeof THREE.InstancedMesh !== 'undefined') {
@@ -40,7 +40,8 @@ function addGalaxyStars(scene) {
         const matrix = new THREE.Matrix4();
         
         for (let i = 0; i < starCount; i++) {
-            const radius = 5000 + Math.random() * 15000;
+            // Verspreid sterren over een grotere ruimte voor mooiere zwarte achtergrond
+            const radius = 3000 + Math.random() * 25000;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             
@@ -57,7 +58,8 @@ function addGalaxyStars(scene) {
         // Fallback to individual meshes
         for (let i = 0; i < starCount; i++) {
             const star = new THREE.Mesh(starGeometry, starMaterial);
-            const radius = 5000 + Math.random() * 15000;
+            // Verspreid sterren over een grotere ruimte voor mooiere zwarte achtergrond
+            const radius = 3000 + Math.random() * 25000;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             

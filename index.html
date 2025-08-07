@@ -37,6 +37,7 @@
         <label for="import-file" style="margin-top: 18px; font-size: 1.1em; background: #8A2BE2; color: #fff; border: none; border-radius: 12px; padding: 12px 32px; box-shadow: 0 2px 12px #8A2BE288; cursor: pointer; display:inline-block;">Importeer je SollyCoin</label>
         <input type="file" id="import-file" accept="application/json" style="display:none;">
         <div id="import-error" style="color:#c00; font-weight:bold; margin-top:10px; display:none;"></div>
+        <button id="connect-wallet-btn" style="margin-top: 24px; background:#4CAF50; color:#fff; border:none; border-radius:12px; padding:12px 32px; box-shadow:0 2px 12px #4CAF5088; cursor:pointer;">Connect Wallet</button>
         <button id="start-btn" style="margin-top: 24px;">Start</button>
     </div>
     <div id="starwars-intro" class="starwars-modal" style="display:none;">
@@ -59,7 +60,12 @@
     <script src="src/Constants.js"></script>
     <script src="src/ErrorHandler.js"></script>
     <script src="src/SecurityManager.js"></script>
+    <script src="src/EventBus.js"></script>
+    <script src="src/Logger.js"></script>
+    <script src="src/StorageAdapter.js"></script>
+    <script src="src/DatabaseManager.js"></script>
     <script src="src/GameManager.js"></script>
+    <script src="src/Level2Manager.js"></script>
     <script src="src/UserInterface.js"></script>
     <script src="src/SollyCore.js"></script>
     <script src="src/CollisionManager.js"></script>
@@ -67,6 +73,9 @@
     <script src="src/portal.js"></script>
     <script src="src/sollys.js"></script>
     <script src="src/animation.js"></script>
+    <!-- Web3 library en manager -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <script src="src/Web3Manager.js"></script>
     <script src="src/main.js"></script>
 </body>
 </html>

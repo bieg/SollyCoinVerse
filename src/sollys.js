@@ -1651,8 +1651,11 @@ function handleSollyOnMini(targetMini) {
     if (!targetMini) return;
     
     // Kaboom-teller ophogen via GameManager
-    if (window.gameManager && typeof window.gameManager.incrementKaboomCount === 'function') {
-        window.gameManager.incrementKaboomCount();
+            if (window.gameManager && typeof window.gameManager.incrementKaboomCount === 'function') {
+            // Record kaboom with position and shape data
+            const position = solly1.position.clone();
+            const shape = window.gameManager.getCurrentShape();
+            window.gameManager.incrementKaboomCount(1, position, shape);
         console.log(`💥 Kaboom! Totaal: ${window.gameManager.getKaboomCount()}`);
     } else {
         console.warn('⚠️ GameManager niet beschikbaar voor kaboom increment');
@@ -1670,9 +1673,9 @@ function handleSollyOnMini(targetMini) {
     // Extra grote particle explosie
     createMegaExplosionParticles(explosionPos);
     
-    // Toon ShapeChoice modal na elke 4 collisions
+            // Toon ShapeChoice modal na elke 5 collisions
     const currentKaboom = window.gameManager ? window.gameManager.getKaboomCount() : 0;
-    if (currentKaboom % 4 === 0) {
+            if (currentKaboom % 5 === 0) {
         setTimeout(() => {
             if (window.collisionManager && window.collisionManager.showShapeChoiceModal) {
                 window.collisionManager.showShapeChoiceModal();

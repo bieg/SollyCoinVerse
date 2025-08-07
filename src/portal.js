@@ -415,7 +415,9 @@ function onPortalClick(event) {
             event.stopImmediatePropagation();
             
             portalClicked = true;
-            animatePortalAndCameraToCenter();
+            
+            // Toon level selectie modal
+            showLevelSelectionModal();
         }
     }
 }
@@ -466,6 +468,91 @@ function animatePortalAndCameraToCenter() {
         }
     }
     animate();
+}
+
+// Level selection modal
+function showLevelSelectionModal() {
+    const modalHtml = `
+        <div style="text-align: center; color: white; font-family: 'Open Sans', sans-serif;">
+            <h2 style="margin-bottom: 30px; color: #8A2BE2; font-size: 28px;">🎯 Kies je Level</h2>
+            
+            <div style="display: grid; gap: 20px; margin-bottom: 30px;">
+                <button id="level1-btn" style="
+                    padding: 20px 30px;
+                    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+                    border: none;
+                    border-radius: 15px;
+                    color: white;
+                    font-size: 18px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    🎮 Level 1: Kaboom Challenge
+                </button>
+                
+                <button id="level2-btn" style="
+                    padding: 20px 30px;
+                    background: linear-gradient(135deg, #8A2BE2, #4B0082);
+                    border: none;
+                    border-radius: 15px;
+                    color: white;
+                    font-size: 18px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    🔗 Level 2: De Cubus
+                </button>
+            </div>
+            
+            <p style="color: #CCC; font-size: 14px; margin-top: 20px;">
+                Kies een level om te beginnen met je avontuur!
+            </p>
+        </div>
+    `;
+    
+    showUniverseModal(modalHtml, 'Level Selectie');
+    
+    // Add event listeners after modal is created
+    setTimeout(() => {
+        const level1Btn = document.getElementById('level1-btn');
+        const level2Btn = document.getElementById('level2-btn');
+        
+        if(level1Btn) {
+            level1Btn.addEventListener('click', () => {
+                closeModal();
+                // Level 1 is al actief, dus gewoon terug naar hoofdstuk 1
+                console.log('🎮 Terug naar Level 1');
+            });
+        }
+        
+        if(level2Btn) {
+            level2Btn.addEventListener('click', () => {
+                closeModal();
+                startLevel2();
+            });
+        }
+    }, 100);
+}
+
+function startLevel2() {
+    console.log('🚀 Starting Level 2: De Cubus');
+    
+    // Reset portal state
+    portalClicked = false;
+    
+    // Initialize Level 2 using Level2Manager
+    if(window.Level2Manager) {
+        if (!window.level2Manager) {
+            window.level2Manager = new Level2Manager();
+        }
+        window.level2Manager.startLevel();
+    } else {
+        console.error('❌ Level2Manager niet beschikbaar');
+    }
 }
 
 // UI functions

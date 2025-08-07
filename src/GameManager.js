@@ -12,8 +12,14 @@ class GameManager {
     this.setupEventListeners();
     this.defaultConfig = null;
     
+    // Koppel aan centrale EventBus
+    this.eventBus = window.eventBus || null;
+    
     // Initialize SecurityManager
     this.securityManager = new SecurityManager();
+    
+    // Initialize DatabaseManager
+    this.databaseManager = new DatabaseManager();
     
     // Load default config
     this.loadDefaultConfig();
@@ -90,7 +96,7 @@ class GameManager {
       level: coinData.level || this.defaultConfig.level,
       shape: coinData.shape || this.defaultConfig.shape,
       size: coinData.size || this.getDefaultSizeForLevel(coinData.level || this.defaultConfig.level),
-      kaboom: coinData.kaboom || 0,
+      kaboom: coinData.kaboom || 0, // Zorg ervoor dat kaboom altijd een nummer is
       sterren: coinData.sterren || this.defaultConfig.sterren,
       planeten: coinData.planeten || this.defaultConfig.planeten,
       sollys: coinData.sollys || this.defaultConfig.sollys,
@@ -145,10 +151,16 @@ class GameManager {
     const kaboomCounter = document.getElementById('kaboom-counter');
     const kaboomNumber = document.getElementById('kaboom-number');
     if (kaboomCounter && kaboomNumber) {
-      const totalCollisions = this.currentUserData.kaboom || 0;
+      const totalCollisions = this.getKaboomCount();
       kaboomNumber.textContent = totalCollisions;
       kaboomCounter.style.display = 'block'; // Altijd zichtbaar
       console.log('🎯 KABOOM counter geïnitialiseerd:', totalCollisions);
+      
+      // Forceer kaboom counter op 0 voor nieuwe starts
+      if (totalCollisions > 0 && !this.currentUserData.uniqueIdentifier) {
+        console.log('🔄 Forcing kaboom counter to 0 for new start');
+        this.setKaboomCount(0);
+      }
     } else {
       console.error('❌ KABOOM counter elementen niet gevonden!');
     }
@@ -233,15 +245,32 @@ class GameManager {
 
   // Kaboom teller methodes
   getKaboomCount() {
+    if (this.databaseManager && this.databaseManager.isInitialized) {
+      return this.databaseManager.getKaboomCount();
+    }
     return this.currentUserData?.kaboom || 0;
   }
 
-  incrementKaboomCount() {
+  incrementKaboomCount(level = 1, position = null, shape = null) {
     if (this.currentUserData) {
-      this.currentUserData.kaboom = (this.currentUserData.kaboom || 0) + 1;
+      // Record in database first
+      if (this.databaseManager && this.databaseManager.isInitialized) {
+        this.databaseManager.recordKaboom(level, position, shape);
+      }
+      
+      // Sync currentUserData with database
+      const dbCount = this.databaseManager && this.databaseManager.isInitialized ? 
+        this.databaseManager.getKaboomCount() : 
+        (this.currentUserData.kaboom || 0) + 1;
+      
+      this.currentUserData.kaboom = dbCount;
       this.currentUserData.lastPlayed = new Date().toISOString();
       
-      // Update UI immediately
+      // Notify UI via EventBus
+      if (this.eventBus) {
+        this.eventBus.emit('kaboomUpdated', { total: this.currentUserData.kaboom });
+      }
+      // Fallback: direct UI update
       this.updateKaboomUI();
       
       // Trigger save after kaboom increment
@@ -253,8 +282,23 @@ class GameManager {
 
   setKaboomCount(count) {
     if (this.currentUserData) {
+      // Update database if available
+      if (this.databaseManager && this.databaseManager.isInitialized) {
+        // Reset database to match the new count
+        this.databaseManager.kaboomData.totalKabooms = count;
+        this.databaseManager.kaboomData.levelKabooms[1] = count; // Assuming level 1
+        this.databaseManager.saveAllData();
+      }
+      
       this.currentUserData.kaboom = count;
       this.currentUserData.lastPlayed = new Date().toISOString();
+      
+      // Notify UI via EventBus
+      if (this.eventBus) {
+        this.eventBus.emit('kaboomUpdated', { total: this.currentUserData.kaboom });
+      }
+      // Fallback UI update
+      this.updateKaboomUI();
       
       // Trigger save after kaboom count change
       setTimeout(() => this.saveProgress(), 1000);
@@ -312,7 +356,7 @@ class GameManager {
     const kaboomCounter = document.getElementById('kaboom-counter');
     const kaboomNumber = document.getElementById('kaboom-number');
     if (kaboomCounter && kaboomNumber) {
-      const totalCollisions = this.currentUserData?.kaboom || 0;
+      const totalCollisions = this.getKaboomCount();
       kaboomNumber.textContent = totalCollisions;
       kaboomCounter.style.display = 'block'; // Altijd zichtbaar
       console.log('🎯 KABOOM counter geïnitialiseerd:', totalCollisions);
@@ -326,7 +370,7 @@ class GameManager {
     const kaboomCounter = document.getElementById('kaboom-counter');
     const kaboomNumber = document.getElementById('kaboom-number');
     if (kaboomCounter && kaboomNumber) {
-      const totalCollisions = this.currentUserData?.kaboom || 0;
+      const totalCollisions = this.getKaboomCount();
       kaboomNumber.textContent = totalCollisions;
       kaboomCounter.style.display = 'block'; // Altijd zichtbaar
       console.log('💥 KABOOM counter bijgewerkt naar:', totalCollisions);
@@ -425,6 +469,17 @@ class GameManager {
   // Export SollyCoin data
   exportSollyCoinData() {
     return this.currentUserData || {};
+  }
+
+  // Start Level 2
+  startLevel2() {
+    console.log('🎯 GameManager: Starting Level 2');
+    
+    if (window.level2Manager) {
+      window.level2Manager.startLevel();
+    } else {
+      console.error('❌ Level2Manager not available');
+    }
   }
 } 
 

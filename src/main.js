@@ -15,6 +15,7 @@ let sollyConfig = null;
 let gameManager = null;
 let userInterface = null;
 let sollyverseInitialized = false;
+let web3Manager = null;
 
 // Globale variabelen
 let scene, camera, renderer, controls;
@@ -72,6 +73,12 @@ document.getElementById('import-file').onchange = function(e) {
             }
             sollyConfig = json;
             document.getElementById('import-error').style.display = 'none';
+            
+            // DIRECT STARTEN MET GEÏMPORTEERDE COIN - GEEN STAR WARS
+            console.log('🪙 SollyCoin geïmporteerd - direct starten zonder Star Wars');
+            startscreen.style.display = 'none';
+            starwarsIntro.style.display = 'none';
+            initSollyverse();
         } catch (err) {
             document.getElementById('import-error').textContent = 'Ongeldig SollyCoin JSON-bestand! (' + err.message + ')';
             document.getElementById('import-error').style.display = 'block';
@@ -82,20 +89,164 @@ document.getElementById('import-file').onchange = function(e) {
     reader.readAsText(file);
 };
 
+// Connect Wallet button handler
+const connectWalletBtn = document.getElementById('connect-wallet-btn');
+if (connectWalletBtn) {
+    connectWalletBtn.onclick = async function() {
+        if (!web3Manager) {
+            web3Manager = new Web3Manager();
+            const initialized = await web3Manager.initialize();
+            if (!initialized) {
+                alert('Geen wallet provider gevonden (installeer MetaMask).');
+                return;
+            }
+        }
+        try {
+            const account = await web3Manager.connectWallet();
+            alert('Wallet verbonden: ' + account);
+        } catch (err) {
+            console.error('Wallet verbinden mislukt:', err);
+            alert('Wallet verbinden mislukt!');
+        }
+    };
+}
+
 // Start button handler
 document.getElementById('start-btn').onclick = function() {
+    // Reset sollyConfig voor schone slate
+    sollyConfig = null;
+    
+    // Reset database voor schone kaboom counter
+    if (window.databaseManager && window.databaseManager.isInitialized) {
+        console.log('🔄 Resetting database for clean start');
+        window.databaseManager.resetDatabase();
+    }
+    
     startscreen.style.display = 'none';
     starwarsIntro.style.display = 'flex';
+    
+    // VOEG STERREN TOE TIJDENS STAR WARS ANIMATIE
+    setTimeout(() => {
+        console.log('⭐ Voeg sterren toe tijdens Star Wars animatie');
+        createStarWarsStars();
+    }, 200);
+    
     setTimeout(() => {
         starwarsCrawl.classList.add('starwars-crawl-animate');
     }, 100);
     setTimeout(() => {
         starwarsIntro.style.display = 'none';
         starWarsIntroActive = false;
+        
+        // Cleanup CSS sterren
+        if (window.cleanupStarWarsStars) {
+            window.cleanupStarWarsStars();
+        }
+        
         initSollyverse();
     }, 9000);
     starWarsIntroActive = true;
 };
+
+// Functie om sterren toe te voegen tijdens Star Wars animatie - IN STAR WARS MODAL
+function createStarWarsStars() {
+    console.log('🌟 Creating stars INSIDE Star Wars modal');
+    const starwarsModal = document.getElementById('starwars-intro');
+    if (!starwarsModal) {
+        console.error('❌ Star Wars modal not found');
+        return;
+    }
+
+    const baseStyles = {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        overflow: 'hidden'
+    };
+
+    const starsContainer = getOrCreateStarsContainer('starwars-stars', starwarsModal, baseStyles);
+    if (starsContainer.childElementCount === 0) {
+        const starCount = 1700;
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            const size = 1 + Math.random() * 2;
+            const x = Math.random() * 100;
+            const y = Math.random() * 100;
+            const opacity = 0.4 + Math.random() * 0.4;
+            star.style.cssText = `position:absolute;width:${size}px;height:${size}px;background:white;border-radius:50%;left:${x}%;top:${y}%;opacity:${opacity};box-shadow:0 0 ${size * 1.5}px rgba(255,255,255,.6);`;
+            starsContainer.appendChild(star);
+        }
+        console.log(`⭐ Created ${starCount} stars for Star Wars animation`);
+    }
+
+    window.cleanupStarWarsStars = function () {
+        if (!starsContainer) return;
+        // hernoem id zodat imports het herkennen i.p.v. dupliceren
+        starsContainer.id = 'background-stars';
+        // pas styling aan voor vaste positie in main scene
+        Object.assign(starsContainer.style, {
+            position: 'fixed',
+            width: '100vw',
+            height: '100vh',
+            zIndex: '1'
+        });
+        document.body.appendChild(starsContainer);
+        console.log('✅ Starfield promoted to background-stars');
+    };
+}
+
+// Functie om achtergrond sterren te maken voor geïmporteerde coins
+function createBackgroundStars() {
+    if (document.getElementById('background-stars')) {
+        console.log('ℹ️ Background stars already exist – skipping creation');
+        return;
+    }
+    console.log('🌟 Creating background stars for imported coin');
+    
+    // Maak een container voor de sterren
+    const starsContainer = document.createElement('div');
+    starsContainer.id = 'background-stars';
+    starsContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 1;
+    `;
+    document.body.appendChild(starsContainer);
+    
+    // Voeg sterren toe met CSS - zelfde als Star Wars
+    const starCount = 1700;
+    for (let i = 0; i < starCount; i++) {
+        const star = document.createElement('div');
+        const size = 1 + Math.random() * 2; // 1-3px
+        const x = Math.random() * 100; // 0-100%
+        const y = Math.random() * 100; // 0-100%
+        const opacity = 0.4 + Math.random() * 0.4; // 0.4-0.8
+        
+        star.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            background: white;
+            border-radius: 50%;
+            left: ${x}%;
+            top: ${y}%;
+            opacity: ${opacity};
+            box-shadow: 0 0 ${size * 1.5}px rgba(255, 255, 255, 0.6);
+        `;
+        
+        starsContainer.appendChild(star);
+    }
+    
+    console.log(`⭐ Created ${starCount} background stars for imported coin`);
+}
 
 async function loadDefaultConfig() {
     try {
@@ -151,19 +302,29 @@ async function initSollyverse() {
     gameManager = new GameManager();
     userInterface = new UserInterface(gameManager);
 
-    // Probeer eerst opgeslagen voortgang te laden
-    const hasLoadedProgress = gameManager.loadProgress();
-    
-    if (hasLoadedProgress) {
-        console.log('📂 Opgeslagen voortgang geladen van localStorage');
-        userInterface.setStartedWithCoin(true);
-    } else if (sollyConfig) {
-        // Import config als coin data
+    // ALTIJD BEGINNEN MET SCHONE SLATE - Default coin met kaboom op 0
+    if (sollyConfig) {
+        // Alleen als er een specifieke coin is geïmporteerd, gebruik die
+        console.log('🪙 Specifieke coin geïmporteerd - behoud bestaande data');
         gameManager.loadCoinData(sollyConfig);
         userInterface.setStartedWithCoin(true);
     } else {
-        // Laad default coin data
+        // Altijd default coin met schone kaboom counter
+        console.log('🔄 Schone slate - default coin met kaboom op 0');
         const defaultCoin = await loadDefaultConfig();
+        
+        // Zorg ervoor dat kaboom altijd op 0 staat voor nieuwe starts
+        defaultCoin.kaboom = 0;
+        
+        // Reset database kaboom counter ook
+        if (gameManager.databaseManager && gameManager.databaseManager.isInitialized) {
+            console.log('🔄 Resetting database kaboom counter');
+            gameManager.databaseManager.kaboomData.totalKabooms = 0;
+            gameManager.databaseManager.kaboomData.sessionKabooms = 0;
+            gameManager.databaseManager.kaboomData.levelKabooms = { 1: 0 };
+            gameManager.databaseManager.saveAllData();
+        }
+        
         gameManager.loadCoinData(defaultCoin);
         userInterface.setStartedWithCoin(false);
     }
@@ -182,7 +343,7 @@ async function initSollyverse() {
     
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000);
+    renderer.setClearColor(0x0a0a0a); // Donkergrijze achtergrond voor Level 1
     document.body.appendChild(renderer.domElement);
 
     // ✅ Maak globals beschikbaar zodra renderer bestaat
@@ -193,8 +354,21 @@ async function initSollyverse() {
     window.gameManager = gameManager;
     window.userInterface = userInterface;
 
-    // Initialize CollisionManager
+    // Initialize CollisionManager met schone slate
     window.collisionManager = new CollisionManager();
+    
+    // Reset collision detection voor schone start
+    if (window.collisionManager) {
+        window.collisionManager.resetCollision();
+    }
+    
+    // Initialize Level2Manager
+    if (window.Level2Manager) {
+        window.level2Manager = new Level2Manager();
+        console.log('🎯 Level2Manager initialized');
+    } else {
+        console.error('❌ Level2Manager class not available');
+    }
 
     // Mini-Solly click event: kaboom bij click
     renderer.domElement.addEventListener('click', function(e) {
@@ -235,23 +409,40 @@ async function initSollyverse() {
     directionalLight.position.set(1000, 1000, 1000);
     scene.add(directionalLight);
 
-    // Add galaxy components
+    // Add galaxy components NA Star Wars animatie - sterrenhemel blijft staan
     addGalaxyShells(scene);
     addGalaxyStars(scene);
     addSollySun(scene);
+    // addWhiteStars(scene); // Verwijderd - sterrenhemel van Star Wars blijft staan
+    
+    // Voor geïmporteerde coins: maak sterrenhemel als er geen Star Wars was
+    if (sollyConfig && !starWarsIntroActive) {
+        console.log('🌟 Creating background stars for imported coin');
+        createBackgroundStars();
+    }
 
-    // Add game objects
-    addPlanets(scene);
-    addSollys(scene);
-    addWhiteStars(scene);
-    addSolly1AndSolly2(scene);
+    // Add game objects NA Star Wars animatie - sterrenhemel blijft staan als basis
+    setTimeout(() => {
+        console.log('🌟 Voeg planeten toe na Star Wars animatie');
+        addPlanets(scene);
+    }, 1000);
+    
+    setTimeout(() => {
+        console.log('🪙 Voeg Sollies toe na Star Wars animatie');
+        addSollys(scene);
+    }, 2000);
+    
+    setTimeout(() => {
+        console.log('🎯 Voeg Solly1 en Solly2 toe na Star Wars animatie');
+        addSolly1AndSolly2(scene);
+    }, 3000);
 
-    // Plan collision na 4 seconden
+    // Plan collision na 7 seconden (4 seconden na laatste objecten)
     setTimeout(() => {
         if (!collisionDetected) {
             triggerCollision();
         }
-    }, 4000);
+    }, 7000);
 
     // Event listeners
     document.addEventListener('mousedown', onPortalClick, false);
@@ -512,3 +703,15 @@ function triggerCollision() {
 // }
 
 // applyUniverseScaling verwijderd – universe gebruikt vaste basiswaarden
+
+// === ⭐️ UTIL: STERRENCONTAINER  ==================================================
+function getOrCreateStarsContainer(id, parent, baseStyles) {
+    let el = document.getElementById(id);
+    if (!el) {
+        el = document.createElement('div');
+        el.id = id;
+        Object.assign(el.style, baseStyles);
+        parent.appendChild(el);
+    }
+    return el;
+}
