@@ -259,3 +259,182 @@ label[for="import-file"] {
     width: 27px;
     height: 27px;
 } 
+
+/* Blockchain Hub Button - Rechtsbovenin */
+.blockchain-hub-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  border: 2px solid #ffffff;
+  min-width: 140px;
+  text-align: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  /* Verborgen tot game start */
+  display: none;
+}
+
+.blockchain-hub-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.blockchain-hub-btn .hub-icon {
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.blockchain-hub-btn .hub-label {
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+
+.blockchain-hub-btn .hub-status {
+  font-size: 14px;
+  margin-top: 3px;
+}
+
+/* Blockchain Hub Modal Styles */
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  display: none !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+.modal-overlay[style*="display: flex"] {
+  display: flex !important;
+}
+
+.modal-content {
+  background: white !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  max-width: 90% !important;
+  max-height: 90% !important;
+  overflow-y: auto !important;
+  position: relative !important;
+  z-index: 100000 !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+}
+
+.modal-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 20px !important;
+  padding-bottom: 15px !important;
+  border-bottom: 2px solid #667eea !important;
+}
+
+.modal-header h2 {
+  margin: 0 !important;
+  color: #333 !important;
+  font-size: 24px !important;
+}
+
+.close-btn {
+  background: #ff4757 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 30px !important;
+  height: 30px !important;
+  cursor: pointer !important;
+  font-size: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.close-btn:hover {
+  background: #ff3742 !important;
+}
+
+.modal-body {
+  color: #333 !important;
+}
+
+.blockchain-hub-modal {
+  max-width: 800px;
+  width: 90%;
+}
+
+.hub-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 10px;
+}
+
+.tab-btn {
+  background: #f0f0f0;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  background: #667eea;
+  color: white;
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.dashboard-card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.minting-section, .trading-section, .game-section {
+  padding: 20px;
+}
+
+.minting-section button, .trading-section button, .game-section button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 10px 5px;
+  transition: all 0.3s ease;
+}
+
+.minting-section button:hover, .trading-section button:hover, .game-section button:hover {
+  background: #5a6fd8;
+  transform: translateY(-2px);
+} 
