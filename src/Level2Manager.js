@@ -14,14 +14,14 @@ class Level2Manager {
         this.shapeChoices = [];
         this.isDragging = false;
         this.draggedShape = null;
-        this.dragOffset = new THREE.Vector3();
+        this.dragOffset = null; // Wordt geïnitialiseerd wanneer THREE beschikbaar is
         this.placedShapes = 0;
         this.totalCorners = 8;
         this.levelCompleted = false;
         
         // Raycaster voor drag & drop
-        this.raycaster = new THREE.Raycaster();
-        this.mouse = new THREE.Vector2();
+        this.raycaster = null; // Wordt geïnitialiseerd wanneer THREE beschikbaar is
+        this.mouse = null; // Wordt geïnitialiseerd wanneer THREE beschikbaar is
         
         console.log('🎯 Level2Manager: De Cubus - Initialized');
     }
@@ -33,11 +33,14 @@ class Level2Manager {
         console.log('🚀 Starting Level 2: De Cubus');
         this.isActive = true;
         
+        // Initialize THREE objects safely
+        this.initializeTHREE();
+        
         // Get globals from main game
-        this.scene = window.scene;
-        this.camera = window.camera;
-        this.renderer = window.renderer;
-        this.controls = window.controls;
+        this.scene = window.scene || null;
+        this.camera = window.camera || null;
+        this.renderer = window.renderer || null;
+        this.controls = window.controls || null;
         
         if (!this.scene || !this.camera || !this.renderer) {
             console.error('❌ Scene, camera or renderer not available');
@@ -48,6 +51,22 @@ class Level2Manager {
         this.setupLevel2();
         
         console.log('✅ Level 2: De Cubus started successfully');
+    }
+    
+    // Initialize THREE objects safely
+    initializeTHREE() {
+        try {
+            if (typeof THREE !== 'undefined') {
+                this.dragOffset = new THREE.Vector3();
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+                console.log('✅ THREE objects initialized');
+            } else {
+                console.error('❌ THREE.js not available');
+            }
+        } catch (error) {
+            console.error('❌ Error initializing THREE objects:', error);
+        }
     }
 
     // Setup Level 2 environment

@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔗 SollyCoin Blockchain Test - Wallet & Trading</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #ffd700;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .test-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #ffd700;
+        }
+        
+        .test-section h2 {
+            color: #ffd700;
+            margin-top: 0;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.success { background: rgba(0,255,0,0.3); border: 1px solid #00ff00; }
+        .status.error { background: rgba(255,0,0,0.3); border: 1px solid #ff0000; }
+        .status.info { background: rgba(0,150,255,0.3); border: 1px solid #0096ff; }
+        
+        button {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: #333;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,215,0,0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .wallet-info {
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .contract-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .contract-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        
+        .log {
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .log-entry.info { color: #0096ff; }
+        .log-entry.success { color: #00ff00; }
+        .log-entry.error { color: #ff0000; }
+        .log-entry.warning { color: #ffd700; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 SollyCoin Blockchain Test</h1>
+        <p style="text-align: center; font-size: 1.2em; margin-bottom: 30px;">
+            Test alle blockchain functionaliteit: Wallet connectie, Token minting, NFT minting en Trading
+        </p>
+        
+        <!-- Wallet Connectie Test -->
+        <div class="test-section">
+            <h2>🔐 Wallet Connectie</h2>
+            <div id="wallet-status" class="status info">Wallet niet verbonden</div>
+            <button id="connect-wallet">🔗 Connect Wallet</button>
+            <button id="disconnect-wallet" disabled>🔌 Disconnect Wallet</button>
+            
+            <div id="wallet-info" class="wallet-info" style="display: none;">
+                <strong>Wallet Address:</strong> <span id="wallet-address">-</span><br>
+                <strong>Network:</strong> <span id="wallet-network">-</span><br>
+                <strong>Balance:</strong> <span id="wallet-balance">-</span>
+            </div>
+        </div>
+        
+        <!-- Contract Status Test -->
+        <div class="test-section">
+            <h2>📋 Smart Contract Status</h2>
+            <div class="contract-info">
+                <div class="contract-card">
+                    <h3>🪙 SollyCoin (ERC-20)</h3>
+                    <div id="sollycoin-status" class="status info">Niet geladen</div>
+                    <button id="test-sollycoin" disabled>Test SollyCoin</button>
+                </div>
+                
+                <div class="contract-card">
+                    <h3>🎨 SollyNFT (ERC-721)</h3>
+                    <div id="sollynft-status" class="status info">Niet geladen</div>
+                    <button id="test-sollynft" disabled>Test SollyNFT</button>
+                </div>
+                
+                <div class="contract-card">
+                    <h3>🎮 GameFactory</h3>
+                    <div id="gamefactory-status" class="status info">Niet geladen</div>
+                    <button id="test-gamefactory" disabled>Test GameFactory</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Token Operations Test -->
+        <div class="test-section">
+            <h2>🪙 Token Operations</h2>
+            <div id="token-status" class="status info">Wallet moet verbonden zijn</div>
+            
+            <div style="margin: 15px 0;">
+                <label for="mint-amount">Mint Amount:</label>
+                <input type="number" id="mint-amount" value="100" min="1" max="10000" style="padding: 8px; margin: 0 10px; border-radius: 5px; border: none;">
+                <button id="mint-tokens" disabled>🪙 Mint Tokens</button>
+            </div>
+            
+            <div style="margin: 15px 0;">
+                <label for="transfer-amount">Transfer Amount:</label>
+                <input type="number" id="transfer-amount" value="10" min="1" max="1000" style="padding: 8px; margin: 0 10px; border-radius: 5px; border: none;">
+                <label for="transfer-to">To Address:</label>
+                <input type="text" id="transfer-to" placeholder="0x..." style="padding: 8px; margin: 0 10px; border-radius: 5px; border: none; width: 200px;">
+                <button id="transfer-tokens" disabled>💸 Transfer Tokens</button>
+            </div>
+        </div>
+        
+        <!-- NFT Operations Test -->
+        <div class="test-section">
+            <h2>🎨 NFT Operations</h2>
+            <div id="nft-status" class="status info">Wallet moet verbonden zijn</div>
+            
+            <div style="margin: 15px 0;">
+                <label for="nft-level">NFT Level:</label>
+                <input type="number" id="nft-level" value="1" min="1" max="100" style="padding: 8px; margin: 0 10px; border-radius: 5px; border: none;">
+                <label for="nft-shape">Shape:</label>
+                <select id="nft-shape" style="padding: 8px; margin: 0 10px; border-radius: 5px; border: none;">
+                    <option value="circle">Circle</option>
+                    <option value="square">Square</option>
+                    <option value="triangle">Triangle</option>
+                </select>
+                <button id="mint-nft" disabled>🎨 Mint NFT</button>
+            </div>
+        </div>
+        
+        <!-- Trading Test -->
+        <div class="test-section">
+            <h2>💱 Trading Test</h2>
+            <div id="trading-status" class="status info">Wallet moet verbonden zijn</div>
+            
+            <div style="margin: 15px 0;">
+                <label for="trade-amount">Trade Amount:</label>
+                <input type="number" id="trade-amount" value="50" min="1" max="1000" style="padding: 8px; margin: 0 10px; border-radius: 5px; border: none;">
+                <label for="trade-price">Price (ETH):</label>
+                <input type="number" id="trade-price" value="0.001" min="0.0001" max="1" step="0.0001" style="padding: 8px; margin: 0 10px; border-radius: 5px; border: none;">
+                <button id="create-trade" disabled>📈 Create Trade</button>
+            </div>
+        </div>
+        
+        <!-- Test Log -->
+        <div class="test-section">
+            <h2>📝 Test Log</h2>
+            <div id="test-log" class="log"></div>
+            <button id="clear-log">🗑️ Clear Log</button>
+        </div>
+    </div>
+
+    <!-- Web3 Library -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
+    
+    <!-- Test Script -->
+    <script>
+        class BlockchainTester {
+            constructor() {
+                this.web3 = null;
+                this.contracts = {};
+                this.currentAccount = null;
+                this.currentNetwork = null;
+                this.isConnected = false;
+                
+                this.contractAddresses = {
+                    sollyCoin: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+                    sollyNFT: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+                    gameFactory: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0'
+                };
+                
+                this.setupEventListeners();
+                this.log('🚀 Blockchain Tester geïnitialiseerd', 'info');
+            }
+            
+            setupEventListeners() {
+                document.getElementById('connect-wallet').addEventListener('click', () => this.connectWallet());
+                document.getElementById('disconnect-wallet').addEventListener('click', () => this.disconnectWallet());
+                document.getElementById('test-sollycoin').addEventListener('click', () => this.testSollyCoin());
+                document.getElementById('test-sollynft').addEventListener('click', () => this.testSollyNFT());
+                document.getElementById('test-gamefactory').addEventListener('click', () => this.testGameFactory());
+                document.getElementById('mint-tokens').addEventListener('click', () => this.mintTokens());
+                document.getElementById('transfer-tokens').addEventListener('click', () => this.transferTokens());
+                document.getElementById('mint-nft').addEventListener('click', () => this.mintNFT());
+                document.getElementById('create-trade').addEventListener('click', () => this.createTrade());
+                document.getElementById('clear-log').addEventListener('click', () => this.clearLog());
+            }
+            
+            log(message, type = 'info') {
+                const logDiv = document.getElementById('test-log');
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                logDiv.appendChild(entry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+            
+            clearLog() {
+                document.getElementById('test-log').innerHTML = '';
+            }
+            
+            updateStatus(elementId, message, type = 'info') {
+                const element = document.getElementById(elementId);
+                element.textContent = message;
+                element.className = `status ${type}`;
+            }
+            
+            async connectWallet() {
+                try {
+                    this.log('🔗 Verbinden met wallet...', 'info');
+                    
+                    if (typeof window.ethereum === 'undefined') {
+                        throw new Error('MetaMask niet gevonden! Installeer MetaMask eerst.');
+                    }
+                    
+                    // Request account access
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    this.currentAccount = accounts[0];
+                    
+                    // Create Web3 instance
+                    this.web3 = new Web3(window.ethereum);
+                    
+                    // Get network info
+                    const chainId = await this.web3.eth.getChainId();
+                    this.currentNetwork = this.getNetworkName(chainId);
+                    
+                    this.isConnected = true;
+                    this.updateStatus('wallet-status', '✅ Wallet verbonden!', 'success');
+                    this.updateStatus('token-status', '✅ Klaar voor token operaties', 'success');
+                    this.updateStatus('nft-status', '✅ Klaar voor NFT operaties', 'success');
+                    this.updateStatus('trading-status', '✅ Klaar voor trading', 'success');
+                    
+                    // Update UI
+                    document.getElementById('connect-wallet').disabled = true;
+                    document.getElementById('disconnect-wallet').disabled = false;
+                    document.getElementById('mint-tokens').disabled = false;
+                    document.getElementById('transfer-tokens').disabled = false;
+                    document.getElementById('mint-nft').disabled = false;
+                    document.getElementById('create-trade').disabled = false;
+                    
+                    // Show wallet info
+                    document.getElementById('wallet-info').style.display = 'block';
+                    document.getElementById('wallet-address').textContent = this.currentAccount;
+                    document.getElementById('wallet-network').textContent = this.currentNetwork;
+                    
+                    // Load contracts
+                    await this.loadContracts();
+                    
+                    // Get balance
+                    await this.updateBalance();
+                    
+                    this.log(`✅ Wallet verbonden: ${this.currentAccount} op ${this.currentNetwork}`, 'success');
+                    
+                } catch (error) {
+                    this.log(`❌ Wallet connectie gefaald: ${error.message}`, 'error');
+                    this.updateStatus('wallet-status', `❌ Connectie gefaald: ${error.message}`, 'error');
+                }
+            }
+            
+            async disconnectWallet() {
+                this.isConnected = false;
+                this.currentAccount = null;
+                this.web3 = null;
+                this.contracts = {};
+                
+                this.updateStatus('wallet-status', 'Wallet niet verbonden', 'info');
+                this.updateStatus('token-status', 'Wallet moet verbonden zijn', 'info');
+                this.updateStatus('nft-status', 'Wallet moet verbonden zijn', 'info');
+                this.updateStatus('trading-status', 'Wallet moet verbonden zijn', 'info');
+                
+                // Update UI
+                document.getElementById('connect-wallet').disabled = false;
+                document.getElementById('disconnect-wallet').disabled = true;
+                document.getElementById('mint-tokens').disabled = true;
+                document.getElementById('transfer-tokens').disabled = true;
+                document.getElementById('mint-nft').disabled = true;
+                document.getElementById('create-trade').disabled = true;
+                
+                // Hide wallet info
+                document.getElementById('wallet-info').style.display = 'none';
+                
+                this.log('🔌 Wallet losgekoppeld', 'info');
+            }
+            
+            getNetworkName(chainId) {
+                const networks = {
+                    1: 'Ethereum Mainnet',
+                    137: 'Polygon',
+                    80001: 'Mumbai Testnet',
+                    31337: 'Hardhat Local'
+                };
+                return networks[chainId] || `Chain ID: ${chainId}`;
+            }
+            
+            async loadContracts() {
+                try {
+                    this.log('📋 Laden van smart contracts...', 'info');
+                    
+                    // Load SollyCoin contract
+                    const sollyCoinABI = [
+                        {
+                            "inputs": [{"internalType": "address", "name": "to", "type": "address"}, {"internalType": "uint256", "name": "amount", "type": "uint256"}],
+                            "name": "mint",
+                            "outputs": [],
+                            "stateMutability": "nonpayable",
+                            "type": "function"
+                        },
+                        {
+                            "inputs": [{"internalType": "address", "name": "to", "type": "address"}, {"internalType": "uint256", "name": "amount", "type": "uint256"}],
+                            "name": "transfer",
+                            "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+                            "stateMutability": "nonpayable",
+                            "type": "function"
+                        },
+                        {
+                            "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
+                            "name": "balanceOf",
+                            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                            "stateMutability": "view",
+                            "type": "function"
+                        }
+                    ];
+                    
+                    this.contracts.sollyCoin = new this.web3.eth.Contract(sollyCoinABI, this.contractAddresses.sollyCoin);
+                    this.updateStatus('sollycoin-status', '✅ Geladen', 'success');
+                    document.getElementById('test-sollycoin').disabled = false;
+                    
+                    // Load SollyNFT contract
+                    const sollyNFTABI = [
+                        {
+                            "inputs": [{"internalType": "address", "name": "to", "type": "address"}, {"internalType": "string", "name": "tokenURI", "type": "string"}],
+                            "name": "mint",
+                            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                            "stateMutability": "nonpayable",
+                            "type": "function"
+                        }
+                    ];
+                    
+                    this.contracts.sollyNFT = new this.web3.eth.Contract(sollyNFTABI, this.contractAddresses.sollyNFT);
+                    this.updateStatus('sollynft-status', '✅ Geladen', 'success');
+                    document.getElementById('test-sollynft').disabled = false;
+                    
+                    // Load GameFactory contract
+                    const gameFactoryABI = [
+                        {
+                            "inputs": [{"internalType": "string", "name": "gameName", "type": "string"}],
+                            "name": "createGame",
+                            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                            "stateMutability": "nonpayable",
+                            "type": "function"
+                        }
+                    ];
+                    
+                    this.contracts.gameFactory = new this.web3.eth.Contract(gameFactoryABI, this.contractAddresses.gameFactory);
+                    this.updateStatus('gamefactory-status', '✅ Geladen', 'success');
+                    document.getElementById('test-gamefactory').disabled = false;
+                    
+                    this.log('✅ Alle contracts geladen', 'success');
+                    
+                } catch (error) {
+                    this.log(`❌ Contract laden gefaald: ${error.message}`, 'error');
+                }
+            }
+            
+            async updateBalance() {
+                try {
+                    if (this.contracts.sollyCoin) {
+                        const balance = await this.contracts.sollyCoin.methods.balanceOf(this.currentAccount).call();
+                        const ethBalance = await this.web3.eth.getBalance(this.currentAccount);
+                        
+                        document.getElementById('wallet-balance').innerHTML = `
+                            ${this.web3.utils.fromWei(balance, 'ether')} SOLLY<br>
+                            ${this.web3.utils.fromWei(ethBalance, 'ether')} ETH
+                        `;
+                    }
+                } catch (error) {
+                    this.log(`⚠️ Balance update gefaald: ${error.message}`, 'warning');
+                }
+            }
+            
+            async testSollyCoin() {
+                try {
+                    this.log('🧪 Testen van SollyCoin contract...', 'info');
+                    
+                    const balance = await this.contracts.sollyCoin.methods.balanceOf(this.currentAccount).call();
+                    this.log(`✅ SollyCoin balance: ${this.web3.utils.fromWei(balance, 'ether')} SOLLY`, 'success');
+                    
+                } catch (error) {
+                    this.log(`❌ SollyCoin test gefaald: ${error.message}`, 'error');
+                }
+            }
+            
+            async testSollyNFT() {
+                try {
+                    this.log('🧪 Testen van SollyNFT contract...', 'info');
+                    
+                    // Test basic contract functionality
+                    const code = await this.web3.eth.getCode(this.contractAddresses.sollyNFT);
+                    if (code !== '0x') {
+                        this.log('✅ SollyNFT contract code gevonden', 'success');
+                    } else {
+                        this.log('❌ SollyNFT contract code niet gevonden', 'error');
+                    }
+                    
+                } catch (error) {
+                    this.log(`❌ SollyNFT test gefaald: ${error.message}`, 'error');
+                }
+            }
+            
+            async testGameFactory() {
+                try {
+                    this.log('🧪 Testen van GameFactory contract...', 'info');
+                    
+                    const code = await this.web3.eth.getCode(this.contractAddresses.gameFactory);
+                    if (code !== '0x') {
+                        this.log('✅ GameFactory contract code gevonden', 'success');
+                    } else {
+                        this.log('❌ GameFactory contract code niet gevonden', 'error');
+                    }
+                    
+                } catch (error) {
+                    this.log(`❌ GameFactory test gefaald: ${error.message}`, 'error');
+                }
+            }
+            
+            async mintTokens() {
+                try {
+                    const amount = document.getElementById('mint-amount').value;
+                    const amountWei = this.web3.utils.toWei(amount, 'ether');
+                    
+                    this.log(`🪙 Minten van ${amount} SOLLY tokens...`, 'info');
+                    
+                    const result = await this.contracts.sollyCoin.methods.mint(this.currentAccount, amountWei).send({
+                        from: this.currentAccount,
+                        gas: 200000
+                    });
+                    
+                    this.log(`✅ Tokens gemint! Transaction: ${result.transactionHash}`, 'success');
+                    await this.updateBalance();
+                    
+                } catch (error) {
+                    this.log(`❌ Token minting gefaald: ${error.message}`, 'error');
+                }
+            }
+            
+            async transferTokens() {
+                try {
+                    const amount = document.getElementById('transfer-amount').value;
+                    const toAddress = document.getElementById('transfer-to').value;
+                    const amountWei = this.web3.utils.toWei(amount, 'ether');
+                    
+                    if (!this.web3.utils.isAddress(toAddress)) {
+                        throw new Error('Ongeldig wallet adres');
+                    }
+                    
+                    this.log(`💸 Transfer van ${amount} SOLLY naar ${toAddress}...`, 'info');
+                    
+                    const result = await this.contracts.sollyCoin.methods.transfer(toAddress, amountWei).send({
+                        from: this.currentAccount,
+                        gas: 100000
+                    });
+                    
+                    this.log(`✅ Transfer voltooid! Transaction: ${result.transactionHash}`, 'success');
+                    await this.updateBalance();
+                    
+                } catch (error) {
+                    this.log(`❌ Token transfer gefaald: ${error.message}`, 'error');
+                }
+            }
+            
+            async mintNFT() {
+                try {
+                    const level = document.getElementById('nft-level').value;
+                    const shape = document.getElementById('nft-shape').value;
+                    const tokenURI = `https://api.sollycoin.com/metadata/${Date.now()}`;
+                    
+                    this.log(`🎨 Minten van SollyNFT level ${level}, shape: ${shape}...`, 'info');
+                    
+                    const result = await this.contracts.sollyNFT.methods.mint(this.currentAccount, tokenURI).send({
+                        from: this.currentAccount,
+                        gas: 300000
+                    });
+                    
+                    this.log(`✅ NFT gemint! Transaction: ${result.transactionHash}`, 'success');
+                    
+                } catch (error) {
+                    this.log(`❌ NFT minting gefaald: ${error.message}`, 'error');
+                }
+            }
+            
+            async createTrade() {
+                try {
+                    const amount = document.getElementById('trade-amount').value;
+                    const price = document.getElementById('trade-price').value;
+                    
+                    this.log(`📈 Trade order maken: ${amount} SOLLY voor ${price} ETH...`, 'info');
+                    
+                    // Simulate trade creation (in real app this would interact with DEX contract)
+                    const tradeId = Date.now();
+                    this.log(`✅ Trade order gemaakt! ID: ${tradeId}`, 'success');
+                    
+                } catch (error) {
+                    this.log(`❌ Trade creation gefaald: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        // Initialize tester when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.blockchainTester = new BlockchainTester();
+        });
+    </script>
+</body>
+</html>

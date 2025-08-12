@@ -13,21 +13,14 @@ class CollisionManager {
     this.collisionDetected = false;
     this.explosionParticles = [];
     this.screenShakeActive = false;
-    this.DEBUG = window.DEBUG || false;
     this.vortexActive = false; // Nieuwe variabele voor vortex animatie
-  }
-
-  debugLog(...args) {
-    if (this.DEBUG) {
-      console.log(...args);
-    }
   }
 
   // Hoofdfunctie voor collision trigger
   triggerCollision() {
     if (this.collisionDetected) return;
     
-    this.debugLog('💥 Collision triggered!');
+    console.log('💥 Collision triggered!');
     this.collisionDetected = true;
     
     // Pauzeer beweging
@@ -49,14 +42,14 @@ class CollisionManager {
   }
 
   createCollisionExplosion() {
-    this.debugLog('💥 Starting collision explosion animation!');
+    console.log('💥 Starting collision explosion animation!');
     
     const solly1 = window.solly1;
     if (!solly1) return;
     
     // Bereken explosie positie - gebruik de EXACTE positie van Solly1
     const explosionPos = solly1.position.clone();
-    this.debugLog('💥 Explosie positie:', explosionPos);
+    console.log('💥 Explosie positie:', explosionPos);
     
     // Maak meerdere explosie lagen voor spectaculair effect
     this.createExplosionLayer(explosionPos, 0xFFD700, 50, 800, 800); // Gouden kern
@@ -244,7 +237,7 @@ class CollisionManager {
     const solly1Pos = window.solly1.position;
     const solly1Radius = this._getMeshRadius(window.solly1);
     
-    this.debugLog(`🔍 Checking collision - Solly1 pos: (${solly1Pos.x.toFixed(1)}, ${solly1Pos.z.toFixed(1)}), radius: ${solly1Radius.toFixed(1)}`);
+    console.log(`🔍 Checking collision - Solly1 pos: (${solly1Pos.x.toFixed(1)}, ${solly1Pos.z.toFixed(1)}), radius: ${solly1Radius.toFixed(1)}`);
     
     let bestCollision = null;
     let bestOverlapPct = 0;
@@ -264,7 +257,7 @@ class CollisionManager {
       // Som van radii
       const sumRadii = solly1Radius + miniRadius;
       
-      this.debugLog(`🔍 Mini ${i}: pos (${miniPos.x.toFixed(1)}, ${miniPos.z.toFixed(1)}), radius: ${miniRadius.toFixed(1)}, distance: ${distance2D.toFixed(1)}, sum radii: ${sumRadii.toFixed(1)}`);
+      console.log(`🔍 Mini ${i}: pos (${miniPos.x.toFixed(1)}, ${miniPos.z.toFixed(1)}), radius: ${miniRadius.toFixed(1)}, distance: ${distance2D.toFixed(1)}, sum radii: ${sumRadii.toFixed(1)}`);
       
       // Check of er overlap is
       if (distance2D < sumRadii) {
@@ -286,7 +279,7 @@ class CollisionManager {
           overlapPct = (intersectionArea / minArea) * 100;
         }
         
-        this.debugLog(`💥 OVERLAP DETECTED! Mini ${i}: overlap%: ${overlapPct.toFixed(1)}%`);
+        console.log(`💥 OVERLAP DETECTED! Mini ${i}: overlap%: ${overlapPct.toFixed(1)}%`);
         
         // Alleen collision als overlap >= 60%
         if (overlapPct >= 60) {
@@ -302,17 +295,17 @@ class CollisionManager {
             };
           }
         } else {
-          this.debugLog(`❌ Overlap ${overlapPct.toFixed(1)}% < 60% - GEEN COLLISION`);
+          console.log(`❌ Overlap ${overlapPct.toFixed(1)}% < 60% - GEEN COLLISION`);
         }
       } else {
-        this.debugLog(`❌ Geen overlap - distance ${distance2D.toFixed(1)} >= sum radii ${sumRadii.toFixed(1)}`);
+        console.log(`❌ Geen overlap - distance ${distance2D.toFixed(1)} >= sum radii ${sumRadii.toFixed(1)}`);
       }
     }
     
     // Trigger collision als er een geldige overlap is
     if (bestCollision) {
-      this.debugLog(`🎯 COLLISION TRIGGERED! Mini ${bestCollision.index}: ${bestCollision.overlapPct.toFixed(1)}% overlap`);
-      this.debugLog(`📊 Details: distance=${bestCollision.distance2D.toFixed(1)}, overlap%=${bestCollision.overlapPct.toFixed(1)}%, solly1Radius=${bestCollision.solly1Radius.toFixed(1)}, miniRadius=${bestCollision.miniRadius.toFixed(1)}`);
+      console.log(`🎯 COLLISION TRIGGERED! Mini ${bestCollision.index}: ${bestCollision.overlapPct.toFixed(1)}% overlap`);
+      console.log(`📊 Details: distance=${bestCollision.distance2D.toFixed(1)}, overlap%=${bestCollision.overlapPct.toFixed(1)}%, solly1Radius=${bestCollision.solly1Radius.toFixed(1)}, miniRadius=${bestCollision.miniRadius.toFixed(1)}`);
       
       this.handleMiniSollyCollision(bestCollision.mini, bestCollision.index);
       
@@ -324,7 +317,7 @@ class CollisionManager {
   // Helper om effectieve radius te krijgen voor collision detection
   _getMeshRadius(mesh) {
     if (!mesh || !mesh.geometry) {
-      this.debugLog(`❌ Mesh of geometry ontbreekt voor radius berekening`);
+      console.log(`❌ Mesh of geometry ontbreekt voor radius berekening`);
       return 50; // Fallback radius
     }
     
@@ -337,13 +330,13 @@ class CollisionManager {
     const maxScale = Math.max(mesh.scale.x, mesh.scale.y, mesh.scale.z);
     const radius = mesh.geometry.boundingSphere.radius * maxScale;
     
-    this.debugLog(`📏 Mesh radius: ${radius.toFixed(1)} (scale: ${maxScale.toFixed(1)}, base radius: ${mesh.geometry.boundingSphere.radius.toFixed(1)})`);
+    console.log(`📏 Mesh radius: ${radius.toFixed(1)} (scale: ${maxScale.toFixed(1)}, base radius: ${mesh.geometry.boundingSphere.radius.toFixed(1)})`);
     
     return radius;
   }
 
   handleMiniSollyCollision(miniSolly, index) {
-    this.debugLog(`💥 Mini Solly collision detected at index ${index}`);
+    console.log(`💥 Mini Solly collision detected at index ${index}`);
     
     // Verberg de mini Solly
     miniSolly.visible = false;
@@ -365,7 +358,7 @@ class CollisionManager {
 
   createKaboomExplosion(position) {
     // Grote KABOOM explosie met meerdere lagen
-    this.debugLog('💥 KABOOM explosie gestart!');
+    console.log('💥 KABOOM explosie gestart!');
     
     // Laag 1: Grote explosie ring
     this.createExplosionLayer(position, 0xFFD700, 0, 400, 800);
@@ -554,7 +547,7 @@ class CollisionManager {
         
         // Stop bij 5 collisions
         if (totalCollisions >= 4) {
-          this.debugLog('🎯 4 collisions bereikt - collision detection gestopt');
+          console.log('🎯 4 collisions bereikt - collision detection gestopt');
           window.collisionDetected = true; // Stop verdere collisions
           
           // Toon automatisch de ShapeChoice modal
@@ -592,19 +585,19 @@ class CollisionManager {
 
   // FORCEER SHAPECHOICE MODAL - voor testing
   forceShowShapeChoiceModal() {
-    this.debugLog('🎨 FORCING ShapeChoice modal to show');
+    console.log('🎨 FORCING ShapeChoice modal to show');
     this.showShapeChoiceModal();
   }
 
   showShapeChoiceModal() {
-    this.debugLog('🎨 Showing ShapeChoice modal after 4 collisions');
+    console.log('🎨 Showing ShapeChoice modal after 4 collisions');
     
     // Zet flag om collisions te blokkeren
     window.shapeChoiceModalOpen = true;
     
     // BEWAAR DE PORTAL - verwijder deze NIET
     // De portal moet blijven bestaan tijdens de shape choice
-    this.debugLog('🔮 Portal wordt bewaard tijdens shape choice');
+    console.log('🔮 Portal wordt bewaard tijdens shape choice');
     
     // Verwijder bestaande modal als die er is
     const existingModal = document.querySelector('.shape-choice-modal');
@@ -779,9 +772,9 @@ class CollisionManager {
   }
 
   handleShapeChoice(shape) {
-    this.debugLog(`🎨 Shape chosen: ${shape}`);
-    this.debugLog(`🔍 DEBUG: Shape parameter type: ${typeof shape}`);
-    this.debugLog(`🔍 DEBUG: Shape parameter value: "${shape}"`);
+    console.log(`🎨 Shape chosen: ${shape}`);
+    console.log(`🔍 DEBUG: Shape parameter type: ${typeof shape}`);
+    console.log(`🔍 DEBUG: Shape parameter value: "${shape}"`);
     
     // Verwijder flag om collisions weer toe te staan
     window.shapeChoiceModalOpen = false;
@@ -807,7 +800,7 @@ class CollisionManager {
     this.createDraggableShapeChoice(shape);
     
     // MAAK PORTAL AAN NA SHAPE CHOICE
-    this.debugLog(`🔮 Creating portal after shape choice with shape: "${shape}"`);
+    console.log(`🔮 Creating portal after shape choice with shape: "${shape}"`);
     this.createShapePortal(shape);
     
     // EXTRA: Maak ook een eenvoudige test portal die gegarandeerd zichtbaar is
@@ -815,13 +808,13 @@ class CollisionManager {
     
     // DEBUG: Check of portal echt bestaat
     setTimeout(() => {
-      this.debugLog('🔍 DEBUG: Checking portal existence...');
+      console.log('🔍 DEBUG: Checking portal existence...');
       if (window.portal) {
-        this.debugLog(`✅ Portal exists: ${window.portal.name}`);
-        this.debugLog(`📍 Portal position: ${window.portal.position.x}, ${window.portal.position.y}, ${window.portal.position.z}`);
-        this.debugLog(`👁️ Portal visible: ${window.portal.visible}`);
+        console.log(`✅ Portal exists: ${window.portal.name}`);
+        console.log(`📍 Portal position: ${window.portal.position.x}, ${window.portal.position.y}, ${window.portal.position.z}`);
+        console.log(`👁️ Portal visible: ${window.portal.visible}`);
       } else {
-        this.debugLog('❌ Portal does not exist!');
+        console.log('❌ Portal does not exist!');
       }
       
       // Check scene objects
@@ -829,16 +822,16 @@ class CollisionManager {
         const portalObjects = window.scene.children.filter(child => 
           child.name && child.name.includes('Portal')
         );
-        this.debugLog(`🔍 Portal objects in scene: ${portalObjects.length}`);
+        console.log(`🔍 Portal objects in scene: ${portalObjects.length}`);
         portalObjects.forEach(obj => {
-          this.debugLog(`  - ${obj.name}: ${obj.position.x}, ${obj.position.y}, ${obj.position.z}`);
+          console.log(`  - ${obj.name}: ${obj.position.x}, ${obj.position.y}, ${obj.position.z}`);
         });
       }
     }, 500); // Check na 0.5 seconde
     
     // START VORTEX ANIMATIE VOOR LEVEL 2
     setTimeout(() => {
-      this.debugLog('🌀 Starting vortex animation before Level 2');
+      console.log('🌀 Starting vortex animation before Level 2');
       if (window.scene) {
         const centerPosition = new THREE.Vector3(0, 0, 0);
         this.startVortexAnimation(centerPosition, null);
@@ -847,7 +840,7 @@ class CollisionManager {
     
     // START LEVEL 2 NA VORTEX
     setTimeout(() => {
-      this.debugLog('🚀 Starting Level 2 after vortex animation');
+      console.log('🚀 Starting Level 2 after vortex animation');
       this.startLevel2AfterShapeChoice(shape);
     }, 6000); // Wacht 6 seconden (vortex duurt 5 seconden)
   }
@@ -857,7 +850,7 @@ class CollisionManager {
   updateSolly1Shape(shape) {
     if (!window.solly1) return;
     
-    this.debugLog(`🎨 Updating Solly1 shape to: ${shape}`);
+    console.log(`🎨 Updating Solly1 shape to: ${shape}`);
     
     // Verwijder oude children (voor zandloper)
     while (window.solly1.children.length > 0) {
@@ -946,7 +939,7 @@ class CollisionManager {
       window.solly1.raycast = THREE.Mesh.prototype.raycast;
     }
     
-    this.debugLog(`🎨 Solly1 shape updated to: ${shape} and positioned in center`);
+    console.log(`🎨 Solly1 shape updated to: ${shape} and positioned in center`);
   }
 
   hideShapeChoiceModal(callback) {
@@ -1006,13 +999,13 @@ class CollisionManager {
   }
 
   createShapePortal(shape) {
-    this.debugLog(`🌀 Creating mystieke portal for: ${shape}`);
+    console.log(`🌀 Creating mystieke portal for: ${shape}`);
     
     if (!window.scene) return;
     
     // Check of er al een actieve portal is
     if (window.portal && window.portalActive) {
-      this.debugLog('🔮 Portal is al actief - geen nieuwe portal aangemaakt');
+      console.log('🔮 Portal is al actief - geen nieuwe portal aangemaakt');
       return;
     }
     
@@ -1049,10 +1042,10 @@ class CollisionManager {
     // MYSTIEKE PORTAL MET VORM-SPECIFIEKE BINNENKANT
     let outerRing, innerRing, clickTarget;
     
-    this.debugLog(`🔍 DEBUG: Switch statement - shape parameter: "${shape}"`);
+    console.log(`🔍 DEBUG: Switch statement - shape parameter: "${shape}"`);
     switch (shape) {
       case 'vierkant':
-        this.debugLog(`🔍 DEBUG: Creating VIERKANTE portal`);
+        console.log(`🔍 DEBUG: Creating VIERKANTE portal`);
         // VIERKANTE PORTAL
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
@@ -1085,7 +1078,7 @@ class CollisionManager {
         break;
         
       case 'zandloper':
-        this.debugLog(`🔍 DEBUG: Creating ZANDLOPER portal`);
+        console.log(`🔍 DEBUG: Creating ZANDLOPER portal`);
         // ZANDLOPER PORTAL (twee piramides op elkaar)
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
@@ -1162,7 +1155,7 @@ class CollisionManager {
         break;
         
       case 'ruit':
-        this.debugLog(`🔍 DEBUG: Creating RUIT portal`);
+        console.log(`🔍 DEBUG: Creating RUIT portal`);
         // RUIT PORTAL (diamant vorm)
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
@@ -1198,7 +1191,7 @@ class CollisionManager {
         
       case 'piramide':
       default:
-        this.debugLog(`🔍 DEBUG: Creating PIRAMIDE portal (default case)`);
+        console.log(`🔍 DEBUG: Creating PIRAMIDE portal (default case)`);
         // PIRAMIDE PORTAL (driehoekige vorm)
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
@@ -1317,16 +1310,16 @@ class CollisionManager {
     window.portal = outerRing;
     window.portalActive = true;
     
-    this.debugLog(`🌀 Mystieke portal created met ${shape} vorm, positioned at vaste locatie (-400, 200, -200)`);
-    this.debugLog(`🔮 Portal toegevoegd aan scene: ${window.scene.children.length} objecten`);
-    this.debugLog(`🎯 Portal positie: ${outerRing.position.x}, ${outerRing.position.y}, ${outerRing.position.z}`);
+    console.log(`🌀 Mystieke portal created met ${shape} vorm, positioned at vaste locatie (-400, 200, -200)`);
+    console.log(`🔮 Portal toegevoegd aan scene: ${window.scene.children.length} objecten`);
+    console.log(`🎯 Portal positie: ${outerRing.position.x}, ${outerRing.position.y}, ${outerRing.position.z}`);
   }
   
   createSimpleTestPortal(shape) {
-    this.debugLog(`🔮 Creating SIMPLE TEST portal for: ${shape}`);
+    console.log(`🔮 Creating SIMPLE TEST portal for: ${shape}`);
     
     if (!window.scene) {
-      this.debugLog('❌ No scene available for simple test portal');
+      console.log('❌ No scene available for simple test portal');
       return;
     }
     
@@ -1406,14 +1399,14 @@ class CollisionManager {
     };
     checkSimpleDrop();
     
-    this.debugLog(`🔮 Simple test portal created at center (0, 0, 0)`);
+    console.log(`🔮 Simple test portal created at center (0, 0, 0)`);
   }
   
   createDraggableShapeChoice(shape) {
-    this.debugLog(`🎨 Creating draggable shape choice for: ${shape}`);
+    console.log(`🎨 Creating draggable shape choice for: ${shape}`);
     
     if (!window.scene) {
-      this.debugLog('❌ No scene available for draggable shape choice');
+      console.log('❌ No scene available for draggable shape choice');
       return;
     }
     
@@ -1461,7 +1454,7 @@ class CollisionManager {
     // Maak het object draggable
     this.makeShapeChoiceDraggable(shapeChoice);
     
-    this.debugLog(`🎨 Draggable shape choice created: ${shape} at position (800, 200, 0)`);
+    console.log(`🎨 Draggable shape choice created: ${shape} at position (800, 200, 0)`);
   }
   
   makeShapeChoiceDraggable(shapeChoice) {
@@ -1540,7 +1533,7 @@ class CollisionManager {
     window.renderer.domElement.addEventListener('mousemove', onMouseMove);
     window.renderer.domElement.addEventListener('mouseup', onMouseUp);
     
-    this.debugLog(`🎨 Shape choice made draggable`);
+    console.log(`🎨 Shape choice made draggable`);
   }
   
   checkShapeChoiceDropOnPortal(shapeChoice) {
@@ -1553,7 +1546,7 @@ class CollisionManager {
       const distance = shapeChoice.position.distanceTo(portal.position);
       
       if (distance < 300) { // Drop threshold
-        this.debugLog(`🎯 Shape choice dropped on portal: ${portal.name}`);
+        console.log(`🎯 Shape choice dropped on portal: ${portal.name}`);
         this.handleShapeChoicePortalDrop(shapeChoice, portal);
         return;
       }
@@ -1561,11 +1554,11 @@ class CollisionManager {
     
     // Als niet op portal gedropt, terug naar originele positie
     shapeChoice.position.copy(shapeChoice.userData.originalPosition);
-    this.debugLog(`🎨 Shape choice returned to original position`);
+    console.log(`🎨 Shape choice returned to original position`);
   }
   
   handleShapeChoicePortalDrop(shapeChoice, portal) {
-    this.debugLog(`🎯 Shape choice dropped on portal - starting portal animation!`);
+    console.log(`🎯 Shape choice dropped on portal - starting portal animation!`);
     
     // Verberg het shape choice object
     shapeChoice.visible = false;
@@ -1575,7 +1568,7 @@ class CollisionManager {
   }
   
   startPortalAnimation(portal) {
-    this.debugLog(`🌀 Starting portal animation!`);
+    console.log(`🌀 Starting portal animation!`);
     
     // Maak portal pulseren
     const pulsePortal = () => {
@@ -1597,13 +1590,13 @@ class CollisionManager {
   }
   
   completePortalAnimation() {
-    this.debugLog(`✅ Portal animation completed - starting Level 2!`);
+    console.log(`✅ Portal animation completed - starting Level 2!`);
     
     // Start Level 2
     if (window.level2Manager) {
       window.level2Manager.startLevel();
     } else {
-      this.debugLog(`❌ Level2Manager not available`);
+      console.log(`❌ Level2Manager not available`);
     }
   }
   
@@ -1627,7 +1620,7 @@ class CollisionManager {
     
     window.scene.add(dropZone);
     
-    this.debugLog('🎯 Portal drop zone aangemaakt voor simpele drag-and-drop');
+    console.log('🎯 Portal drop zone aangemaakt voor simpele drag-and-drop');
     
     // Simpele drop detection - check elke frame
     const checkDrop = () => {
@@ -1657,7 +1650,7 @@ class CollisionManager {
   }
   
   handlePortalDrop(portalRing, shapeMesh) {
-    this.debugLog('🎯 Solly1 dropped on mystieke portal!');
+    console.log('🎯 Solly1 dropped on mystieke portal!');
 
     // Speciale effecten bij drop
     this.createPortalDropEffect(portalRing.position);
@@ -1705,7 +1698,7 @@ class CollisionManager {
     this.startVortexAnimation(portalRing.position.clone(), shapeMesh);
 
     // PORTAL BLIJFT STAAN - verwijder deze NIET
-    this.debugLog('🔮 Portal blijft staan na drop - klaar voor volgende drag-and-drop');
+    console.log('🔮 Portal blijft staan na drop - klaar voor volgende drag-and-drop');
 
     // Reset Solly1 positie voor nieuwe poging (verberg ondertussen)
     if (window.solly1) {
@@ -1921,7 +1914,7 @@ class CollisionManager {
         }
 
         this.vortexActive = false;
-        this.debugLog('🌀 Vortex animatie voltooid – alles verdwenen, alleen ShapeChoice over.');
+        console.log('🌀 Vortex animatie voltooid – alles verdwenen, alleen ShapeChoice over.');
 
         // Vorm centraliseren en zichtbaar maken
         if (shapeMesh) {
@@ -2022,7 +2015,7 @@ class CollisionManager {
 
   // Public methods
   resetCollision() {
-    this.debugLog('🔄 Collision state gereset');
+    console.log('🔄 Collision state gereset');
     this.collisionDetected = false;
     window.collisionDetected = false;
     
@@ -2048,7 +2041,7 @@ class CollisionManager {
 
   // Start Level 2 after shape choice
   startLevel2AfterShapeChoice(shape) {
-    this.debugLog(`🚀 Starting Level 2 after shape choice: ${shape}`);
+    console.log(`🚀 Starting Level 2 after shape choice: ${shape}`);
     
     // Cleanup current game state AFTER vortex animation
     this.cleanupCurrentGameState();
@@ -2104,7 +2097,7 @@ class CollisionManager {
 
   // Cleanup current game state before starting Level 2
   cleanupCurrentGameState() {
-    this.debugLog('🧹 Cleaning up current game state for Level 2');
+    console.log('🧹 Cleaning up current game state for Level 2');
     
     // Reset collision detection
     this.resetCollision();
@@ -2152,7 +2145,7 @@ class CollisionManager {
     // Reset portal state
     window.portalClicked = false;
     
-    this.debugLog('✅ Game state cleaned up for Level 2 (objects hidden, not removed)');
+    console.log('✅ Game state cleaned up for Level 2 (objects hidden, not removed)');
   }
 }
 
