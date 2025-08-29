@@ -14,43 +14,60 @@ class Level2Manager {
         this.shapeChoices = [];
         this.isDragging = false;
         this.draggedShape = null;
-        this.dragOffset = null; // Wordt geïnitialiseerd wanneer THREE beschikbaar is
+        this.dragOffset = null;
         this.placedShapes = 0;
         this.totalCorners = 8;
         this.levelCompleted = false;
         
         // Raycaster voor drag & drop
-        this.raycaster = null; // Wordt geïnitialiseerd wanneer THREE beschikbaar is
-        this.mouse = null; // Wordt geïnitialiseerd wanneer THREE beschikbaar is
+        this.raycaster = null;
+        this.mouse = null;
+        
+        // Performance tracking
+        this.animationFrameId = null;
+        this.lastFrameTime = 0;
+        
+        // Event listener bindings voor proper cleanup
+        this.boundPointerDown = this.onPointerDown.bind(this);
+        this.boundPointerMove = this.onPointerMove.bind(this);
+        this.boundPointerUp = this.onPointerUp.bind(this);
         
         console.log('🎯 Level2Manager: De Cubus - Initialized');
     }
 
     // Start Level 2
     startLevel() {
-        if (this.isActive) return;
-        
-        console.log('🚀 Starting Level 2: De Cubus');
-        this.isActive = true;
-        
-        // Initialize THREE objects safely
-        this.initializeTHREE();
-        
-        // Get globals from main game
-        this.scene = window.scene || null;
-        this.camera = window.camera || null;
-        this.renderer = window.renderer || null;
-        this.controls = window.controls || null;
-        
-        if (!this.scene || !this.camera || !this.renderer) {
-            console.error('❌ Scene, camera or renderer not available');
+        if (this.isActive) {
+            console.log('⚠️ Level 2 is al actief');
             return;
         }
-
-        // Setup Level 2
-        this.setupLevel2();
         
-        console.log('✅ Level 2: De Cubus started successfully');
+        try {
+            console.log('🚀 Starting Level 2: De Cubus');
+            this.isActive = true;
+            
+            // Initialize THREE objects safely
+            this.initializeTHREE();
+            
+            // Get globals from main game
+            this.scene = window.scene || null;
+            this.camera = window.camera || null;
+            this.renderer = window.renderer || null;
+            this.controls = window.controls || null;
+            
+            if (!this.scene || !this.camera || !this.renderer) {
+                throw new Error('Scene, camera or renderer not available');
+            }
+
+            // Setup Level 2
+            this.setupLevel2();
+            
+            console.log('✅ Level 2: De Cubus started successfully');
+        } catch (error) {
+            console.error('❌ Error starting Level 2:', error);
+            this.isActive = false;
+            throw error;
+        }
     }
     
     // Initialize THREE objects safely
@@ -62,52 +79,62 @@ class Level2Manager {
                 this.mouse = new THREE.Vector2();
                 console.log('✅ THREE objects initialized');
             } else {
-                console.error('❌ THREE.js not available');
+                throw new Error('THREE.js not available');
             }
         } catch (error) {
             console.error('❌ Error initializing THREE objects:', error);
+            throw error;
         }
     }
 
     // Setup Level 2 environment
     setupLevel2() {
-        // Cleanup old UI and objects
-        this.cleanupOldUI();
-        this.cleanupOldObjects();
-        
-        // Setup camera for wireframe cube
-        this.setupCamera();
-        
-        // Create Level 2 UI
-        this.createLevel2UI();
-        
-        // Create wireframe cube
-        this.createWireframeCube();
-        
-        // Create shape choices panel
-        this.createShapeChoicesPanel();
-        
-        // Setup event listeners
-        this.setupEventListeners();
-        
-        this.isInitialized = true;
+        try {
+            // Cleanup old UI and objects
+            this.cleanupOldUI();
+            this.cleanupOldObjects();
+            
+            // Setup camera for wireframe cube
+            this.setupCamera();
+            
+            // Create Level 2 UI
+            this.createLevel2UI();
+            
+            // Create wireframe cube
+            this.createWireframeCube();
+            
+            // Create shape choices panel
+            this.createShapeChoicesPanel();
+            
+            // Setup event listeners
+            this.setupEventListeners();
+            
+            this.isInitialized = true;
+        } catch (error) {
+            console.error('❌ Error in setupLevel2:', error);
+            throw error;
+        }
     }
 
     // Cleanup old UI elements
     cleanupOldUI() {
-        // Hide KABOOM counter
-        const kaboomEl = document.getElementById('kaboom-counter');
-        if (kaboomEl) kaboomEl.style.display = 'none';
-
-        // Remove old terminal if exists
-        const oldTerminal = document.getElementById('brutal-terminal');
-        if (oldTerminal) oldTerminal.remove();
+        const elementsToRemove = [
+            'kaboom-counter',
+            'brutal-terminal',
+            'level2-indicator', 
+            'wireframe-counter', 
+            'wireframe-instructions'
+        ];
         
-        // Remove any existing Level 2 UI
-        const existingUI = ['level2-indicator', 'wireframe-counter', 'wireframe-instructions'];
-        existingUI.forEach(id => {
+        elementsToRemove.forEach(id => {
             const element = document.getElementById(id);
-            if (element) element.remove();
+            if (element) {
+                if (id === 'kaboom-counter') {
+                    element.style.display = 'none';
+                } else {
+                    element.remove();
+                }
+            }
         });
     }
 
@@ -115,7 +142,6 @@ class Level2Manager {
     cleanupOldObjects() {
         if (!this.scene) return;
         
-        // Remove all objects except camera and lights
         const objectsToRemove = [];
         this.scene.traverse(obj => {
             if (!obj.isCamera && !obj.isLight && obj !== this.scene) {
@@ -147,70 +173,73 @@ class Level2Manager {
 
     // Create Level 2 UI
     createLevel2UI() {
-        // Level indicator
-        const levelIndicator = document.createElement('div');
-        levelIndicator.id = 'level2-indicator';
-        levelIndicator.style.cssText = `
+        const uiElements = [
+            {
+                id: 'level2-indicator',
+                content: '🎯 LEVEL 2: De Cubus',
+                style: {
+                    top: '20px',
+                    left: '20px',
+                    background: 'linear-gradient(135deg, #8A2BE2, #4B0082)',
+                    border: '2px solid #9370DB'
+                }
+            },
+            {
+                id: 'wireframe-counter',
+                content: `🔗 Geplaatst: ${this.placedShapes}/${this.totalCorners}`,
+                style: {
+                    top: '20px',
+                    right: '20px',
+                    background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)',
+                    border: '2px solid #FF8E53'
+                }
+            },
+            {
+                id: 'wireframe-instructions',
+                content: '🎯 Sleep de shapes naar de hoekpunten van de kubus!',
+                style: {
+                    bottom: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(0, 0, 0, 0.8)',
+                    border: '2px solid #8A2BE2'
+                }
+            }
+        ];
+
+        uiElements.forEach(element => {
+            this.createUIElement(element);
+        });
+    }
+
+    // Create individual UI element
+    createUIElement(config) {
+        const element = document.createElement('div');
+        element.id = config.id;
+        
+        const baseStyle = `
             position: fixed;
-            top: 20px;
-            left: 20px;
             padding: 15px 25px;
-            background: linear-gradient(135deg, #8A2BE2, #4B0082);
             color: white;
             border-radius: 10px;
             font-family: 'Open Sans', sans-serif;
             font-weight: bold;
             font-size: 18px;
             z-index: 10000;
-            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
-            border: 2px solid #9370DB;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         `;
-        levelIndicator.innerHTML = '🎯 LEVEL 2: De Cubus';
-        document.body.appendChild(levelIndicator);
+        
+        element.style.cssText = baseStyle + this.styleObjectToString(config.style);
+        element.innerHTML = config.content;
+        
+        document.body.appendChild(element);
+    }
 
-        // Counter
-        const counter = document.createElement('div');
-        counter.id = 'wireframe-counter';
-        counter.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-            color: white;
-            border-radius: 10px;
-            font-family: 'Open Sans', sans-serif;
-            font-weight: bold;
-            font-size: 18px;
-            z-index: 10000;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-            border: 2px solid #FF8E53;
-        `;
-        counter.innerHTML = `🔗 Geplaatst: ${this.placedShapes}/${this.totalCorners}`;
-        document.body.appendChild(counter);
-
-        // Instructions
-        const instructions = document.createElement('div');
-        instructions.id = 'wireframe-instructions';
-        instructions.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 15px 25px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            border-radius: 10px;
-            font-family: 'Open Sans', sans-serif;
-            font-size: 16px;
-            z-index: 10000;
-            text-align: center;
-            border: 2px solid #8A2BE2;
-        `;
-        instructions.innerHTML = '🎯 Sleep de shapes naar de hoekpunten van de kubus!';
-        document.body.appendChild(instructions);
-
-
+    // Convert style object to CSS string
+    styleObjectToString(styleObj) {
+        return Object.entries(styleObj)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join('; ');
     }
 
     // Create wireframe cube
@@ -244,9 +273,9 @@ class Level2Manager {
             this.wireframeCube.add(cornerPoint);
         });
 
-        // Rotate cube: 45 degrees around Y-axis, then 20 degrees up (10 more)
+        // Rotate cube: 45 degrees around Y-axis, then 20 degrees up
         this.wireframeCube.rotation.y = Math.PI / 4; // 45 degrees
-        this.wireframeCube.rotation.x = Math.PI / 9; // 20 degrees up (was 10)
+        this.wireframeCube.rotation.x = Math.PI / 9; // 20 degrees up
 
         this.scene.add(this.wireframeCube);
     }
@@ -292,9 +321,9 @@ class Level2Manager {
         // Create 8 shape choices
         const shapes = Array(8).fill(currentShape);
         
-        // Panel configuration - Block with border and margin from edge
+        // Panel configuration
         const panelConfig = {
-            baseX: -1600,  // Left with margin from edge
+            baseX: -1600,
             baseY: 400,
             shapeSize: 80,
             gapX: 120,
@@ -382,8 +411,8 @@ class Level2Manager {
         ]);
         
         const frameMaterial = new THREE.LineBasicMaterial({ 
-            color: 0xFF6B6B, // Orange border to match UI
-            linewidth: 4 // Thicker border
+            color: 0xFF6B6B,
+            linewidth: 4
         });
         
         const frame = new THREE.Line(frameGeometry, frameMaterial);
@@ -409,12 +438,10 @@ class Level2Manager {
         if (!this.renderer) return;
         
         // Pointer events for drag & drop
-        this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown.bind(this));
-        this.renderer.domElement.addEventListener('pointermove', this.onPointerMove.bind(this));
-        this.renderer.domElement.addEventListener('pointerup', this.onPointerUp.bind(this));
+        this.renderer.domElement.addEventListener('pointerdown', this.boundPointerDown);
+        this.renderer.domElement.addEventListener('pointermove', this.boundPointerMove);
+        this.renderer.domElement.addEventListener('pointerup', this.boundPointerUp);
     }
-
-
 
     // Pointer down event
     onPointerDown(event) {
@@ -524,32 +551,36 @@ class Level2Manager {
 
     // Place shape on corner
     placeShapeOnCorner(shapeChoice, corner) {
-        // Clone shape for placement
-        const placedShape = shapeChoice.clone();
-        placedShape.position.copy(corner.position);
-        placedShape.userData.isPlaced = true;
-        placedShape.userData.cornerIndex = corner.userData.cornerIndex;
-        
-        // Add to scene
-        this.scene.add(placedShape);
-        
-        // Mark corner as occupied
-        corner.userData.isOccupied = true;
-        corner.visible = false; // Hide corner indicator
-        
-        // Hide original shape choice
-        shapeChoice.visible = false;
-        
-        // Update counter
-        this.placedShapes++;
-        this.updateCounter();
-        
-        // Check completion
-        if (this.placedShapes >= this.totalCorners) {
-            this.completeLevel();
+        try {
+            // Clone shape for placement
+            const placedShape = shapeChoice.clone();
+            placedShape.position.copy(corner.position);
+            placedShape.userData.isPlaced = true;
+            placedShape.userData.cornerIndex = corner.userData.cornerIndex;
+            
+            // Add to scene
+            this.scene.add(placedShape);
+            
+            // Mark corner as occupied
+            corner.userData.isOccupied = true;
+            corner.visible = false; // Hide corner indicator
+            
+            // Hide original shape choice
+            shapeChoice.visible = false;
+            
+            // Update counter
+            this.placedShapes++;
+            this.updateCounter();
+            
+            // Check completion
+            if (this.placedShapes >= this.totalCorners) {
+                this.completeLevel();
+            }
+            
+            console.log(`✅ Shape geplaatst op corner ${corner.userData.cornerIndex}. ${this.placedShapes}/${this.totalCorners} voltooid`);
+        } catch (error) {
+            console.error('❌ Error placing shape:', error);
         }
-        
-        console.log(`✅ Shape geplaatst op corner ${corner.userData.cornerIndex}. ${this.placedShapes}/${this.totalCorners} voltooid`);
     }
 
     // Return shape to original position
@@ -576,71 +607,84 @@ class Level2Manager {
         this.startWhirlEffect();
     }
 
-    // Start whirl effect
+    // Start whirl effect - OPTIMIZED VERSION
     startWhirlEffect() {
         const startTime = performance.now();
         const duration = 3000; // 3 seconds
         
-        const animateWhirl = () => {
-            const elapsed = performance.now() - startTime;
-            const progress = elapsed / duration;
+        // Cancel any existing animation
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
+        
+        const animateWhirl = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
             
             if (progress < 1) {
-                // Rotation effect
-                this.wireframeCube.rotation.x = progress * Math.PI * 4;
-                this.wireframeCube.rotation.y = progress * Math.PI * 4;
-                this.wireframeCube.rotation.z = progress * Math.PI * 2;
+                // Optimized rotation effect
+                const rotationSpeed = progress * Math.PI * 4;
+                this.wireframeCube.rotation.x = rotationSpeed;
+                this.wireframeCube.rotation.y = rotationSpeed;
+                this.wireframeCube.rotation.z = rotationSpeed * 0.5;
                 
-                // Scale effect
+                // Optimized scale effect
                 const scale = 1 + Math.sin(progress * Math.PI * 8) * 0.3;
                 this.wireframeCube.scale.setScalar(scale);
                 
-                // Color pulse effect
-                this.wireframeCube.children.forEach(child => {
-                    if (child.material && child.material.color) {
-                        const hue = (progress * 360) % 360;
-                        child.material.color.setHSL(hue / 360, 1, 0.5);
-                    }
-                });
+                // Optimized color pulse effect - only update every few frames
+                if (currentTime - this.lastFrameTime > 16) { // ~60fps
+                    this.wireframeCube.children.forEach(child => {
+                        if (child.material && child.material.color) {
+                            const hue = (progress * 360) % 360;
+                            child.material.color.setHSL(hue / 360, 1, 0.5);
+                        }
+                    });
+                    this.lastFrameTime = currentTime;
+                }
                 
-                requestAnimationFrame(animateWhirl);
+                this.animationFrameId = requestAnimationFrame(animateWhirl);
             } else {
                 // Level completed - remove cube
                 this.finishLevel();
             }
         };
         
-        animateWhirl();
+        this.animationFrameId = requestAnimationFrame(animateWhirl);
     }
 
     // Finish level
     finishLevel() {
-        // Remove cube
-        if (this.wireframeCube && this.scene) {
-            this.scene.remove(this.wireframeCube);
-        }
-        
-        // Remove shape choices
-        this.shapeChoices.forEach(shape => {
-            if (shape.parent) {
-                shape.parent.remove(shape);
+        try {
+            // Remove cube
+            if (this.wireframeCube && this.scene) {
+                this.scene.remove(this.wireframeCube);
             }
-        });
-        
-        // Remove UI
-        const elements = ['level2-indicator', 'wireframe-counter', 'wireframe-instructions'];
-        elements.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.remove();
-        });
-        
-        // Show completion message
-        this.showCompletionMessage();
-        
-        console.log('✅ Level 2 afgerond!');
-        
-        // Return to main game
-        this.returnToMainGame();
+            
+            // Remove shape choices
+            this.shapeChoices.forEach(shape => {
+                if (shape.parent) {
+                    shape.parent.remove(shape);
+                }
+            });
+            
+            // Remove UI
+            const elements = ['level2-indicator', 'wireframe-counter', 'wireframe-instructions'];
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.remove();
+            });
+            
+            // Show completion message
+            this.showCompletionMessage();
+            
+            console.log('✅ Level 2 afgerond!');
+            
+            // Return to main game
+            this.returnToMainGame();
+        } catch (error) {
+            console.error('❌ Error finishing level:', error);
+        }
     }
 
     // Show completion message
@@ -668,84 +712,115 @@ class Level2Manager {
         
         // Remove after 3 seconds
         setTimeout(() => {
-            message.remove();
+            if (message.parentNode) {
+                message.remove();
+            }
         }, 3000);
     }
 
     // Return to main game
     returnToMainGame() {
-        // Re-enable camera controls
-        if (this.controls) {
-            this.controls.enabled = true;
-            this.controls.enableZoom = true;
-            this.controls.enablePan = true;
-            this.controls.enableRotate = true;
+        try {
+            // Re-enable camera controls
+            if (this.controls) {
+                this.controls.enabled = true;
+                this.controls.enableZoom = true;
+                this.controls.enablePan = true;
+                this.controls.enableRotate = true;
+            }
+            
+            // Show KABOOM counter again
+            const kaboomCounter = document.getElementById('kaboom-counter');
+            if (kaboomCounter) {
+                kaboomCounter.style.display = 'block';
+            }
+            
+            // Reset camera to main game position
+            if (this.camera) {
+                this.camera.position.set(0, 1000, 4000);
+                this.camera.lookAt(0, 0, 0);
+            }
+            
+            // Restart main game objects
+            this.restartMainGame();
+            
+            this.isActive = false;
+            this.isInitialized = false;
+        } catch (error) {
+            console.error('❌ Error returning to main game:', error);
         }
-        
-        // Show KABOOM counter again
-        const kaboomCounter = document.getElementById('kaboom-counter');
-        if (kaboomCounter) {
-            kaboomCounter.style.display = 'block';
-        }
-        
-        // Reset camera to main game position
-        if (this.camera) {
-            this.camera.position.set(0, 1000, 4000);
-            this.camera.lookAt(0, 0, 0);
-        }
-        
-        // Restart main game objects
-        this.restartMainGame();
-        
-        this.isActive = false;
-        this.isInitialized = false;
     }
 
     // Restart main game objects
     restartMainGame() {
         if (!this.scene) return;
         
-        // Re-add galaxy components
-        if (typeof addGalaxyShells === 'function') addGalaxyShells(this.scene);
-        if (typeof addGalaxyStars === 'function') addGalaxyStars(this.scene);
-        if (typeof addSollySun === 'function') addSollySun(this.scene);
-        
-        // Re-add game objects
-        if (typeof addPlanets === 'function') addPlanets(this.scene);
-        if (typeof addSollys === 'function') addSollys(this.scene);
-        if (typeof addWhiteStars === 'function') addWhiteStars(this.scene);
-        if (typeof addSolly1AndSolly2 === 'function') addSolly1AndSolly2(this.scene);
+        try {
+            // Re-add galaxy components
+            if (typeof addGalaxyShells === 'function') addGalaxyShells(this.scene);
+            if (typeof addGalaxyStars === 'function') addGalaxyStars(this.scene);
+            if (typeof addSollySun === 'function') addSollySun(this.scene);
+            
+            // Re-add game objects
+            if (typeof addPlanets === 'function') addPlanets(this.scene);
+            if (typeof addSollys === 'function') addSollys(this.scene);
+            if (typeof addWhiteStars === 'function') addWhiteStars(this.scene);
+            if (typeof addSolly1AndSolly2 === 'function') addSolly1AndSolly2(this.scene);
+        } catch (error) {
+            console.error('❌ Error restarting main game:', error);
+        }
     }
 
-    // Cleanup Level 2
+    // Cleanup Level 2 - IMPROVED VERSION
     cleanup() {
-        // Remove event listeners
-        if (this.renderer) {
-            this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown.bind(this));
-            this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove.bind(this));
-            this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp.bind(this));
-        }
-        
-        // Remove objects
-        if (this.wireframeCube && this.scene) {
-            this.scene.remove(this.wireframeCube);
-        }
-        
-        this.shapeChoices.forEach(shape => {
-            if (shape.parent) {
-                shape.parent.remove(shape);
+        try {
+            // Cancel any running animations
+            if (this.animationFrameId) {
+                cancelAnimationFrame(this.animationFrameId);
+                this.animationFrameId = null;
             }
-        });
-        
-        // Remove UI
-        const elements = ['level2-indicator', 'wireframe-counter', 'wireframe-instructions'];
-        elements.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.remove();
-        });
-        
-        this.isActive = false;
-        this.isInitialized = false;
+            
+            // Remove event listeners using bound functions
+            if (this.renderer) {
+                this.renderer.domElement.removeEventListener('pointerdown', this.boundPointerDown);
+                this.renderer.domElement.removeEventListener('pointermove', this.boundPointerMove);
+                this.renderer.domElement.removeEventListener('pointerup', this.boundPointerUp);
+            }
+            
+            // Remove objects
+            if (this.wireframeCube && this.scene) {
+                this.scene.remove(this.wireframeCube);
+                this.wireframeCube = null;
+            }
+            
+            // Clear arrays
+            this.shapeChoices.forEach(shape => {
+                if (shape.parent) {
+                    shape.parent.remove(shape);
+                }
+            });
+            this.shapeChoices = [];
+            this.cornerPoints = [];
+            
+            // Remove UI
+            const elements = ['level2-indicator', 'wireframe-counter', 'wireframe-instructions'];
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.remove();
+            });
+            
+            // Reset state
+            this.isActive = false;
+            this.isInitialized = false;
+            this.isDragging = false;
+            this.draggedShape = null;
+            this.placedShapes = 0;
+            this.levelCompleted = false;
+            
+            console.log('🧹 Level2Manager cleanup completed');
+        } catch (error) {
+            console.error('❌ Error during cleanup:', error);
+        }
     }
 }
 
