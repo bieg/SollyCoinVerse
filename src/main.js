@@ -48,68 +48,7 @@ let portalScale = 1.0;
 let portalMovement = { time: 0, radius: 8000, speed: 0.02 };
 let portalAnimating = false;
 
-// Import file handler
-document.getElementById('import-file').onchange = function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-        try {
-            const json = JSON.parse(evt.target.result);
-            function isValidSollyCoin(obj) {
-                if (!obj || typeof obj !== 'object') return false;
-                if (typeof obj.level !== 'string') return false;
-                if (!obj.sterren || typeof obj.sterren.wit !== 'number') return false;
-                if (!obj.planeten || typeof obj.planeten.rood !== 'number') return false;
-                if (!obj.sollys || typeof obj.sollys !== 'object') return false;
-                if (typeof obj.sollys.geel !== 'number') return false;
-                if (typeof obj.sollys.blauw !== 'number') return false;
-                if (typeof obj.sollys.pink !== 'number') return false;
-                if (typeof obj.sollys.rood !== 'number') return false;
-                return true;
-            }
-            if (!isValidSollyCoin(json)) {
-                throw new Error('Structuur van het JSON-bestand klopt niet met de SollyCoin-specificatie.');
-            }
-            sollyConfig = json;
-            document.getElementById('import-error').style.display = 'none';
-            
-            // DIRECT STARTEN MET GEÏMPORTEERDE COIN - GEEN STAR WARS
-            console.log('🪙 SollyCoin geïmporteerd - direct starten zonder Star Wars');
-            startscreen.style.display = 'none';
-            starwarsIntro.style.display = 'none';
-            initSollyverse();
-        } catch (err) {
-            document.getElementById('import-error').textContent = 'Ongeldig SollyCoin JSON-bestand! (' + err.message + ')';
-            document.getElementById('import-error').style.display = 'block';
-            startscreen.style.display = 'flex';
-            starwarsIntro.style.display = 'none';
-        }
-    };
-    reader.readAsText(file);
-};
-
-// Connect Wallet button handler
-const connectWalletBtn = document.getElementById('connect-wallet-btn');
-if (connectWalletBtn) {
-    connectWalletBtn.onclick = async function() {
-        if (!web3Manager) {
-            web3Manager = new Web3Manager();
-            const initialized = await web3Manager.initialize();
-            if (!initialized) {
-                alert('Geen wallet provider gevonden (installeer MetaMask).');
-                return;
-            }
-        }
-        try {
-            const account = await web3Manager.connectWallet();
-            alert('Wallet verbonden: ' + account);
-        } catch (err) {
-            console.error('Wallet verbinden mislukt:', err);
-            alert('Wallet verbinden mislukt!');
-        }
-    };
-}
+// Import en wallet functionaliteit verwijderd - alleen Start button blijft
 
 // Start button handler
 document.getElementById('start-btn').onclick = function() {
