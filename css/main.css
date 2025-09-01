@@ -56,15 +56,15 @@ canvas {
 }
 
 #start-btn {
-    font-size: 2em; 
-    padding: 0.6em 2em; 
-    border-radius: 18px;
+    font-size: 1.4em; 
+    padding: 0.5em 1.8em; 
+    border-radius: 12px;
     background: linear-gradient(90deg, #FFD700 0%, #8A2BE2 100%);
     color: #232346; 
     border: none; 
     cursor: pointer; 
     font-weight: bold;
-    box-shadow: 0 4px 24px #8A2BE288;
+    box-shadow: 0 4px 20px #8A2BE288;
     transition: background 0.2s, color 0.2s, transform 0.15s;
 }
 
