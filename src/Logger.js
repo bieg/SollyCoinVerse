@@ -39,13 +39,8 @@ if (typeof window !== 'undefined') {
   window.logger = logger;
   // Houd compatibiliteit met bestaande console.log door door te verwijzen
   window.log = (...args) => logger.debug(...args);
-  ['debug', 'info', 'warn', 'error'].forEach(fn => {
-    const original = console[fn].bind(console);
-    console[fn] = (...args) => {
-      logger[fn](...args);
-      original(...args); // behouden originele output
-    };
-  });
+  // Verwijder de console override om infinite loop te voorkomen
+  // Logger wordt alleen gebruikt via window.logger
 }
 
 if (typeof module !== 'undefined' && module.exports) {
