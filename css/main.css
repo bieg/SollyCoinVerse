@@ -224,13 +224,28 @@ label[for="import-file"] {
 .info-box {
     max-width: 480px; 
     margin: 0 auto; 
-    font-size: 1.2em; 
     color: #232346; 
     background: #fffbe6cc; 
     border-radius: 16px; 
     padding: 18px 24px; 
     box-shadow: 0 2px 12px #FFD70044;
+}
+
+.info-box h2 {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    font-size: 1.4em;
+    margin: 0 0 12px 0;
+    color: #232346;
+}
+
+.info-box p {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: normal;
+    font-size: 1.1em;
+    line-height: 1.5;
+    margin: 0;
+    color: #232346;
 }
 
 #drop-pane-overlay {
