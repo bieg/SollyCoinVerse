@@ -16,39 +16,23 @@ class Logger {
   }
 
   debug(...args) {
-    if (this._shouldLog('debug')) {
-      // Gebruik window.console om infinite loop te voorkomen
-      if (window.console && window.console.debug) {
-        window.console.debug('🐛', ...args);
-      }
-    }
+    // Tijdelijk uitgeschakeld om infinite loop te voorkomen
+    return;
   }
 
   info(...args) {
-    if (this._shouldLog('info')) {
-      // Gebruik window.console om infinite loop te voorkomen
-      if (window.console && window.console.info) {
-        window.console.info('ℹ️', ...args);
-      }
-    }
+    // Tijdelijk uitgeschakeld om infinite loop te voorkomen
+    return;
   }
 
   warn(...args) {
-    if (this._shouldLog('warn')) {
-      // Gebruik window.console om infinite loop te voorkomen
-      if (window.console && window.console.warn) {
-        window.console.warn('⚠️', ...args);
-      }
-    }
+    // Tijdelijk uitgeschakeld om infinite loop te voorkomen
+    return;
   }
 
   error(...args) {
-    if (this._shouldLog('error')) {
-      // Gebruik window.console om infinite loop te voorkomen
-      if (window.console && window.console.error) {
-        window.console.error('❌', ...args);
-      }
-    }
+    // Tijdelijk uitgeschakeld om infinite loop te voorkomen
+    return;
   }
 }
 
@@ -57,9 +41,7 @@ const logger = new Logger('debug');
 
 if (typeof window !== 'undefined') {
   window.logger = logger;
-  // Houd compatibiliteit met bestaande console.log door door te verwijzen
-  window.log = (...args) => logger.debug(...args);
-  // Verwijder de console override om infinite loop te voorkomen
+  // Verwijder alle console overrides om infinite loop te voorkomen
   // Logger wordt alleen gebruikt via window.logger
 }
 
@@ -67,5 +49,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = logger;
 }
 
-logger.info('Logger initialised');
+// Gebruik window.console direct voor init logging
+if (window.console && window.console.info) {
+  window.console.info('ℹ️ Logger initialised');
+}
 
