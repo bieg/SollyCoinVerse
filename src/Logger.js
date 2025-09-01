@@ -16,19 +16,39 @@ class Logger {
   }
 
   debug(...args) {
-    if (this._shouldLog('debug')) console.debug('🐛', ...args);
+    if (this._shouldLog('debug')) {
+      // Gebruik window.console om infinite loop te voorkomen
+      if (window.console && window.console.debug) {
+        window.console.debug('🐛', ...args);
+      }
+    }
   }
 
   info(...args) {
-    if (this._shouldLog('info')) console.info('ℹ️', ...args);
+    if (this._shouldLog('info')) {
+      // Gebruik window.console om infinite loop te voorkomen
+      if (window.console && window.console.info) {
+        window.console.info('ℹ️', ...args);
+      }
+    }
   }
 
   warn(...args) {
-    if (this._shouldLog('warn')) console.warn('⚠️', ...args);
+    if (this._shouldLog('warn')) {
+      // Gebruik window.console om infinite loop te voorkomen
+      if (window.console && window.console.warn) {
+        window.console.warn('⚠️', ...args);
+      }
+    }
   }
 
   error(...args) {
-    if (this._shouldLog('error')) console.error('❌', ...args);
+    if (this._shouldLog('error')) {
+      // Gebruik window.console om infinite loop te voorkomen
+      if (window.console && window.console.error) {
+        window.console.error('❌', ...args);
+      }
+    }
   }
 }
 
