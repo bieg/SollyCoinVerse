@@ -435,6 +435,30 @@ label[for="import-file"] {
   border: 1px solid #e9ecef;
 }
 
+.dashboard-card select {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #667eea;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  margin: 10px 0;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.dashboard-card select:focus {
+  outline: none;
+  border-color: #764ba2;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.dashboard-card select option {
+  padding: 10px;
+  background: white;
+  color: #333;
+}
+
 .minting-section, .trading-section, .game-section {
   padding: 20px;
 }

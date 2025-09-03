@@ -59,6 +59,16 @@
                   <p id="wallet-status">Niet verbonden</p>
                 </div>
                 <div class="dashboard-card">
+                  <h3>🪙 Coin Selectie</h3>
+                  <select id="coin-selector" onchange="switchCoin()">
+                    <option value="solly">🪙 SollyCoin (SOLLY)</option>
+                    <option value="bitcoin">₿ Bitcoin (BTC)</option>
+                    <option value="ethereum">Ξ Ethereum (ETH)</option>
+                    <option value="polygon">⬟ Polygon (MATIC)</option>
+                  </select>
+                  <p id="selected-coin-info">Geselecteerd: SollyCoin</p>
+                </div>
+                <div class="dashboard-card">
                   <h3>💰 Balances</h3>
                   <p id="token-balance">0 SOLLY</p>
                   <p id="nft-count">0 NFT's</p>
@@ -140,6 +150,44 @@
           modal.style.display = 'none';
           console.log('✅ Modal wordt nu verborgen');
         }
+      }
+      
+      // Coin selection functionality
+      function switchCoin() {
+        const selector = document.getElementById('coin-selector');
+        const coinInfo = document.getElementById('selected-coin-info');
+        const tokenBalance = document.getElementById('token-balance');
+        
+        if (!selector || !coinInfo || !tokenBalance) {
+          console.error('❌ Coin selector elements niet gevonden');
+          return;
+        }
+        
+        const selectedCoin = selector.value;
+        const coinNames = {
+          'solly': 'SollyCoin',
+          'bitcoin': 'Bitcoin',
+          'ethereum': 'Ethereum',
+          'polygon': 'Polygon'
+        };
+        
+        const coinSymbols = {
+          'solly': 'SOLLY',
+          'bitcoin': 'BTC',
+          'ethereum': 'ETH',
+          'polygon': 'MATIC'
+        };
+        
+        // Update UI
+        coinInfo.textContent = `Geselecteerd: ${coinNames[selectedCoin]}`;
+        tokenBalance.textContent = `0 ${coinSymbols[selectedCoin]}`;
+        
+        console.log(`🪙 Coin gewisseld naar: ${coinNames[selectedCoin]} (${coinSymbols[selectedCoin]})`);
+        
+        // TODO: Implementeer daadwerkelijke coin switching logic
+        // - Update wallet connection
+        // - Fetch nieuwe balances
+        // - Update UI voor geselecteerde coin
       }
       
       function mintTokens() {
