@@ -67,6 +67,10 @@
                     <option value="polygon">⬟ Polygon (MATIC)</option>
                   </select>
                   <p id="selected-coin-info">Geselecteerd: SollyCoin</p>
+                  <button id="activate-coin-btn" onclick="activateCoin()" class="activate-btn">
+                    🚀 Activeer Coin
+                  </button>
+                  <p id="coin-status">Status: Niet geactiveerd</p>
                 </div>
                 <div class="dashboard-card">
                   <h3>💰 Balances</h3>
@@ -188,6 +192,41 @@
         // - Update wallet connection
         // - Fetch nieuwe balances
         // - Update UI voor geselecteerde coin
+      }
+      
+      // Coin activation functionality
+      function activateCoin() {
+        const selector = document.getElementById('coin-selector');
+        const coinStatus = document.getElementById('coin-status');
+        const activateBtn = document.getElementById('activate-coin-btn');
+        
+        if (!selector || !coinStatus || !activateBtn) {
+          console.error('❌ Coin activation elements niet gevonden');
+          return;
+        }
+        
+        const selectedCoin = selector.value;
+        const coinNames = {
+          'solly': 'SollyCoin',
+          'bitcoin': 'Bitcoin',
+          'ethereum': 'Ethereum',
+          'polygon': 'Polygon'
+        };
+        
+        // Update UI
+        coinStatus.textContent = `Status: ${coinNames[selectedCoin]} geactiveerd!`;
+        coinStatus.style.color = '#28a745';
+        activateBtn.textContent = '✅ Geactiveerd';
+        activateBtn.style.background = '#28a745';
+        activateBtn.disabled = true;
+        
+        console.log(`🚀 Coin geactiveerd: ${coinNames[selectedCoin]}`);
+        
+        // TODO: Implementeer daadwerkelijke coin activation logic
+        // - Connect to blockchain network
+        // - Initialize wallet for selected coin
+        // - Fetch real balances
+        // - Enable trading/minting for this coin
       }
       
       function mintTokens() {
