@@ -59,12 +59,16 @@
                 <div class="dashboard-card">
                   <h3>🪙 Coin Selectie</h3>
                   <select id="coin-selector" onchange="switchCoin()">
-                    <option value="solly">🪙 SollyCoin (SOLLY)</option>
+                    <option value="solly-default">🪙 SollyCoin Default (SOLLY)</option>
+                    <option value="solly-level1">🪙 SollyCoin Level 1 (SOLLY)</option>
+                    <option value="solly-level2">🪙 SollyCoin Level 2 (SOLLY)</option>
+                    <option value="solly-level3">🪙 SollyCoin Level 3 (SOLLY)</option>
+                    <option value="solly-master">🪙 SollyCoin Master (SOLLY)</option>
                     <option value="bitcoin">₿ Bitcoin (BTC)</option>
                     <option value="ethereum">Ξ Ethereum (ETH)</option>
                     <option value="polygon">⬟ Polygon (MATIC)</option>
                   </select>
-                  <p id="selected-coin-info">Geselecteerd: SollyCoin</p>
+                  <p id="selected-coin-info">Geselecteerd: SollyCoin Default</p>
                   <button id="activate-coin-btn" onclick="activateCoin()" class="activate-btn">
                     🚀 Activeer Coin
                   </button>
@@ -167,14 +171,22 @@
         
         const selectedCoin = selector.value;
         const coinNames = {
-          'solly': 'SollyCoin',
+          'solly-default': 'SollyCoin Default',
+          'solly-level1': 'SollyCoin Level 1',
+          'solly-level2': 'SollyCoin Level 2',
+          'solly-level3': 'SollyCoin Level 3',
+          'solly-master': 'SollyCoin Master',
           'bitcoin': 'Bitcoin',
           'ethereum': 'Ethereum',
           'polygon': 'Polygon'
         };
         
         const coinSymbols = {
-          'solly': 'SOLLY',
+          'solly-default': 'SOLLY',
+          'solly-level1': 'SOLLY',
+          'solly-level2': 'SOLLY',
+          'solly-level3': 'SOLLY',
+          'solly-master': 'SOLLY',
           'bitcoin': 'BTC',
           'ethereum': 'ETH',
           'polygon': 'MATIC'
@@ -205,7 +217,11 @@
         
         const selectedCoin = selector.value;
         const coinNames = {
-          'solly': 'SollyCoin',
+          'solly-default': 'SollyCoin Default',
+          'solly-level1': 'SollyCoin Level 1',
+          'solly-level2': 'SollyCoin Level 2',
+          'solly-level3': 'SollyCoin Level 3',
+          'solly-master': 'SollyCoin Master',
           'bitcoin': 'Bitcoin',
           'ethereum': 'Ethereum',
           'polygon': 'Polygon'
