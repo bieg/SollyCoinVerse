@@ -25,11 +25,9 @@
     </style>
 </head>
 <body>
-    <!-- Blockchain Hub Button - Rechtsbovenin -->
-    <div id="blockchain-hub-btn" class="blockchain-hub-btn" onclick="showBlockchainHub()">
-      <div class="hub-icon">🔗⚡</div>
-      <div class="hub-label">Blockchain</div>
-      <div class="hub-status" id="hub-status">🔴</div>
+    <!-- Wallet Hub Button - Rechtsbovenin -->
+    <div id="wallet-hub-btn" class="wallet-hub-btn" onclick="showWalletHub()">
+      <div class="hub-label">Wallet</div>
     </div>
 
     <!-- Blockchain Hub Modal -->
@@ -129,8 +127,8 @@
         });
       });
       
-      function showBlockchainHub() {
-        console.log('🔗 Blockchain Hub geopend!');
+      function showWalletHub() {
+        console.log('💳 Wallet Hub geopend!');
         
         // Debug: Check of modal element bestaat
         const modal = document.getElementById('blockchain-hub-modal');
@@ -245,20 +243,20 @@
         alert('🎮 Score conversie functionaliteit komt binnenkort!');
       }
 
-      // Functie om Blockchain Hub knop zichtbaar te maken na game start
-      function showBlockchainHubButton() {
-        const hubBtn = document.getElementById('blockchain-hub-btn');
+      // Functie om Wallet Hub knop zichtbaar te maken na game start
+      function showWalletHubButton() {
+        const hubBtn = document.getElementById('wallet-hub-btn');
         if (hubBtn) {
           hubBtn.style.display = 'block';
-          console.log('🔗 Blockchain Hub knop wordt zichtbaar gemaakt');
+          console.log('💳 Wallet Hub knop wordt zichtbaar gemaakt');
         }
       }
       
       // Luister naar game start events
       document.addEventListener('DOMContentLoaded', () => {
-        // Toon Blockchain Hub knop na 5 seconden (simuleer game start)
+        // Toon Wallet Hub knop na 5 seconden (simuleer game start)
         setTimeout(() => {
-          showBlockchainHubButton();
+          showWalletHubButton();
         }, 5000);
         
         console.log('🔗 Blockchain Hub knop wacht op game start (5 seconden)');
