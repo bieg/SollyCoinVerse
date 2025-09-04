@@ -227,12 +227,24 @@
           'polygon': 'Polygon'
         };
         
+        // Check if already activated
+        if (activateBtn.textContent === '✅ Geactiveerd') {
+          // Show switch confirmation
+          const currentCoin = coinStatus.textContent.split(': ')[1].split(' geactiveerd')[0];
+          const newCoin = coinNames[selectedCoin];
+          
+          if (confirm(`🔄 Wil je wisselen van ${currentCoin} naar ${newCoin}?`)) {
+            switchCoin();
+          }
+          return;
+        }
+        
         // Update UI
         coinStatus.textContent = `Status: ${coinNames[selectedCoin]} geactiveerd!`;
         coinStatus.style.color = '#28a745';
         activateBtn.textContent = '✅ Geactiveerd';
         activateBtn.style.background = '#28a745';
-        activateBtn.disabled = true;
+        activateBtn.disabled = false; // Keep enabled for switching
         
         console.log(`🚀 Coin geactiveerd: ${coinNames[selectedCoin]}`);
         
@@ -241,6 +253,62 @@
         // - Initialize wallet for selected coin
         // - Fetch real balances
         // - Enable trading/minting for this coin
+      }
+      
+      // Enhanced coin switching with reset functionality
+      function switchCoin() {
+        const selector = document.getElementById('coin-selector');
+        const coinInfo = document.getElementById('selected-coin-info');
+        const tokenBalance = document.getElementById('token-balance');
+        const coinStatus = document.getElementById('coin-status');
+        const activateBtn = document.getElementById('activate-coin-btn');
+        
+        if (!selector || !coinInfo || !tokenBalance) {
+          console.error('❌ Coin selector elements niet gevonden');
+          return;
+        }
+        
+        const selectedCoin = selector.value;
+        const coinNames = {
+          'solly-default': 'SollyCoin Default',
+          'solly-level1': 'SollyCoin Level 1',
+          'solly-level2': 'SollyCoin Level 2',
+          'solly-level3': 'SollyCoin Level 3',
+          'solly-master': 'SollyCoin Master',
+          'bitcoin': 'Bitcoin',
+          'ethereum': 'Ethereum',
+          'polygon': 'Polygon'
+        };
+        
+        const coinSymbols = {
+          'solly-default': 'SOLLY',
+          'solly-level1': 'SOLLY',
+          'solly-level2': 'SOLLY',
+          'solly-level3': 'SOLLY',
+          'solly-master': 'SOLLY',
+          'bitcoin': 'BTC',
+          'ethereum': 'ETH',
+          'polygon': 'MATIC'
+        };
+        
+        // Reset activation state
+        if (coinStatus && activateBtn) {
+          coinStatus.textContent = 'Status: Niet geactiveerd';
+          coinStatus.style.color = '#6c757d';
+          activateBtn.textContent = '🚀 Activeer Coin';
+          activateBtn.style.background = '#667eea';
+        }
+        
+        // Update UI
+        coinInfo.textContent = `Geselecteerd: ${coinNames[selectedCoin]}`;
+        tokenBalance.textContent = `0 ${coinSymbols[selectedCoin]}`;
+        
+        console.log(`🪙 Coin gewisseld naar: ${coinNames[selectedCoin]} (${coinSymbols[selectedCoin]})`);
+        
+        // TODO: Implementeer daadwerkelijke coin switching logic
+        // - Update wallet connection
+        // - Fetch nieuwe balances
+        // - Update UI voor geselecteerde coin
       }
       
       function mintTokens() {
