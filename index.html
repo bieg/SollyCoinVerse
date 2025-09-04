@@ -297,10 +297,16 @@
             return;
           }
           
-          // Remove existing game objects
+          // Remove existing game objects (but keep Solly1 and Solly2)
           const objectsToRemove = [];
           scene.traverse((child) => {
-            if (child.userData && child.userData.type) {
+            // Remove planets, stars, and other sollys, but keep Solly1 and Solly2
+            if (child.userData && child.userData.type && 
+                !child.userData.isSolly1 && 
+                child.name !== 'Solly1' && 
+                child.name !== 'Solly1Collider' &&
+                child.name !== 'Solly2' &&
+                child.name !== 'Solly2Collider') {
               objectsToRemove.push(child);
             }
           });
@@ -311,9 +317,9 @@
             if (obj.material) obj.material.dispose();
           });
           
-          console.log(`🗑️ Removed ${objectsToRemove.length} existing objects`);
+          console.log(`🗑️ Removed ${objectsToRemove.length} existing objects (kept Solly1 & Solly2)`);
           
-          // Re-add objects with new coin data
+          // Re-add objects with new coin data (but skip Solly1 & Solly2)
           setTimeout(() => {
             if (typeof addPlanets === 'function') {
               addPlanets(scene);
@@ -327,12 +333,9 @@
               addWhiteStars(scene);
               console.log('⭐ Stars updated');
             }
-            if (typeof addSolly1AndSolly2 === 'function') {
-              addSolly1AndSolly2(scene);
-              console.log('🎯 Solly1 & Solly2 updated');
-            }
+            // Skip addSolly1AndSolly2 - we keep the existing ones
             
-            console.log('✅ Universe updated in place!');
+            console.log('✅ Universe updated in place! (Solly1 & Solly2 preserved)');
           }, 100);
           
         } catch (error) {
