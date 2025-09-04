@@ -248,11 +248,47 @@
         
         console.log(`🚀 Coin geactiveerd: ${coinNames[selectedCoin]}`);
         
-        // TODO: Implementeer daadwerkelijke coin activation logic
-        // - Connect to blockchain network
-        // - Initialize wallet for selected coin
-        // - Fetch real balances
-        // - Enable trading/minting for this coin
+        // Load SollyCoin data and restart universe
+        if (selectedCoin.startsWith('solly-')) {
+          loadSollyCoinData(selectedCoin);
+        } else {
+          // TODO: Implementeer daadwerkelijke coin activation logic voor externe coins
+          // - Connect to blockchain network
+          // - Initialize wallet for selected coin
+          // - Fetch real balances
+          // - Enable trading/minting for this coin
+        }
+      }
+      
+      // Load SollyCoin data and restart universe
+      async function loadSollyCoinData(coinType) {
+        try {
+          const coinFile = coinType.replace('solly-', 'SollyCoin_');
+          const response = await fetch(`/coins/${coinFile}.json`);
+          const coinData = await response.json();
+          
+          console.log(`🪙 Loading SollyCoin data: ${coinFile}`, coinData);
+          
+          // Load coin data into game manager
+          if (window.gameManager) {
+            window.gameManager.loadCoinData(coinData);
+            console.log('✅ SollyCoin data loaded into GameManager');
+            
+            // Restart universe with new coin data
+            if (typeof restartUniverse === 'function') {
+              console.log('🔄 Restarting universe with new SollyCoin data...');
+              restartUniverse();
+            } else {
+              console.log('⚠️ restartUniverse function not available, reloading page...');
+              location.reload();
+            }
+          } else {
+            console.error('❌ GameManager not available');
+          }
+        } catch (error) {
+          console.error('❌ Error loading SollyCoin data:', error);
+          alert('❌ Fout bij laden van SollyCoin data: ' + error.message);
+        }
       }
       
       // Enhanced coin switching with reset functionality
