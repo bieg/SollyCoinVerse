@@ -260,7 +260,7 @@
         }
       }
       
-      // Load SollyCoin data and restart universe
+      // Load SollyCoin data and update universe in place
       async function loadSollyCoinData(coinType) {
         try {
           const coinFile = coinType.replace('solly-', 'SollyCoin_');
@@ -274,20 +274,69 @@
             window.gameManager.loadCoinData(coinData);
             console.log('✅ SollyCoin data loaded into GameManager');
             
-            // Restart universe with new coin data
-            if (typeof restartUniverse === 'function') {
-              console.log('🔄 Restarting universe with new SollyCoin data...');
-              restartUniverse();
-            } else {
-              console.log('⚠️ restartUniverse function not available, reloading page...');
-              location.reload();
-            }
+            // Update universe in place without restart
+            updateUniverseInPlace(coinData);
           } else {
             console.error('❌ GameManager not available');
           }
         } catch (error) {
           console.error('❌ Error loading SollyCoin data:', error);
           alert('❌ Fout bij laden van SollyCoin data: ' + error.message);
+        }
+      }
+      
+      // Update universe in place without restarting
+      function updateUniverseInPlace(coinData) {
+        try {
+          console.log('🔄 Updating universe in place with new coin data...');
+          
+          // Get current scene
+          const scene = window.scene;
+          if (!scene) {
+            console.error('❌ Scene not available');
+            return;
+          }
+          
+          // Remove existing game objects
+          const objectsToRemove = [];
+          scene.traverse((child) => {
+            if (child.userData && child.userData.type) {
+              objectsToRemove.push(child);
+            }
+          });
+          
+          objectsToRemove.forEach(obj => {
+            scene.remove(obj);
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) obj.material.dispose();
+          });
+          
+          console.log(`🗑️ Removed ${objectsToRemove.length} existing objects`);
+          
+          // Re-add objects with new coin data
+          setTimeout(() => {
+            if (typeof addPlanets === 'function') {
+              addPlanets(scene);
+              console.log('🪐 Planets updated');
+            }
+            if (typeof addSollys === 'function') {
+              addSollys(scene);
+              console.log('🪙 Sollys updated');
+            }
+            if (typeof addWhiteStars === 'function') {
+              addWhiteStars(scene);
+              console.log('⭐ Stars updated');
+            }
+            if (typeof addSolly1AndSolly2 === 'function') {
+              addSolly1AndSolly2(scene);
+              console.log('🎯 Solly1 & Solly2 updated');
+            }
+            
+            console.log('✅ Universe updated in place!');
+          }, 100);
+          
+        } catch (error) {
+          console.error('❌ Error updating universe:', error);
         }
       }
       
