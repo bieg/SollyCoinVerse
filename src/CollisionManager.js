@@ -810,10 +810,10 @@ class CollisionManager {
   pullUniverseToCenter(callback) {
     console.log('🌀 Pulling universe to center...');
     
-    const duration = 1500; // 1.5 seconds
+    const duration = 1200; // 1.2 seconds (shorter)
     const startTime = performance.now();
     const startPosition = window.camera.position.clone();
-    const targetPosition = new THREE.Vector3(0, 0, 1000); // Center with distance
+    const targetPosition = new THREE.Vector3(0, 0, 800); // Closer to center, less dramatic
     
     // Store original positions of all objects
     const objects = [];
@@ -831,20 +831,25 @@ class CollisionManager {
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Smooth easing
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      // Gentler easing
+      const easeProgress = 1 - Math.pow(1 - progress, 2);
       
-      // Move camera to center
+      // Move camera to center (more subtle)
       window.camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
       window.camera.lookAt(0, 0, 0);
       
-      // Pull all objects towards center
+      // Pull objects towards center (much more subtle)
       objects.forEach(({ mesh, originalPosition, originalScale }) => {
-        const targetPos = new THREE.Vector3(0, 0, 0);
-        mesh.position.lerpVectors(originalPosition, targetPos, easeProgress * 0.7);
+        // Only move objects slightly towards center
+        const targetPos = new THREE.Vector3(
+          originalPosition.x * 0.3, // Only move 30% towards center
+          originalPosition.y * 0.3,
+          originalPosition.z * 0.3
+        );
+        mesh.position.lerpVectors(originalPosition, targetPos, easeProgress * 0.4);
         
-        // Scale down objects as they approach center
-        const scaleFactor = 1 - (easeProgress * 0.5);
+        // Very subtle scale change (only 10% smaller)
+        const scaleFactor = 1 - (easeProgress * 0.1);
         mesh.scale.setScalar(scaleFactor);
       });
       
@@ -862,7 +867,7 @@ class CollisionManager {
   twirlUniverse(callback) {
     console.log('🌪️ Twirling universe...');
     
-    const duration = 1000; // 1 second
+    const duration = 800; // 0.8 seconds (shorter)
     const startTime = performance.now();
     const startRotation = window.camera.rotation.clone();
     
@@ -870,18 +875,19 @@ class CollisionManager {
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Twirl effect - rotate camera around center
-      const twirlAmount = progress * Math.PI * 4; // 2 full rotations
-      window.camera.position.x = Math.cos(twirlAmount) * 1000;
-      window.camera.position.z = Math.sin(twirlAmount) * 1000;
-      window.camera.position.y = 200 + Math.sin(twirlAmount * 2) * 100; // Add vertical movement
+      // Gentler twirl effect - only 1 rotation
+      const twirlAmount = progress * Math.PI * 2; // 1 full rotation
+      const radius = 600; // Smaller radius
+      window.camera.position.x = Math.cos(twirlAmount) * radius;
+      window.camera.position.z = Math.sin(twirlAmount) * radius;
+      window.camera.position.y = 150 + Math.sin(twirlAmount * 1.5) * 50; // Subtle vertical movement
       window.camera.lookAt(0, 0, 0);
       
-      // Add rotation to all objects
+      // Very subtle rotation to objects
       window.scene.traverse((child) => {
         if (child.isMesh && child.userData && !child.userData.isSolly1 && !child.userData.isSolly2) {
-          child.rotation.y += 0.02;
-          child.rotation.x += 0.01;
+          child.rotation.y += 0.005; // Much slower rotation
+          child.rotation.x += 0.002;
         }
       });
       
@@ -896,8 +902,40 @@ class CollisionManager {
     animateTwirl();
   }
 
+  returnCameraToNormal() {
+    console.log('📷 Returning camera to normal position...');
+    
+    const duration = 1000; // 1 second
+    const startTime = performance.now();
+    const startPosition = window.camera.position.clone();
+    const targetPosition = new THREE.Vector3(0, 200, 1000); // Normal game position
+    
+    function animateReturn() {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Smooth easing
+      const easeProgress = 1 - Math.pow(1 - progress, 2);
+      
+      // Move camera to normal position
+      window.camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
+      window.camera.lookAt(0, 0, 0);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateReturn);
+      } else {
+        console.log('✅ Camera returned to normal position');
+      }
+    }
+    
+    animateReturn();
+  }
+
   completeShapeChange(shape) {
     console.log('✨ Completing shape change...');
+    
+    // Return camera to normal position
+    this.returnCameraToNormal();
     
     // Update game state
     if (window.gameManager) {
