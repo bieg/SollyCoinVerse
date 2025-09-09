@@ -808,12 +808,12 @@ class CollisionManager {
   }
 
   pullUniverseToCenter(callback) {
-    console.log('🌀 Pulling universe to center...');
+    console.log('🌀 Subtle universe transition...');
     
-    const duration = 1200; // 1.2 seconds (shorter)
+    const duration = 800; // 0.8 seconds (much shorter)
     const startTime = performance.now();
     const startPosition = window.camera.position.clone();
-    const targetPosition = new THREE.Vector3(0, 0, 800); // Closer to center, less dramatic
+    const targetPosition = new THREE.Vector3(0, 150, 1200); // Further back, more subtle
     
     // Store original positions of all objects
     const objects = [];
@@ -831,32 +831,31 @@ class CollisionManager {
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Gentler easing
-      const easeProgress = 1 - Math.pow(1 - progress, 2);
+      // Very gentle easing
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
       
-      // Move camera to center (more subtle)
+      // Move camera back (subtle)
       window.camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
       window.camera.lookAt(0, 0, 0);
       
-      // Pull objects towards center (much more subtle)
+      // Very subtle object movement (only 10% towards center)
       objects.forEach(({ mesh, originalPosition, originalScale }) => {
-        // Only move objects slightly towards center
         const targetPos = new THREE.Vector3(
-          originalPosition.x * 0.3, // Only move 30% towards center
-          originalPosition.y * 0.3,
-          originalPosition.z * 0.3
+          originalPosition.x * 0.9, // Only move 10% towards center
+          originalPosition.y * 0.9,
+          originalPosition.z * 0.9
         );
-        mesh.position.lerpVectors(originalPosition, targetPos, easeProgress * 0.4);
+        mesh.position.lerpVectors(originalPosition, targetPos, easeProgress * 0.2);
         
-        // Very subtle scale change (only 10% smaller)
-        const scaleFactor = 1 - (easeProgress * 0.1);
+        // Very minimal scale change (only 5% smaller)
+        const scaleFactor = 1 - (easeProgress * 0.05);
         mesh.scale.setScalar(scaleFactor);
       });
       
       if (progress < 1) {
         requestAnimationFrame(animatePull);
       } else {
-        console.log('✅ Universe pulled to center');
+        console.log('✅ Subtle universe transition complete');
         callback();
       }
     }
@@ -865,36 +864,35 @@ class CollisionManager {
   }
 
   twirlUniverse(callback) {
-    console.log('🌪️ Twirling universe...');
+    console.log('🌪️ Subtle twirl effect...');
     
-    const duration = 800; // 0.8 seconds (shorter)
+    const duration = 600; // 0.6 seconds (much shorter)
     const startTime = performance.now();
-    const startRotation = window.camera.rotation.clone();
     
     function animateTwirl() {
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Gentler twirl effect - only 1 rotation
-      const twirlAmount = progress * Math.PI * 2; // 1 full rotation
-      const radius = 600; // Smaller radius
-      window.camera.position.x = Math.cos(twirlAmount) * radius;
-      window.camera.position.z = Math.sin(twirlAmount) * radius;
-      window.camera.position.y = 150 + Math.sin(twirlAmount * 1.5) * 50; // Subtle vertical movement
+      // Very subtle twirl - only half rotation
+      const twirlAmount = progress * Math.PI; // Half rotation
+      const radius = 1200; // Keep original distance
+      window.camera.position.x = Math.cos(twirlAmount) * radius * 0.1; // Very small movement
+      window.camera.position.z = Math.sin(twirlAmount) * radius * 0.1;
+      window.camera.position.y = 150 + Math.sin(twirlAmount * 2) * 20; // Minimal vertical movement
       window.camera.lookAt(0, 0, 0);
       
-      // Very subtle rotation to objects
+      // Very minimal object rotation
       window.scene.traverse((child) => {
         if (child.isMesh && child.userData && !child.userData.isSolly1 && !child.userData.isSolly2) {
-          child.rotation.y += 0.005; // Much slower rotation
-          child.rotation.x += 0.002;
+          child.rotation.y += 0.001; // Very slow rotation
+          child.rotation.x += 0.0005;
         }
       });
       
       if (progress < 1) {
         requestAnimationFrame(animateTwirl);
       } else {
-        console.log('✅ Universe twirl complete');
+        console.log('✅ Subtle twirl complete');
         callback();
       }
     }
@@ -934,6 +932,112 @@ class CollisionManager {
   completeShapeChange(shape) {
     console.log('✨ Completing shape change...');
     
+    // Create basketball hoop effect
+    this.createBasketballHoopEffect(shape);
+  }
+
+  // === 🏀 BASKETBALL HOOP EFFECT ================================================
+  createBasketballHoopEffect(shape) {
+    console.log('🏀 Creating basketball hoop effect...');
+    
+    // Create a portal/hoop
+    this.createPortalHoop();
+    
+    // Animate Solly1 through the hoop
+    this.animateSollyThroughHoop(shape);
+  }
+
+  createPortalHoop() {
+    // Create a circular portal that looks like a basketball hoop
+    const hoopGeometry = new THREE.RingGeometry(50, 60, 16);
+    const hoopMaterial = new THREE.MeshBasicMaterial({
+      color: 0xFFD700, // Gold color
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide
+    });
+    
+    const hoop = new THREE.Mesh(hoopGeometry, hoopMaterial);
+    hoop.position.set(0, 0, 0); // Center of universe
+    hoop.rotation.x = Math.PI / 2; // Horizontal
+    hoop.userData.isPortalHoop = true;
+    
+    window.scene.add(hoop);
+    
+    // Add glow effect
+    const glowGeometry = new THREE.RingGeometry(45, 65, 32);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0xFFD700,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide
+    });
+    
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    glow.position.set(0, 0, 0);
+    glow.rotation.x = Math.PI / 2;
+    glow.scale.setScalar(1.2);
+    glow.userData.isPortalGlow = true;
+    
+    window.scene.add(glow);
+    
+    // Store references
+    window.portalHoop = hoop;
+    window.portalGlow = glow;
+  }
+
+  animateSollyThroughHoop(shape) {
+    if (!window.solly1) return;
+    
+    const duration = 1500; // 1.5 seconds
+    const startTime = performance.now();
+    const startPosition = window.solly1.position.clone();
+    const hoopPosition = new THREE.Vector3(0, 0, 0);
+    
+    // Calculate trajectory - Solly moves towards hoop and then through it
+    const midPoint = new THREE.Vector3(
+      (startPosition.x + hoopPosition.x) / 2,
+      startPosition.y + 100, // Arc up
+      (startPosition.z + hoopPosition.z) / 2
+    );
+    
+    function animateSolly() {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Smooth easing
+      const easeProgress = 1 - Math.pow(1 - progress, 2);
+      
+      // Quadratic Bezier curve for basketball arc
+      const t = easeProgress;
+      const oneMinusT = 1 - t;
+      
+      const currentPosition = new THREE.Vector3(
+        oneMinusT * oneMinusT * startPosition.x + 2 * oneMinusT * t * midPoint.x + t * t * hoopPosition.x,
+        oneMinusT * oneMinusT * startPosition.y + 2 * oneMinusT * t * midPoint.y + t * t * hoopPosition.y,
+        oneMinusT * oneMinusT * startPosition.z + 2 * oneMinusT * t * midPoint.z + t * t * hoopPosition.z
+      );
+      
+      window.solly1.position.copy(currentPosition);
+      
+      // Add rotation for basketball effect
+      window.solly1.rotation.x += 0.1;
+      window.solly1.rotation.y += 0.05;
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateSolly);
+      } else {
+        console.log('🏀 Solly went through the hoop!');
+        
+        // Complete the shape change
+        this.finishShapeChange(shape);
+      }
+    }
+    
+    animateSolly();
+  }
+
+  finishShapeChange(shape) {
     // Return camera to normal position
     this.returnCameraToNormal();
     
@@ -957,6 +1061,18 @@ class CollisionManager {
     
     // EXTRA: Maak ook een eenvoudige test portal die gegarandeerd zichtbaar is
     this.createSimpleTestPortal(shape);
+    
+    // Clean up hoop after a delay
+    setTimeout(() => {
+      if (window.portalHoop) {
+        window.scene.remove(window.portalHoop);
+        window.portalHoop = null;
+      }
+      if (window.portalGlow) {
+        window.scene.remove(window.portalGlow);
+        window.portalGlow = null;
+      }
+    }, 3000);
     
     // DEBUG: Check of portal echt bestaat
     setTimeout(() => {
