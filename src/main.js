@@ -352,7 +352,7 @@ async function initSollyverse() {
     addGalaxyShells(scene);
     addGalaxyStars(scene);
     addSollySun(scene);
-    // addWhiteStars(scene); // Verwijderd - sterrenhemel van Star Wars blijft staan
+    addWhiteStars(scene); // Voeg 3D sterren toe gebaseerd op SollyCoin data
     
     // Voor geïmporteerde coins: maak sterrenhemel als er geen Star Wars was
     if (sollyConfig && !starWarsIntroActive) {
