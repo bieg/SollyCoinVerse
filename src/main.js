@@ -678,17 +678,8 @@ function locateSolly() {
         return;
     }
     
-    // Get Solly1 position
-    const sollyPosition = window.solly1.position;
-    console.log('📍 Solly1 position:', sollyPosition);
-    
     // Smooth camera transition to Solly1
     const startPosition = window.camera.position.clone();
-    const targetPosition = new THREE.Vector3(
-        sollyPosition.x + 500,  // Offset to the right
-        sollyPosition.y + 200,  // Offset above
-        sollyPosition.z + 500   // Offset forward
-    );
     
     // Animation parameters
     const duration = 2000; // 2 seconds
@@ -698,19 +689,29 @@ function locateSolly() {
         const elapsed = performance.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
         
+        // Get Solly1's CURRENT position (updated every frame)
+        const currentSollyPosition = window.solly1.position.clone();
+        
+        // Calculate target position based on current Solly position
+        const targetPosition = new THREE.Vector3(
+            currentSollyPosition.x + 500,  // Offset to the right
+            currentSollyPosition.y + 200,  // Offset above
+            currentSollyPosition.z + 500   // Offset forward
+        );
+        
         // Smooth easing function
         const easeProgress = 1 - Math.pow(1 - progress, 3);
         
         // Interpolate camera position
         window.camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
         
-        // Look at Solly1
-        window.camera.lookAt(sollyPosition);
+        // Look at Solly1's current position
+        window.camera.lookAt(currentSollyPosition);
         
         if (progress < 1) {
             requestAnimationFrame(animateCamera);
         } else {
-            console.log('✅ Camera focused on Solly1');
+            console.log('✅ Camera focused on Solly1 at position:', currentSollyPosition);
             
             // Add visual highlight effect
             highlightSolly();
