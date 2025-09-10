@@ -790,46 +790,8 @@ class CollisionManager {
     // RESET COLLISION DETECTION voor nieuwe ronde
     this.resetCollision();
     
-    // Update game state
-    if (window.gameManager) {
-      window.gameManager.changeShape(shape);
-    }
-    
-    // Update Solly1 vorm
-    this.updateSolly1Shape(shape);
-    
-    // Breng Solly1 naar een betere positie voor interactie
-    if (window.solly1) {
-      window.solly1.position.set(0, 0, 0); // Reset naar midden
-      window.solly1.visible = true;
-      window.solly1.userData.raycastDisabled = false;
-      if (window.solly1.material) {
-        if (Array.isArray(window.solly1.material)) {
-          window.solly1.material.forEach(m => m.opacity = 1);
-        } else {
-          window.solly1.material.opacity = 1;
-        }
-      }
-      
-      // ZORG ERVOOR DAT SOLLY1 DRAGGABLE IS
-      if (typeof window.addSollyDragListeners === 'function') {
-        window.addSollyDragListeners();
-      }
-      
-      // Zorg ervoor dat Solly1 groter is voor betere raycasting
-      window.solly1.scale.set(2.0, 2.0, 2.0);
-      
-      console.log('🎯 Solly1 klaar voor drag & drop na shape choice');
-    }
-    
-    // Toon bericht
-    this.showShapeChangeMessage(shape);
-    
-    // MAAK PORTAL NA SHAPE CHOICE
-    setTimeout(() => {
-      this.debugLog('🔮 Portal wordt aangemaakt na shape choice');
-      this.createShapePortal(shape);
-    }, 1000); // Wacht 1 seconde na shape choice
+    // Start basketball hoop effect instead of direct shape change
+    this.createBasketballHoopEffect(shape);
   }
 
 
@@ -1678,6 +1640,170 @@ class CollisionManager {
       }
     });
     this.explosionParticles = [];
+  }
+
+  // === 🏀 BASKETBALL HOOP EFFECT ================================================
+  createBasketballHoopEffect(shape) {
+    console.log('🏀 Creating basketball hoop effect...');
+    
+    // Create a portal/hoop
+    this.createPortalHoop();
+    
+    // Animate Solly1 through the hoop
+    this.animateSollyThroughHoop(shape);
+  }
+
+  createPortalHoop() {
+    // Get the size of the current Solly1 to match the hoop size
+    const solly1 = window.solly1;
+    if (!solly1) {
+      console.warn('❌ Solly1 not found for hoop sizing');
+      return;
+    }
+    
+    // Calculate the bounding box of Solly1 to get its size
+    const box = new THREE.Box3().setFromObject(solly1);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDimension = Math.max(size.x, size.y, size.z);
+    
+    // Create hoop with size matching Solly1's largest dimension
+    const hoopRadius = maxDimension * 0.6; // Slightly larger than Solly1
+    const hoopThickness = maxDimension * 0.1; // Thin ring
+    
+    const hoopGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness, hoopRadius, 16);
+    const hoopMaterial = new THREE.MeshBasicMaterial({
+      color: 0xFFD700, // Gold color
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide
+    });
+    
+    const hoop = new THREE.Mesh(hoopGeometry, hoopMaterial);
+    hoop.position.set(0, 0, 0); // Center of universe
+    hoop.rotation.x = Math.PI / 2; // Horizontal
+    hoop.userData.isPortalHoop = true;
+    hoop.userData.hoopRadius = hoopRadius;
+    
+    window.scene.add(hoop);
+    
+    // Add glow effect
+    const glowGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness - 5, hoopRadius + 5, 32);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0xFFD700,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide
+    });
+    
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    glow.position.set(0, 0, 0);
+    glow.rotation.x = Math.PI / 2;
+    glow.userData.isPortalGlow = true;
+    
+    window.scene.add(glow);
+    
+    // Store references
+    window.portalHoop = hoop;
+    window.portalGlow = glow;
+    
+    console.log(`🏀 Created hoop with radius: ${hoopRadius.toFixed(2)} (Solly1 size: ${maxDimension.toFixed(2)})`);
+  }
+
+  animateSollyThroughHoop(shape) {
+    if (!window.solly1) return;
+    
+    const duration = 2000; // 2 seconds for a nice drop
+    const startTime = performance.now();
+    const startPosition = window.solly1.position.clone();
+    const hoopPosition = new THREE.Vector3(0, 0, 0);
+    
+    // Position Solly1 above the hoop
+    window.solly1.position.set(0, 200, 0); // Start above the hoop
+    const newStartPosition = window.solly1.position.clone();
+    
+    // Calculate trajectory - Solly drops straight down through the hoop
+    const endPosition = new THREE.Vector3(0, -200, 0); // End below the hoop
+    
+    function animateSolly() {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Smooth easing for natural drop
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      
+      // Linear drop with slight arc
+      const t = easeProgress;
+      const currentY = newStartPosition.y + (endPosition.y - newStartPosition.y) * t;
+      const currentX = newStartPosition.x + Math.sin(t * Math.PI) * 20; // Slight side movement
+      const currentZ = newStartPosition.z + Math.sin(t * Math.PI * 0.5) * 10; // Slight forward movement
+      
+      window.solly1.position.set(currentX, currentY, currentZ);
+      
+      // Add rotation for falling effect
+      window.solly1.rotation.x += 0.05;
+      window.solly1.rotation.y += 0.1;
+      window.solly1.rotation.z += 0.03;
+      
+      // Check if Solly1 is passing through the hoop
+      if (window.portalHoop && window.portalHoop.userData.hoopRadius) {
+        const distanceFromCenter = Math.sqrt(currentX * currentX + currentZ * currentZ);
+        if (distanceFromCenter < window.portalHoop.userData.hoopRadius && currentY < 50 && currentY > -50) {
+          // Solly1 is passing through the hoop - add a little "swish" effect
+          window.solly1.scale.setScalar(1.1); // Slightly bigger when passing through
+        } else {
+          window.solly1.scale.setScalar(1.0); // Normal size
+        }
+      }
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateSolly);
+      } else {
+        console.log('🏀 Solly dropped through the hoop!');
+        
+        // Complete the shape change
+        this.finishShapeChange(shape);
+      }
+    }
+    
+    animateSolly();
+  }
+
+  finishShapeChange(shape) {
+    // Return camera to normal position
+    this.returnCameraToNormal();
+    
+    // Update game state
+    if (window.gameManager) {
+      window.gameManager.changeShape(shape);
+    }
+    
+    // Update Solly1 vorm
+    this.updateSolly1Shape(shape);
+    
+    // Toon bericht
+    this.showShapeChangeMessage(shape);
+    
+    // MAAK EEN SHAPECHOICE OBJECT DAT JE KUNT SLEPEN
+    this.createDraggableShapeChoice(shape);
+    
+    // MAAK PORTAL AAN NA SHAPE CHOICE
+    console.log(`🔮 Creating portal after shape choice with shape: "${shape}"`);
+    this.createShapePortal(shape);
+    
+    // EXTRA: Maak ook een eenvoudige test portal die gegarandeerd zichtbaar is
+    this.createSimpleTestPortal(shape);
+    
+    // Clean up hoop after a delay
+    setTimeout(() => {
+      if (window.portalHoop) {
+        window.scene.remove(window.portalHoop);
+        window.portalHoop = null;
+      }
+      if (window.portalGlow) {
+        window.scene.remove(window.portalGlow);
+        window.portalGlow = null;
+      }
+    }, 3000);
   }
 }
 
