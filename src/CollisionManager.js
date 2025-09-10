@@ -948,8 +948,23 @@ class CollisionManager {
   }
 
   createPortalHoop() {
-    // Create a circular portal that looks like a basketball hoop
-    const hoopGeometry = new THREE.RingGeometry(50, 60, 16);
+    // Get the size of the current Solly1 to match the hoop size
+    const solly1 = window.solly1;
+    if (!solly1) {
+      console.warn('❌ Solly1 not found for hoop sizing');
+      return;
+    }
+    
+    // Calculate the bounding box of Solly1 to get its size
+    const box = new THREE.Box3().setFromObject(solly1);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDimension = Math.max(size.x, size.y, size.z);
+    
+    // Create hoop with size matching Solly1's largest dimension
+    const hoopRadius = maxDimension * 0.6; // Slightly larger than Solly1
+    const hoopThickness = maxDimension * 0.1; // Thin ring
+    
+    const hoopGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness, hoopRadius, 16);
     const hoopMaterial = new THREE.MeshBasicMaterial({
       color: 0xFFD700, // Gold color
       transparent: true,
@@ -961,11 +976,12 @@ class CollisionManager {
     hoop.position.set(0, 0, 0); // Center of universe
     hoop.rotation.x = Math.PI / 2; // Horizontal
     hoop.userData.isPortalHoop = true;
+    hoop.userData.hoopRadius = hoopRadius;
     
     window.scene.add(hoop);
     
     // Add glow effect
-    const glowGeometry = new THREE.RingGeometry(45, 65, 32);
+    const glowGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness - 5, hoopRadius + 5, 32);
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: 0xFFD700,
       transparent: true,
@@ -976,7 +992,6 @@ class CollisionManager {
     const glow = new THREE.Mesh(glowGeometry, glowMaterial);
     glow.position.set(0, 0, 0);
     glow.rotation.x = Math.PI / 2;
-    glow.scale.setScalar(1.2);
     glow.userData.isPortalGlow = true;
     
     window.scene.add(glow);
@@ -984,50 +999,60 @@ class CollisionManager {
     // Store references
     window.portalHoop = hoop;
     window.portalGlow = glow;
+    
+    console.log(`🏀 Created hoop with radius: ${hoopRadius.toFixed(2)} (Solly1 size: ${maxDimension.toFixed(2)})`);
   }
 
   animateSollyThroughHoop(shape) {
     if (!window.solly1) return;
     
-    const duration = 1500; // 1.5 seconds
+    const duration = 2000; // 2 seconds for a nice drop
     const startTime = performance.now();
     const startPosition = window.solly1.position.clone();
     const hoopPosition = new THREE.Vector3(0, 0, 0);
     
-    // Calculate trajectory - Solly moves towards hoop and then through it
-    const midPoint = new THREE.Vector3(
-      (startPosition.x + hoopPosition.x) / 2,
-      startPosition.y + 100, // Arc up
-      (startPosition.z + hoopPosition.z) / 2
-    );
+    // Position Solly1 above the hoop
+    window.solly1.position.set(0, 200, 0); // Start above the hoop
+    const newStartPosition = window.solly1.position.clone();
+    
+    // Calculate trajectory - Solly drops straight down through the hoop
+    const endPosition = new THREE.Vector3(0, -200, 0); // End below the hoop
     
     function animateSolly() {
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Smooth easing
-      const easeProgress = 1 - Math.pow(1 - progress, 2);
+      // Smooth easing for natural drop
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
       
-      // Quadratic Bezier curve for basketball arc
+      // Linear drop with slight arc
       const t = easeProgress;
-      const oneMinusT = 1 - t;
+      const currentY = newStartPosition.y + (endPosition.y - newStartPosition.y) * t;
+      const currentX = newStartPosition.x + Math.sin(t * Math.PI) * 20; // Slight side movement
+      const currentZ = newStartPosition.z + Math.sin(t * Math.PI * 0.5) * 10; // Slight forward movement
       
-      const currentPosition = new THREE.Vector3(
-        oneMinusT * oneMinusT * startPosition.x + 2 * oneMinusT * t * midPoint.x + t * t * hoopPosition.x,
-        oneMinusT * oneMinusT * startPosition.y + 2 * oneMinusT * t * midPoint.y + t * t * hoopPosition.y,
-        oneMinusT * oneMinusT * startPosition.z + 2 * oneMinusT * t * midPoint.z + t * t * hoopPosition.z
-      );
+      window.solly1.position.set(currentX, currentY, currentZ);
       
-      window.solly1.position.copy(currentPosition);
+      // Add rotation for falling effect
+      window.solly1.rotation.x += 0.05;
+      window.solly1.rotation.y += 0.1;
+      window.solly1.rotation.z += 0.03;
       
-      // Add rotation for basketball effect
-      window.solly1.rotation.x += 0.1;
-      window.solly1.rotation.y += 0.05;
+      // Check if Solly1 is passing through the hoop
+      if (window.portalHoop && window.portalHoop.userData.hoopRadius) {
+        const distanceFromCenter = Math.sqrt(currentX * currentX + currentZ * currentZ);
+        if (distanceFromCenter < window.portalHoop.userData.hoopRadius && currentY < 50 && currentY > -50) {
+          // Solly1 is passing through the hoop - add a little "swish" effect
+          window.solly1.scale.setScalar(1.1); // Slightly bigger when passing through
+        } else {
+          window.solly1.scale.setScalar(1.0); // Normal size
+        }
+      }
       
       if (progress < 1) {
         requestAnimationFrame(animateSolly);
       } else {
-        console.log('🏀 Solly went through the hoop!');
+        console.log('🏀 Solly dropped through the hoop!');
         
         // Complete the shape change
         this.finishShapeChange(shape);
