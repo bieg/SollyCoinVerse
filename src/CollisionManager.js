@@ -1652,8 +1652,8 @@ class CollisionManager {
     // Create a portal/hoop with shape-specific cutout
     this.createPortalHoop();
     
-    // Animate Solly1 through the hoop
-    this.animateSollyThroughHoop(shape);
+    // Make Solly1 draggable so user can push it through the hoop
+    this.makeSolly1DraggableForHoop(shape);
   }
 
   hideSun() {
@@ -1666,6 +1666,182 @@ class CollisionManager {
         console.log('☀️ Sun hidden for shape choice effect');
       }
     });
+  }
+
+  makeSolly1DraggableForHoop(shape) {
+    if (!window.solly1) return;
+    
+    console.log('🎮 Making Solly1 draggable for hoop interaction...');
+    
+    // Position Solly1 above the hoop for user interaction
+    window.solly1.position.set(0, 200, 0);
+    window.solly1.visible = true;
+    window.solly1.userData.raycastDisabled = false;
+    
+    // Make sure Solly1 is draggable
+    if (typeof window.addSollyDragListeners === 'function') {
+      window.addSollyDragListeners();
+    }
+    
+    // Add collision detection for the hoop
+    this.addHoopCollisionDetection(shape);
+    
+    // Show instruction message
+    this.showHoopInstructionMessage();
+  }
+
+  addHoopCollisionDetection(shape) {
+    // Check for collision with hoop every frame
+    const checkHoopCollision = () => {
+      if (!window.solly1 || !window.portalHoop) return;
+      
+      const sollyPosition = window.solly1.position;
+      const hoopPosition = window.portalHoop.position;
+      
+      // Calculate distance to hoop center
+      const distance = Math.sqrt(
+        Math.pow(sollyPosition.x - hoopPosition.x, 2) + 
+        Math.pow(sollyPosition.z - hoopPosition.z, 2)
+      );
+      
+      // Check if Solly1 is close to the hoop and at the right height
+      if (distance < window.portalHoop.userData.hoopRadius && 
+          sollyPosition.y < 50 && sollyPosition.y > -50) {
+        
+        console.log('🎯 Solly1 is in the hoop! Proceeding to next chapter...');
+        
+        // Remove the collision detection
+        window.removeEventListener('mousemove', checkHoopCollision);
+        
+        // Proceed to next chapter
+        this.proceedToNextChapter(shape);
+      }
+    };
+    
+    // Add event listener for mouse movement to check collision
+    window.addEventListener('mousemove', checkHoopCollision);
+    
+    // Also check on mouse up (when user releases drag)
+    const checkOnMouseUp = () => {
+      checkHoopCollision();
+    };
+    
+    window.addEventListener('mouseup', checkOnMouseUp);
+  }
+
+  showHoopInstructionMessage() {
+    // Create instruction message
+    const messageEl = document.createElement('div');
+    messageEl.id = 'hoop-instruction';
+    messageEl.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      color: #000;
+      padding: 20px 40px;
+      border-radius: 15px;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-align: center;
+      z-index: 10000;
+      box-shadow: 0 8px 32px rgba(255, 215, 0, 0.5);
+      border: 3px solid #FFD700;
+      animation: hoopInstructionPulse 2s ease-in-out infinite;
+    `;
+    
+    messageEl.innerHTML = `
+      🎯 <strong>Duw je Solly door het gouden gat!</strong><br>
+      <small>Sleep je Solly naar de ring om door te gaan naar het volgende hoofdstuk</small>
+    `;
+    
+    document.body.appendChild(messageEl);
+    
+    // Add CSS animation
+    if (!document.getElementById('hoop-instruction-styles')) {
+      const style = document.createElement('style');
+      style.id = 'hoop-instruction-styles';
+      style.textContent = `
+        @keyframes hoopInstructionPulse {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); }
+          50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    // Remove message after 5 seconds
+    setTimeout(() => {
+      if (messageEl.parentNode) {
+        messageEl.parentNode.removeChild(messageEl);
+      }
+    }, 5000);
+  }
+
+  proceedToNextChapter(shape) {
+    console.log('📖 Proceeding to next chapter...');
+    
+    // Remove instruction message
+    const instructionEl = document.getElementById('hoop-instruction');
+    if (instructionEl) {
+      instructionEl.remove();
+    }
+    
+    // Complete the shape change
+    this.finishShapeChange(shape);
+    
+    // Show chapter transition message
+    this.showChapterTransitionMessage();
+  }
+
+  showChapterTransitionMessage() {
+    const messageEl = document.createElement('div');
+    messageEl.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #4A90E2, #357ABD);
+      color: white;
+      padding: 30px 50px;
+      border-radius: 20px;
+      font-size: 1.5em;
+      font-weight: bold;
+      text-align: center;
+      z-index: 10000;
+      box-shadow: 0 12px 48px rgba(74, 144, 226, 0.5);
+      border: 3px solid #4A90E2;
+      animation: chapterTransitionPulse 3s ease-out;
+    `;
+    
+    messageEl.innerHTML = `
+      🎉 <strong>Hoofdstuk Voltooid!</strong><br>
+      <small>Je bent door naar het volgende hoofdstuk!</small>
+    `;
+    
+    document.body.appendChild(messageEl);
+    
+    // Add CSS animation
+    if (!document.getElementById('chapter-transition-styles')) {
+      const style = document.createElement('style');
+      style.id = 'chapter-transition-styles';
+      style.textContent = `
+        @keyframes chapterTransitionPulse {
+          0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+          50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    // Remove message after 3 seconds
+    setTimeout(() => {
+      if (messageEl.parentNode) {
+        messageEl.parentNode.removeChild(messageEl);
+      }
+    }, 3000);
   }
 
   createPortalHoop() {
@@ -1793,90 +1969,6 @@ class CollisionManager {
     window.portalCutout = cutout;
   }
 
-  animateSollyThroughHoop(shape) {
-    if (!window.solly1) return;
-    
-    const duration = 2000; // 2 seconds for a nice drop
-    const startTime = performance.now();
-    const startPosition = window.solly1.position.clone();
-    const hoopPosition = new THREE.Vector3(0, 0, 0);
-    
-    // Position Solly1 above the hoop
-    window.solly1.position.set(0, 200, 0); // Start above the hoop
-    const newStartPosition = window.solly1.position.clone();
-    
-    // Calculate trajectory - Solly drops straight down through the hoop
-    const endPosition = new THREE.Vector3(0, -200, 0); // End below the hoop
-    
-    function animateSolly() {
-      const elapsed = performance.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Smooth easing for natural drop
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      
-      // Linear drop with slight arc
-      const t = easeProgress;
-      const currentY = newStartPosition.y + (endPosition.y - newStartPosition.y) * t;
-      const currentX = newStartPosition.x + Math.sin(t * Math.PI) * 10; // Less side movement for precision
-      const currentZ = newStartPosition.z + Math.sin(t * Math.PI * 0.5) * 5; // Less forward movement
-      
-      window.solly1.position.set(currentX, currentY, currentZ);
-      
-      // Add rotation for falling effect
-      window.solly1.rotation.x += 0.05;
-      window.solly1.rotation.y += 0.1;
-      window.solly1.rotation.z += 0.03;
-      
-      // Check if Solly1 is passing through the hoop
-      if (window.portalHoop && window.portalHoop.userData.hoopRadius) {
-        const distanceFromCenter = Math.sqrt(currentX * currentX + currentZ * currentZ);
-        if (distanceFromCenter < window.portalHoop.userData.hoopRadius && currentY < 50 && currentY > -50) {
-          // Solly1 is passing through the hoop - add a little "swish" effect
-          window.solly1.scale.setScalar(1.05); // Slightly bigger when passing through
-          
-          // Add golden glow effect when passing through
-          if (window.solly1.material) {
-            if (Array.isArray(window.solly1.material)) {
-              window.solly1.material.forEach(m => {
-                m.emissive = new THREE.Color(0xFFD700);
-                m.emissiveIntensity = 0.3;
-              });
-            } else {
-              window.solly1.material.emissive = new THREE.Color(0xFFD700);
-              window.solly1.material.emissiveIntensity = 0.3;
-            }
-          }
-        } else {
-          window.solly1.scale.setScalar(1.0); // Normal size
-          
-          // Remove glow effect when not passing through
-          if (window.solly1.material) {
-            if (Array.isArray(window.solly1.material)) {
-              window.solly1.material.forEach(m => {
-                m.emissive = new THREE.Color(0x000000);
-                m.emissiveIntensity = 0;
-              });
-            } else {
-              window.solly1.material.emissive = new THREE.Color(0x000000);
-              window.solly1.material.emissiveIntensity = 0;
-            }
-          }
-        }
-      }
-      
-      if (progress < 1) {
-        requestAnimationFrame(animateSolly);
-      } else {
-        console.log('🏀 Solly dropped through the shape-specific hoop!');
-        
-        // Complete the shape change
-        this.finishShapeChange(shape);
-      }
-    }
-    
-    animateSolly();
-  }
 
   finishShapeChange(shape) {
     // Return camera to normal position
