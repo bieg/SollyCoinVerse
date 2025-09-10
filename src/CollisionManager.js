@@ -1646,11 +1646,26 @@ class CollisionManager {
   createBasketballHoopEffect(shape) {
     console.log('🏀 Creating basketball hoop effect...');
     
-    // Create a portal/hoop
+    // Hide the sun first
+    this.hideSun();
+    
+    // Create a portal/hoop with shape-specific cutout
     this.createPortalHoop();
     
     // Animate Solly1 through the hoop
     this.animateSollyThroughHoop(shape);
+  }
+
+  hideSun() {
+    // Find and hide the sun
+    window.scene.traverse((child) => {
+      if (child.isMesh && child.material && child.material.emissive) {
+        // This is likely the sun (has emissive material)
+        child.visible = false;
+        child.userData.wasHidden = true;
+        console.log('☀️ Sun hidden for shape choice effect');
+      }
+    });
   }
 
   createPortalHoop() {
@@ -1667,31 +1682,35 @@ class CollisionManager {
     const maxDimension = Math.max(size.x, size.y, size.z);
     
     // Create hoop with size matching Solly1's largest dimension
-    const hoopRadius = maxDimension * 0.6; // Slightly larger than Solly1
-    const hoopThickness = maxDimension * 0.1; // Thin ring
+    const hoopRadius = maxDimension * 0.8; // Slightly larger than Solly1
+    const hoopThickness = maxDimension * 0.15; // Thicker ring for better visibility
     
-    const hoopGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness, hoopRadius, 16);
-    const hoopMaterial = new THREE.MeshBasicMaterial({
+    // Create the outer circular ring
+    const outerHoopGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness, hoopRadius, 32);
+    const outerHoopMaterial = new THREE.MeshBasicMaterial({
       color: 0xFFD700, // Gold color
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.9,
       side: THREE.DoubleSide
     });
     
-    const hoop = new THREE.Mesh(hoopGeometry, hoopMaterial);
-    hoop.position.set(0, 0, 0); // Center of universe
-    hoop.rotation.x = Math.PI / 2; // Horizontal
-    hoop.userData.isPortalHoop = true;
-    hoop.userData.hoopRadius = hoopRadius;
+    const outerHoop = new THREE.Mesh(outerHoopGeometry, outerHoopMaterial);
+    outerHoop.position.set(0, 0, 0); // Center of universe
+    outerHoop.rotation.x = Math.PI / 2; // Horizontal
+    outerHoop.userData.isPortalHoop = true;
+    outerHoop.userData.hoopRadius = hoopRadius;
     
-    window.scene.add(hoop);
+    window.scene.add(outerHoop);
+    
+    // Create the inner shape-specific cutout (negative space)
+    this.createShapeSpecificCutout(outerHoop, maxDimension);
     
     // Add glow effect
-    const glowGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness - 5, hoopRadius + 5, 32);
+    const glowGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness - 10, hoopRadius + 10, 64);
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: 0xFFD700,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.4,
       side: THREE.DoubleSide
     });
     
@@ -1703,10 +1722,75 @@ class CollisionManager {
     window.scene.add(glow);
     
     // Store references
-    window.portalHoop = hoop;
+    window.portalHoop = outerHoop;
     window.portalGlow = glow;
     
-    console.log(`🏀 Created hoop with radius: ${hoopRadius.toFixed(2)} (Solly1 size: ${maxDimension.toFixed(2)})`);
+    console.log(`🏀 Created shape-specific hoop with radius: ${hoopRadius.toFixed(2)} (Solly1 size: ${maxDimension.toFixed(2)})`);
+  }
+
+  createShapeSpecificCutout(outerHoop, maxDimension) {
+    // Get the current shape from Solly1
+    const solly1 = window.solly1;
+    if (!solly1) return;
+    
+    // Determine the shape type from Solly1's geometry
+    let shapeType = 'vierkant'; // default
+    if (solly1.children && solly1.children.length > 0) {
+      const child = solly1.children[0];
+      if (child.geometry) {
+        if (child.geometry.type === 'ConeGeometry') {
+          shapeType = 'piramide';
+        } else if (child.geometry.type === 'SphereGeometry') {
+          shapeType = 'bol';
+        } else if (child.geometry.type === 'BoxGeometry') {
+          shapeType = 'vierkant';
+        }
+      }
+    }
+    
+    console.log(`🔑 Creating ${shapeType} cutout in hoop`);
+    
+    // Create the inner cutout based on shape type
+    let cutoutGeometry;
+    const cutoutSize = maxDimension * 0.6; // Size of the cutout
+    
+    switch (shapeType) {
+      case 'vierkant':
+        // Square cutout
+        cutoutGeometry = new THREE.BoxGeometry(cutoutSize, cutoutSize, 1);
+        break;
+      case 'piramide':
+        // Triangle cutout
+        cutoutGeometry = new THREE.ConeGeometry(cutoutSize/2, cutoutSize, 4);
+        break;
+      case 'bol':
+        // Circle cutout
+        cutoutGeometry = new THREE.CylinderGeometry(cutoutSize/2, cutoutSize/2, 1, 16);
+        break;
+      default:
+        // Default to square
+        cutoutGeometry = new THREE.BoxGeometry(cutoutSize, cutoutSize, 1);
+    }
+    
+    // Create the cutout material (transparent)
+    const cutoutMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.0, // Completely transparent
+      side: THREE.DoubleSide
+    });
+    
+    const cutout = new THREE.Mesh(cutoutGeometry, cutoutMaterial);
+    cutout.position.set(0, 0, 0);
+    cutout.rotation.x = Math.PI / 2; // Horizontal
+    cutout.userData.isShapeCutout = true;
+    cutout.userData.shapeType = shapeType;
+    
+    // Add the cutout as a child of the outer hoop
+    outerHoop.add(cutout);
+    
+    // Store reference
+    window.portalCutout = cutout;
   }
 
   animateSollyThroughHoop(shape) {
@@ -1734,8 +1818,8 @@ class CollisionManager {
       // Linear drop with slight arc
       const t = easeProgress;
       const currentY = newStartPosition.y + (endPosition.y - newStartPosition.y) * t;
-      const currentX = newStartPosition.x + Math.sin(t * Math.PI) * 20; // Slight side movement
-      const currentZ = newStartPosition.z + Math.sin(t * Math.PI * 0.5) * 10; // Slight forward movement
+      const currentX = newStartPosition.x + Math.sin(t * Math.PI) * 10; // Less side movement for precision
+      const currentZ = newStartPosition.z + Math.sin(t * Math.PI * 0.5) * 5; // Less forward movement
       
       window.solly1.position.set(currentX, currentY, currentZ);
       
@@ -1749,16 +1833,42 @@ class CollisionManager {
         const distanceFromCenter = Math.sqrt(currentX * currentX + currentZ * currentZ);
         if (distanceFromCenter < window.portalHoop.userData.hoopRadius && currentY < 50 && currentY > -50) {
           // Solly1 is passing through the hoop - add a little "swish" effect
-          window.solly1.scale.setScalar(1.1); // Slightly bigger when passing through
+          window.solly1.scale.setScalar(1.05); // Slightly bigger when passing through
+          
+          // Add golden glow effect when passing through
+          if (window.solly1.material) {
+            if (Array.isArray(window.solly1.material)) {
+              window.solly1.material.forEach(m => {
+                m.emissive = new THREE.Color(0xFFD700);
+                m.emissiveIntensity = 0.3;
+              });
+            } else {
+              window.solly1.material.emissive = new THREE.Color(0xFFD700);
+              window.solly1.material.emissiveIntensity = 0.3;
+            }
+          }
         } else {
           window.solly1.scale.setScalar(1.0); // Normal size
+          
+          // Remove glow effect when not passing through
+          if (window.solly1.material) {
+            if (Array.isArray(window.solly1.material)) {
+              window.solly1.material.forEach(m => {
+                m.emissive = new THREE.Color(0x000000);
+                m.emissiveIntensity = 0;
+              });
+            } else {
+              window.solly1.material.emissive = new THREE.Color(0x000000);
+              window.solly1.material.emissiveIntensity = 0;
+            }
+          }
         }
       }
       
       if (progress < 1) {
         requestAnimationFrame(animateSolly);
       } else {
-        console.log('🏀 Solly dropped through the hoop!');
+        console.log('🏀 Solly dropped through the shape-specific hoop!');
         
         // Complete the shape change
         this.finishShapeChange(shape);
