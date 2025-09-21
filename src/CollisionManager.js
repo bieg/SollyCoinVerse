@@ -2147,6 +2147,524 @@ class CollisionManager {
     
     console.log('✅ Game state cleaned up for Level 2 (objects hidden, not removed)');
   }
+
+  // ===================== SHAPE CHOICE HANDLER =====================
+  handleShapeChoice(shape) {
+    this.debugLog(`🎯 Shape choice made: ${shape}`);
+    
+    // Verwijder shape choice modal
+    const modal = document.querySelector('.shape-choice-modal');
+    if (modal) {
+      modal.remove();
+    }
+    
+    // Verwijder ook de "Je bent nu een piramide!" button als die er is
+    const shapeButton = document.querySelector('.shape-change-message');
+    if (shapeButton) {
+      shapeButton.remove();
+    }
+    
+    // Start vortex animatie direct na shape choice
+    this.startVortexEffect(shape);
+  }
+
+  // ===================== VORTEX EFFECT =====================
+  startVortexEffect(shape) {
+    this.debugLog(`🌀 Starting vortex effect for shape: ${shape}`);
+    
+    // Maak vortex/portal
+    this.createVortex(shape);
+    
+    // Start animatie na korte delay
+    setTimeout(() => {
+      this.startVortexAnimation(shape);
+    }, 500);
+  }
+
+  createVortex(shape) {
+    const scene = window.scene;
+    if (!scene) return;
+
+    // Verwijder bestaande vortex
+    if (window.vortex) {
+      scene.remove(window.vortex);
+    }
+
+    // Vortex grootte: 40% van viewport hoogte
+    const vortexSize = window.innerHeight * 0.4;
+    
+    // Maak vortex groep
+    const vortexGroup = new THREE.Group();
+    vortexGroup.position.set(0, 0, 0); // Gecentreerd
+    
+    // Buitenste ring (grote vortex ring)
+    const outerRingGeometry = new THREE.RingGeometry(vortexSize * 0.3, vortexSize * 0.5, 64);
+    const outerRingMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x8A2BE2, 
+      transparent: true, 
+      opacity: 0.9,
+      side: THREE.DoubleSide
+    });
+    const outerRing = new THREE.Mesh(outerRingGeometry, outerRingMaterial);
+    outerRing.rotation.x = Math.PI / 2; // Horizontaal
+    vortexGroup.add(outerRing);
+    
+    // Middelste ring
+    const middleRingGeometry = new THREE.RingGeometry(vortexSize * 0.15, vortexSize * 0.3, 64);
+    const middleRingMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x4B0082, 
+      transparent: true, 
+      opacity: 0.8,
+      side: THREE.DoubleSide
+    });
+    const middleRing = new THREE.Mesh(middleRingGeometry, middleRingMaterial);
+    middleRing.rotation.x = Math.PI / 2;
+    vortexGroup.add(middleRing);
+    
+    // Voeg vortex toe aan scene
+    scene.add(vortexGroup);
+    window.vortex = vortexGroup;
+    
+    // Sla shape op voor later gebruik
+    window.vortexShape = shape;
+    
+    this.debugLog(`🌀 Vortex created with ${shape} keyhole shape`);
+  }
+
+  startVortexAnimation(shape) {
+    if (this.vortexActive) return;
+    this.vortexActive = true;
+    
+    const scene = window.scene;
+    if (!scene || !window.vortex) return;
+    
+    // Maak achtergrond zwart
+    const blackOverlay = document.createElement('div');
+    blackOverlay.className = 'black-overlay';
+    blackOverlay.style.position = 'fixed';
+    blackOverlay.style.top = '0';
+    blackOverlay.style.left = '0';
+    blackOverlay.style.width = '100%';
+    blackOverlay.style.height = '100%';
+    blackOverlay.style.background = 'rgba(0, 0, 0, 0.8)';
+    blackOverlay.style.zIndex = '500';
+    blackOverlay.style.pointerEvents = 'none';
+    document.body.appendChild(blackOverlay);
+    
+    // Verzamel alle objecten om in te zuigen
+    const objectsToSuck = [];
+    scene.traverse(obj => {
+      if (obj === window.vortex) return;
+      if (obj.userData && (obj.userData.isClickTarget || obj.userData.isPortalRing)) return;
+      if (obj.type === 'Scene' || obj.isCamera || obj.isLight) return;
+      if (obj.name && obj.name.startsWith('Zandloper')) return;
+      objectsToSuck.push(obj);
+    });
+    
+    this.debugLog(`🌀 Sucking ${objectsToSuck.length} objects into vortex`);
+    
+    // Animatie parameters
+    const duration = 4000; // 4 seconden
+    const startTime = performance.now();
+    const vortexPos = window.vortex.position;
+    
+    // Sla beginposities op
+    objectsToSuck.forEach(obj => {
+      obj.userData.__startPos = obj.position.clone();
+      obj.userData.__startScale = obj.scale.clone();
+    });
+    
+    const animateSuck = () => {
+      const elapsed = performance.now() - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      
+      objectsToSuck.forEach(obj => {
+        if (!obj.userData.__startPos) return;
+        
+        const startPos = obj.userData.__startPos;
+        
+        // Verticaal naar vortex trekken
+        const newY = THREE.MathUtils.lerp(startPos.y, vortexPos.y, t);
+        const newX = THREE.MathUtils.lerp(startPos.x, vortexPos.x, t * 0.5);
+        const newZ = THREE.MathUtils.lerp(startPos.z, vortexPos.z, t * 0.5);
+        
+        obj.position.set(newX, newY, newZ);
+        
+        // Rotatie toevoegen
+        obj.rotation.y += 0.1;
+        obj.rotation.x += 0.05;
+        
+        // Schaal laten afnemen
+        const scale = Math.max(0.001, 1 - t);
+        obj.scale.setScalar(scale);
+        
+        // Fade uit
+        if (obj.material && obj.material.transparent) {
+          obj.material.opacity = Math.max(0, 1 - t);
+        }
+      });
+      
+      // GEEN vortex rotatie - statische 2D outline
+      // if (window.vortex) {
+      //   window.vortex.rotation.z += 0.02;
+      // }
+      
+      if (t < 1) {
+        requestAnimationFrame(animateSuck);
+      } else {
+        // Verwijder alle objecten
+        objectsToSuck.forEach(obj => {
+          if (obj.parent) obj.parent.remove(obj);
+        });
+        
+        // Verwijder zwarte overlay
+        if (blackOverlay.parentNode) {
+          blackOverlay.parentNode.removeChild(blackOverlay);
+        }
+        
+        // Verwijder ALLE zwarte overlays die mogelijk zijn blijven hangen
+        const allOverlays = document.querySelectorAll('.black-overlay');
+        allOverlays.forEach(overlay => {
+          if (overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+          }
+        });
+        
+        this.vortexActive = false;
+        this.debugLog('🌀 Vortex animation complete - all objects sucked in');
+        
+        // Maak het gat in de vortex zichtbaar
+        this.makeVortexHoleVisible(shape);
+        
+        // Wacht even en toon dan de shape choice UI
+        setTimeout(() => {
+          this.showShapeChoiceUI(shape);
+        }, 1000);
+      }
+    };
+    
+    animateSuck();
+  }
+
+  makeVortexHoleVisible(shape) {
+    if (!window.vortex) return;
+    
+    this.debugLog(`🔑 Making vortex hole visible for shape: ${shape}`);
+    console.log(`🔑 SHAPE DEBUG: Creating outline for shape: "${shape}"`);
+    
+    // Maak het gat MEGA MEGA MEGA groot en duidelijker zichtbaar
+    const vortexSize = window.innerHeight * 0.4;
+    const holeSize = vortexSize * 2.4; // MEGA MEGA MEGA groot gat - 240% van vortex size (2x groter!)
+    
+    // Verwijder bestaande hole
+    const existingHole = window.vortex.getObjectByName('vortexHole');
+    if (existingHole) {
+      window.vortex.remove(existingHole);
+    }
+    
+    // Maak een GROOT, duidelijk zwart gat
+    const holeGeometry = new THREE.RingGeometry(0, holeSize, 64);
+    const holeMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x000000, 
+      transparent: true, 
+      opacity: 0.95,
+      side: THREE.DoubleSide
+    });
+    const holeMesh = new THREE.Mesh(holeGeometry, holeMaterial);
+    holeMesh.name = 'vortexHole';
+    holeMesh.rotation.x = Math.PI / 2;
+    holeMesh.position.z = 0.2; // Iets naar voren
+    window.vortex.add(holeMesh);
+    
+    // Voeg een MEGA DIKKE gloeiende outline toe rond het gat - 2D OUTLINE
+    const outlineMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x8A2BE2, 
+      wireframe: true, // WEL wireframe - alleen de outline
+      transparent: true, 
+      opacity: 1.0,
+      side: THREE.DoubleSide // Zichtbaar van beide kanten
+    });
+    
+    let outlineGeometry;
+    console.log(`🔑 SHAPE DEBUG: Switch statement for shape: "${shape}"`);
+    switch(shape) {
+      case 'piramide':
+        console.log(`🔑 SHAPE DEBUG: Creating triangle outline`);
+        // MEGA MEGA MEGA GROTE driehoekige outline - SIMPELE WIREFRAME
+        const triangleShape = new THREE.Shape();
+        const size = holeSize * 0.98; // 98% van hole size - bijna het hele gat
+        
+        // Simpele driehoek outline
+        triangleShape.moveTo(0, size);
+        triangleShape.lineTo(-size, -size);
+        triangleShape.lineTo(size, -size);
+        triangleShape.lineTo(0, size);
+        
+        outlineGeometry = new THREE.ShapeGeometry(triangleShape);
+        break;
+      case 'kubus':
+      case 'vierkant':
+        console.log(`🔑 SHAPE DEBUG: Creating square outline`);
+        // MEGA MEGA MEGA GROTE vierkante outline
+        const squareShape = new THREE.Shape();
+        const squareSize = holeSize * 0.95; // 95% van hole size
+        squareShape.moveTo(-squareSize, -squareSize);
+        squareShape.lineTo(squareSize, -squareSize);
+        squareShape.lineTo(squareSize, squareSize);
+        squareShape.lineTo(-squareSize, squareSize);
+        squareShape.lineTo(-squareSize, -squareSize);
+        outlineGeometry = new THREE.ShapeGeometry(squareShape);
+        break;
+      case 'zandloper':
+        // MEGA MEGA MEGA GROTE zandloper outline (diamant)
+        const hourglassShape = new THREE.Shape();
+        const hSize = holeSize * 0.95; // 95% van hole size
+        hourglassShape.moveTo(0, hSize);
+        hourglassShape.lineTo(-hSize, 0);
+        hourglassShape.lineTo(0, -hSize);
+        hourglassShape.lineTo(hSize, 0);
+        hourglassShape.lineTo(0, hSize);
+        outlineGeometry = new THREE.ShapeGeometry(hourglassShape);
+        break;
+      case 'bol':
+        console.log(`🔑 SHAPE DEBUG: Creating circle outline`);
+        // MEGA MEGA MEGA GROTE ronde outline
+        outlineGeometry = new THREE.CircleGeometry(holeSize * 0.95, 32);
+        break;
+      default:
+        console.log(`🔑 SHAPE DEBUG: Creating default circle outline for shape: "${shape}"`);
+        // Default: MEGA MEGA MEGA GROOT rond
+        outlineGeometry = new THREE.CircleGeometry(holeSize * 0.95, 32);
+    }
+    
+    const outlineMesh = new THREE.Mesh(outlineGeometry, outlineMaterial);
+    outlineMesh.name = 'vortexOutline';
+    outlineMesh.rotation.x = 0; // 2D - geen rotatie
+    outlineMesh.position.z = 0.25; // Iets naar voren
+    window.vortex.add(outlineMesh);
+    
+    // GEEN pulserende effect - gewoon statische 2D outline
+    // this.addHolePulseEffect();
+    
+    this.debugLog(`🔑 Vortex hole made visible with ${shape} shape - size: ${holeSize}`);
+  }
+
+  showShapeChoiceUI(shape) {
+    this.debugLog(`🎯 Showing shape choice UI for: ${shape}`);
+    
+    // Verwijder ALLE zwarte overlays die mogelijk zijn blijven hangen
+    const allOverlays = document.querySelectorAll('.black-overlay');
+    allOverlays.forEach(overlay => {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    });
+    
+    // Maak ALLEEN tekst - geen blokje
+    const shapeUI = document.createElement('div');
+    shapeUI.className = 'shape-choice-ui';
+    shapeUI.innerHTML = `
+      <div class="shape-icon" style="font-size: 64px; margin-bottom: 15px;">${this.getShapeIcon(shape)}</div>
+      <div class="shape-name" style="font-size: 28px; font-weight: bold; margin-bottom: 10px;">${this.getShapeName(shape)}</div>
+      <div style="font-size: 18px; opacity: 0.9;">Sleep naar het gat!</div>
+    `;
+    
+    // Positioneer BOVEN de vortex - ALLEEN TEKST
+    shapeUI.style.position = 'fixed';
+    shapeUI.style.top = '15%'; // Hoger geplaatst
+    shapeUI.style.left = '50%';
+    shapeUI.style.transform = 'translateX(-50%)';
+    shapeUI.style.zIndex = '1000';
+    shapeUI.style.cursor = 'grab';
+    shapeUI.style.padding = '0px'; // Geen padding
+    shapeUI.style.background = 'transparent'; // GEEN background
+    shapeUI.style.border = 'none'; // GEEN border
+    shapeUI.style.borderRadius = '0px';
+    shapeUI.style.color = 'white';
+    shapeUI.style.textAlign = 'center';
+    shapeUI.style.userSelect = 'none';
+    shapeUI.style.fontSize = '28px'; // Grote tekst
+    shapeUI.style.textShadow = '3px 3px 6px rgba(0, 0, 0, 0.9)'; // Sterke tekst shadow voor leesbaarheid
+    
+    document.body.appendChild(shapeUI);
+    
+    // Maak draggable
+    this.makeDraggable(shapeUI, shape);
+    
+    // Kleine animatie
+    this.addFloatingAnimation(shapeUI);
+    
+    this.debugLog(`🎯 Shape choice UI created and added to DOM`);
+  }
+
+  getShapeIcon(shape) {
+    switch(shape) {
+      case 'piramide': return '🔺';
+      case 'kubus':
+      case 'vierkant': return '⬜';
+      case 'zandloper': return '⏳';
+      case 'bol': return '🔵';
+      default: return '🔺';
+    }
+  }
+
+  getShapeName(shape) {
+    switch(shape) {
+      case 'piramide': return 'Piramide';
+      case 'kubus':
+      case 'vierkant': return 'Kubus';
+      case 'zandloper': return 'Zandloper';
+      case 'bol': return 'Bol';
+      default: return 'Piramide';
+    }
+  }
+
+  makeDraggable(element, shape) {
+    let isDragging = false;
+    let startY = 0;
+    let startTop = 0;
+    
+    element.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startY = e.clientY;
+      startTop = parseInt(element.style.top) || 0;
+      element.style.cursor = 'grabbing';
+      element.style.animation = 'none'; // Stop floating animatie
+      e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      
+      const deltaY = e.clientY - startY;
+      const newTop = startTop + deltaY;
+      element.style.top = newTop + 'px';
+      
+      // Check collision met vortex
+      this.checkVortexCollision(element, shape);
+    });
+    
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        element.style.cursor = 'grab';
+        this.addFloatingAnimation(element); // Herstart animatie
+      }
+    });
+  }
+
+  checkVortexCollision(element, shape) {
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Vortex is in het midden van het scherm
+    const vortexX = window.innerWidth / 2;
+    const vortexY = window.innerHeight / 2;
+    const vortexSize = window.innerHeight * 0.4;
+    
+    // Check of de shape overeenkomt met het vortex gat
+    const currentVortexShape = window.vortexShape;
+    if (currentVortexShape !== shape) {
+      return; // Verkeerde shape voor dit gat
+    }
+    
+    // Check afstand tot het midden (sleutelgat)
+    const distance = Math.sqrt(
+      Math.pow(centerX - vortexX, 2) + Math.pow(centerY - vortexY, 2)
+    );
+    
+    // Het gat is nu 240% van vortex size (MEGA MEGA MEGA groot!)
+    const holeRadius = vortexSize * 2.4;
+    
+    // Debug info
+    this.debugLog(`🎯 Checking collision: distance=${distance.toFixed(1)}, holeRadius=${holeRadius.toFixed(1)}`);
+    
+    if (distance < holeRadius) {
+      // Shape past door het sleutelgat!
+      this.debugLog(`🎉 Shape ${shape} past door ${currentVortexShape} gat!`);
+      this.handleShapeChoiceSuccess(shape);
+    }
+  }
+
+  handleShapeChoiceSuccess(shape) {
+    this.debugLog(`🎉 Shape ${shape} past door het sleutelgat!`);
+    
+    // Verwijder UI
+    const shapeUI = document.querySelector('.shape-choice-ui');
+    if (shapeUI) {
+      shapeUI.remove();
+    }
+    
+    // Start collapse animatie
+    this.startVortexCollapse();
+  }
+
+  startVortexCollapse() {
+    if (!window.vortex) return;
+    
+    // Animeer vortex naar binnen
+    const startScale = window.vortex.scale.x;
+    const startTime = performance.now();
+    const duration = 2000; // 2 seconden collapse
+    
+    const animateCollapse = () => {
+      const elapsed = performance.now() - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      
+      // Scale naar 0
+      const newScale = startScale * (1 - t);
+      window.vortex.scale.set(newScale, newScale, newScale);
+      
+      // Rotatie versnellen
+      window.vortex.rotation.z += 0.1;
+      
+      if (t < 1) {
+        requestAnimationFrame(animateCollapse);
+      } else {
+        // Verwijder vortex
+        window.scene.remove(window.vortex);
+        window.vortex = null;
+        
+        // Ga direct naar hoofdstuk 2 (geen success message)
+        this.goToChapter2();
+      }
+    };
+    
+    animateCollapse();
+  }
+
+  goToChapter2() {
+    if (typeof window.loadChapter2 === 'function') {
+      window.loadChapter2();
+    } else {
+      // Fallback: reload page
+      window.location.reload();
+    }
+  }
+
+  addFloatingAnimation(element) {
+    element.style.animation = 'floating 2s ease-in-out infinite';
+    
+    // Voeg CSS animatie toe als die nog niet bestaat
+    if (!document.querySelector('#floating-animation')) {
+      const style = document.createElement('style');
+      style.id = 'floating-animation';
+      style.textContent = `
+        @keyframes floating {
+          0%, 100% { transform: translateX(-50%) translateY(0px); }
+          50% { transform: translateX(-50%) translateY(-10px); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+
+  debugLog(message) {
+    if (this.DEBUG) {
+      console.log(message);
+    }
+  }
 }
 
 // Maak globaal beschikbaar
