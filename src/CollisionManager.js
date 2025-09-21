@@ -2197,29 +2197,41 @@ class CollisionManager {
     const vortexGroup = new THREE.Group();
     vortexGroup.position.set(0, 0, 0); // Gecentreerd
     
-    // Buitenste ring (grote vortex ring)
-    const outerRingGeometry = new THREE.RingGeometry(vortexSize * 0.3, vortexSize * 0.5, 64);
+    // Buitenste ring (MEGA GROTE vortex ring) - 2D en statisch
+    const outerRingGeometry = new THREE.RingGeometry(vortexSize * 0.1, vortexSize * 0.6, 64);
     const outerRingMaterial = new THREE.MeshBasicMaterial({ 
       color: 0x8A2BE2, 
       transparent: true, 
-      opacity: 0.9,
+      opacity: 1.0,
       side: THREE.DoubleSide
     });
     const outerRing = new THREE.Mesh(outerRingGeometry, outerRingMaterial);
-    outerRing.rotation.x = Math.PI / 2; // Horizontaal
+    outerRing.rotation.x = 0; // 2D - geen rotatie
     vortexGroup.add(outerRing);
     
-    // Middelste ring
-    const middleRingGeometry = new THREE.RingGeometry(vortexSize * 0.15, vortexSize * 0.3, 64);
+    // Middelste ring (STERKE vortex ring) - 2D en statisch
+    const middleRingGeometry = new THREE.RingGeometry(vortexSize * 0.05, vortexSize * 0.4, 64);
     const middleRingMaterial = new THREE.MeshBasicMaterial({ 
       color: 0x4B0082, 
       transparent: true, 
-      opacity: 0.8,
+      opacity: 1.0,
       side: THREE.DoubleSide
     });
     const middleRing = new THREE.Mesh(middleRingGeometry, middleRingMaterial);
-    middleRing.rotation.x = Math.PI / 2;
+    middleRing.rotation.x = 0; // 2D - geen rotatie
     vortexGroup.add(middleRing);
+    
+    // Binnenste ring (INTENSE vortex ring) - 2D en statisch
+    const innerRingGeometry = new THREE.RingGeometry(vortexSize * 0.02, vortexSize * 0.25, 64);
+    const innerRingMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0xFF00FF, 
+      transparent: true, 
+      opacity: 1.0,
+      side: THREE.DoubleSide
+    });
+    const innerRing = new THREE.Mesh(innerRingGeometry, innerRingMaterial);
+    innerRing.rotation.x = 0; // 2D - geen rotatie
+    vortexGroup.add(innerRing);
     
     // Voeg vortex toe aan scene
     scene.add(vortexGroup);
@@ -2283,19 +2295,20 @@ class CollisionManager {
         
         const startPos = obj.userData.__startPos;
         
-        // Verticaal naar vortex trekken
-        const newY = THREE.MathUtils.lerp(startPos.y, vortexPos.y, t);
-        const newX = THREE.MathUtils.lerp(startPos.x, vortexPos.x, t * 0.5);
-        const newZ = THREE.MathUtils.lerp(startPos.z, vortexPos.z, t * 0.5);
+        // STERKE verticale zuigkracht naar vortex
+        const newY = THREE.MathUtils.lerp(startPos.y, vortexPos.y, t * t); // Kwadratische versnelling
+        const newX = THREE.MathUtils.lerp(startPos.x, vortexPos.x, t * t * 0.8); // Sterkere horizontale zuigkracht
+        const newZ = THREE.MathUtils.lerp(startPos.z, vortexPos.z, t * t * 0.8); // Sterkere Z-zuigkracht
         
         obj.position.set(newX, newY, newZ);
         
-        // Rotatie toevoegen
-        obj.rotation.y += 0.1;
-        obj.rotation.x += 0.05;
+        // STERKE rotatie voor intense vortex effect
+        obj.rotation.y += 0.3; // 3x sneller draaien
+        obj.rotation.x += 0.2; // 4x sneller draaien
+        obj.rotation.z += 0.15; // Z-rotatie toevoegen
         
-        // Schaal laten afnemen
-        const scale = Math.max(0.001, 1 - t);
+        // Snellere schaal afname voor intense effect
+        const scale = Math.max(0.001, 1 - (t * t)); // Kwadratische schaal afname
         obj.scale.setScalar(scale);
         
         // Fade uit
@@ -2306,7 +2319,9 @@ class CollisionManager {
       
       // GEEN vortex rotatie - statische 2D outline
       // if (window.vortex) {
-      //   window.vortex.rotation.z += 0.02;
+      //   window.vortex.rotation.z += 0.1; // 5x sneller draaien
+      //   window.vortex.rotation.x += 0.05; // Ook X-as rotatie
+      //   window.vortex.rotation.y += 0.03; // Ook Y-as rotatie
       // }
       
       if (t < 1) {
