@@ -2650,10 +2650,32 @@ class CollisionManager {
   }
 
   goToChapter2() {
-    if (typeof window.loadChapter2 === 'function') {
-      window.loadChapter2();
+    console.log('➡️ Automatisch doorgaan naar hoofdstuk 2');
+    
+    // Gebruik ChapterManager om naar hoofdstuk 2 te gaan
+    if (window.chapterManager && typeof window.chapterManager.completeLevel === 'function') {
+      const currentLevel = window.chapterManager.getCurrentLevel ? window.chapterManager.getCurrentLevel() : 1;
+      window.chapterManager.completeLevel(currentLevel);
+      
+      // Toon bericht
+      const msg = document.createElement('div');
+      msg.style.cssText = `
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.8); color: white; padding: 20px;
+        border-radius: 10px; font-size: 18px; z-index: 10000;
+      `;
+      msg.textContent = 'Hoofdstuk 2 (Brutalism style) laad...';
+      document.body.appendChild(msg);
+      
+      // Verwijder bericht na 3 seconden
+      setTimeout(() => {
+        if (msg.parentNode) {
+          msg.parentNode.removeChild(msg);
+        }
+      }, 3000);
     } else {
       // Fallback: reload page
+      console.log('⚠️ ChapterManager niet gevonden, pagina herladen...');
       window.location.reload();
     }
   }
