@@ -20,6 +20,9 @@ class GameManager {
     
     // Setup auto-save
     this.setupAutoSave();
+    
+    // Initialize kaboom counter UI
+    this.initializeKaboomUI();
   }
 
   setupEventListeners() {
@@ -238,6 +241,9 @@ class GameManager {
       this.currentUserData.kaboom = (this.currentUserData.kaboom || 0) + 1;
       this.currentUserData.lastPlayed = new Date().toISOString();
       
+      // Update UI immediately
+      this.updateKaboomUI();
+      
       // Trigger save after kaboom increment
       setTimeout(() => this.saveProgress(), 1000);
       
@@ -299,6 +305,34 @@ class GameManager {
     this.autoSaveInterval = setInterval(() => {
       this.saveProgress();
     }, 30000);
+  }
+
+  initializeKaboomUI() {
+    // Initialize KABOOM counter in UI
+    const kaboomCounter = document.getElementById('kaboom-counter');
+    const kaboomNumber = document.getElementById('kaboom-number');
+    if (kaboomCounter && kaboomNumber) {
+      const totalCollisions = this.currentUserData?.kaboom || 0;
+      kaboomNumber.textContent = totalCollisions;
+      kaboomCounter.style.display = 'block'; // Altijd zichtbaar
+      console.log('🎯 KABOOM counter geïnitialiseerd:', totalCollisions);
+    } else {
+      console.error('❌ KABOOM counter elementen niet gevonden!');
+    }
+  }
+
+  updateKaboomUI() {
+    // Update KABOOM counter in UI
+    const kaboomCounter = document.getElementById('kaboom-counter');
+    const kaboomNumber = document.getElementById('kaboom-number');
+    if (kaboomCounter && kaboomNumber) {
+      const totalCollisions = this.currentUserData?.kaboom || 0;
+      kaboomNumber.textContent = totalCollisions;
+      kaboomCounter.style.display = 'block'; // Altijd zichtbaar
+      console.log('💥 KABOOM counter bijgewerkt naar:', totalCollisions);
+    } else {
+      console.error('❌ KABOOM counter elementen niet gevonden in updateKaboomUI!');
+    }
   }
 
   saveProgress() {

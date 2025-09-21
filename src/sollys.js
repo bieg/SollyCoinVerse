@@ -1625,31 +1625,18 @@ function createMiniExplosionParticles(position) {
 function evaluateDropOnMiniSolly() {
     if (!window.miniSollys || !solly1) return;
 
-    const centerSolly = projectToScreen(solly1.position);
-    const radiusSolly = getScreenRadius(solly1);
-
+    // Eenvoudige distance-based collision detection
+    const threshold = 250; // Afstand in 3D units
+    
     for (const mini of window.miniSollys) {
         if (!mini) continue;
-        const centerMini = projectToScreen(mini.position);
-        const radiusMini = getScreenRadius(mini);
-        const d2d = centerSolly.distanceTo(centerMini);
-        const r1 = radiusSolly;
-        const r2 = radiusMini;
-        // Bereken overlap area van twee cirkels
-        let overlapArea = 0;
-        if (d2d < r1 + r2) {
-            const part1 = r1 * r1 * Math.acos((d2d * d2d + r1 * r1 - r2 * r2) / (2 * d2d * r1));
-            const part2 = r2 * r2 * Math.acos((d2d * d2d + r2 * r2 - r1 * r1) / (2 * d2d * r2));
-            const part3 = 0.5 * Math.sqrt((-d2d + r1 + r2) * (d2d + r1 - r2) * (d2d - r1 + r2) * (d2d + r1 + r2));
-            overlapArea = part1 + part2 - part3;
-        }
-        const area1 = Math.PI * r1 * r1;
-        const area2 = Math.PI * r2 * r2;
-        const minArea = Math.min(area1, area2);
-        const overlapRatio = overlapArea / minArea;
-        // Debug log verwijderd
-        if (overlapRatio > 0.6) {
-            console.log('💥 KABOOM! 2D overlap > 60% met mini-Solly:', mini);
+        
+        const distance = solly1.position.distanceTo(mini.position);
+        
+        if (distance < threshold) {
+            console.log('💥 KABOOM! Distance-based hit met mini-Solly:', mini);
+            console.log('📏 Afstand:', distance, 'Threshold:', threshold);
+            
             // Gebruik de EXACTE positie van de mini-Solly voor de explosie
             const explosionPosition = mini.position.clone();
             handleSollyOnMini(mini);
@@ -1663,9 +1650,13 @@ function handleSollyOnMini(targetMini) {
     console.log('[DEBUG] handleSollyOnMini aangeroepen', targetMini);
     if (!targetMini) return;
     
-    // Kaboom-teller ophogen
-    window.kaboomCount = (window.kaboomCount || 0) + 1;
-    console.log(`💥 Kaboom! Totaal: ${window.kaboomCount}`);
+    // Kaboom-teller ophogen via GameManager
+    if (window.gameManager && typeof window.gameManager.incrementKaboomCount === 'function') {
+        window.gameManager.incrementKaboomCount();
+        console.log(`💥 Kaboom! Totaal: ${window.gameManager.getKaboomCount()}`);
+    } else {
+        console.warn('⚠️ GameManager niet beschikbaar voor kaboom increment');
+    }
 
     // Spectaculaire explosie animatie op de EXACTE positie van de mini-Solly
     const explosionPos = targetMini.position.clone();
@@ -1680,7 +1671,8 @@ function handleSollyOnMini(targetMini) {
     createMegaExplosionParticles(explosionPos);
     
     // Toon ShapeChoice modal na elke 4 collisions
-    if (window.kaboomCount % 4 === 0) {
+    const currentKaboom = window.gameManager ? window.gameManager.getKaboomCount() : 0;
+    if (currentKaboom % 4 === 0) {
         setTimeout(() => {
             if (window.collisionManager && window.collisionManager.showShapeChoiceModal) {
                 window.collisionManager.showShapeChoiceModal();

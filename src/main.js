@@ -191,6 +191,7 @@ async function initSollyverse() {
     window.camera = camera;
     window.controls = controls;
     window.gameManager = gameManager;
+    window.userInterface = userInterface;
 
     // Initialize CollisionManager
     window.collisionManager = new CollisionManager();
@@ -351,10 +352,8 @@ function animate() {
         updateSolly1Movement();
         updateSolly2Movement();
         updatePortalMovement();
-        // Skip collision check tijdens drag
-        if (!collisionDetected && !window.solly1DragActive) {
-            checkMiniSollyCollision();
-        }
+        // Collision detection wordt nu alleen via drag & drop afgehandeld
+        // Geen automatische collision checks meer
     }
     
     if (typeof updateCameraControls === 'function') updateCameraControls();
@@ -507,19 +506,9 @@ function triggerCollision() {
 }
 
 // === Collision Solly1 vs miniSollys ===
-function checkMiniSollyCollision() {
-    // Skip collision check tijdens drag
-    if (window.solly1DragActive || window.isDragging) {
-        return;
-    }
-    
-    // === Alleen collision checken als drop nog niet is afgehandeld ===
-    if (window.solly1DropHandled === true) return;
-    
-    // Gebruik CollisionManager voor collision detection
-    if (window.collisionManager) {
-        window.collisionManager.checkMiniSollyCollision();
-    }
-}
+// Deze functie is vervangen door drag & drop collision detection in sollys.js
+// function checkMiniSollyCollision() {
+//     // Verwijderd - collision detection gebeurt nu via drag & drop
+// }
 
 // applyUniverseScaling verwijderd – universe gebruikt vaste basiswaarden
