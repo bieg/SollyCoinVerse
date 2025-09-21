@@ -240,6 +240,9 @@ async function initSollyverse() {
     // Initialize GameManager en UserInterface
     gameManager = new GameManager();
     userInterface = new UserInterface(gameManager);
+    
+    // Initialize ChapterManager
+    window.chapterManager = new ChapterManager();
 
     // ALTIJD BEGINNEN MET SCHONE SLATE - Default coin met kaboom op 0
     if (sollyConfig) {
