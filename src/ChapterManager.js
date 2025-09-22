@@ -17,6 +17,9 @@ class ChapterManager {
     this.achievements = new Map();
     this.storyProgress = 0;
     this.DEBUG = window.DEBUG || false;
+    
+    // Initialize immediately
+    this.initialize();
   }
 
   debugLog(...args) {
@@ -224,6 +227,11 @@ class ChapterManager {
 
   // Check chapter completion
   checkChapterCompletion() {
+    if (!this.chapters) {
+      this.debugLog('⚠️ Chapters not initialized yet, skipping completion check');
+      return;
+    }
+    
     Object.keys(this.chapters).forEach(chapterNumber => {
       const chapter = this.chapters[chapterNumber];
       const allLevelsUnlocked = chapter.levels.every(level => 
