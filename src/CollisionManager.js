@@ -2674,15 +2674,13 @@ class CollisionManager {
         msg.parentNode.removeChild(msg);
       }
       
-      // Start Level2Manager
-      if (window.Level2Manager) {
+      // Start Chapter 2 (2D platte versie)
+      if (window.initChapter2) {
         try {
-          console.log('🚀 Starting Level 2: De Cubus');
-          const level2Manager = new window.Level2Manager();
-          level2Manager.startLevel();
-          window.level2Manager = level2Manager; // Store globally for cleanup
+          console.log('🚀 Starting Chapter 2: De Cubus (2D platte versie)');
+          window.initChapter2();
         } catch (error) {
-          console.error('❌ Error starting Level 2:', error);
+          console.error('❌ Error starting Chapter 2:', error);
           // Fallback: show error message
           const errorMsg = document.createElement('div');
           errorMsg.style.cssText = `
@@ -2690,12 +2688,12 @@ class CollisionManager {
             background: rgba(255,0,0,0.8); color: white; padding: 20px;
             border-radius: 10px; font-size: 18px; z-index: 10000;
           `;
-          errorMsg.textContent = 'Error loading Level 2. Page will reload...';
+          errorMsg.textContent = 'Error loading Chapter 2. Page will reload...';
           document.body.appendChild(errorMsg);
           setTimeout(() => window.location.reload(), 3000);
         }
       } else {
-        console.error('❌ Level2Manager not found');
+        console.error('❌ initChapter2 not found');
         window.location.reload();
       }
     }, 2000);
