@@ -54,11 +54,46 @@
   }
 
   function createBrutalistUI(){
-    const term = document.createElement('div');
-    term.id = 'brutal-terminal';
-    term.style.cssText='position:fixed;top:20px;right:20px;padding:20px;border:3px solid #0f0;background:#000;font-family:monospace;color:#f00;text-transform:uppercase;z-index:10000;';
-    term.innerHTML='<b>SOLLYVERSE TERMINAL</b><br>SYSTEM: brutalist mode active<br>STATUS: ready';
-    document.body.appendChild(term);
+    // Verwijder oude UI elementen
+    const oldTerm = document.getElementById('brutal-terminal');
+    if (oldTerm) oldTerm.remove();
+    
+    // Maak nieuwe 2D UI
+    const levelIndicator = document.createElement('div');
+    levelIndicator.id = 'level2-indicator';
+    levelIndicator.style.cssText = `
+      position: fixed; top: 20px; left: 20px; padding: 15px 25px;
+      background: linear-gradient(135deg, #8A2BE2, #4B0082); color: white;
+      border-radius: 10px; font-family: 'Open Sans', sans-serif;
+      font-weight: bold; font-size: 18px; z-index: 10000;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    `;
+    levelIndicator.innerHTML = '🎯 LEVEL 2: De Cubus (2D)';
+    document.body.appendChild(levelIndicator);
+    
+    const progressCounter = document.createElement('div');
+    progressCounter.id = 'wireframe-counter';
+    progressCounter.style.cssText = `
+      position: fixed; top: 20px; right: 20px; padding: 15px 25px;
+      background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: white;
+      border-radius: 10px; font-family: 'Open Sans', sans-serif;
+      font-weight: bold; font-size: 18px; z-index: 10000;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    `;
+    progressCounter.innerHTML = '🔗 Geplaatst: 0/4';
+    document.body.appendChild(progressCounter);
+    
+    const instructions = document.createElement('div');
+    instructions.id = 'wireframe-instructions';
+    instructions.style.cssText = `
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      padding: 15px 25px; background: rgba(0, 0, 0, 0.8); color: white;
+      border-radius: 10px; font-family: 'Open Sans', sans-serif;
+      font-weight: bold; font-size: 16px; z-index: 10000;
+      border: 2px solid #8A2BE2; text-align: center;
+    `;
+    instructions.innerHTML = '🎯 Sleep de shapes naar de 4 hoeken van de kubus!';
+    document.body.appendChild(instructions);
   }
 
   function createCube(){
@@ -187,6 +222,10 @@
 
   function checkCompletion(){
     if(placeholders.every(p=>p.filled)){
+      // Update progress counter
+      const counter = document.getElementById('wireframe-counter');
+      if(counter) counter.innerHTML = '🔗 Geplaatst: 4/4 ✅';
+      
       // Geen 3D rotatie - gewoon een simpele fade out voor 2D
       fadeOutAndComplete();
     }
