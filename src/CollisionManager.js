@@ -785,6 +785,287 @@ class CollisionManager {
       modal.remove();
     }
     
+    // Start universe transition effect
+    this.startUniverseTransition(shape);
+  }
+
+  // === 🌌 UNIVERSE TRANSITION EFFECT ============================================
+  startUniverseTransition(shape) {
+    console.log('🌌 Starting universe transition effect...');
+    
+    // Store original camera position
+    const originalCameraPosition = window.camera.position.clone();
+    const originalCameraTarget = new THREE.Vector3(0, 0, 0);
+    
+    // Phase 1: Pull universe towards center
+    this.pullUniverseToCenter(() => {
+      // Phase 2: Twirl effect
+      this.twirlUniverse(() => {
+        // Phase 3: Complete shape change and show new chapter
+        this.completeShapeChange(shape);
+      });
+    });
+  }
+
+  pullUniverseToCenter(callback) {
+    console.log('🌀 Subtle universe transition...');
+    
+    const duration = 800; // 0.8 seconds (much shorter)
+    const startTime = performance.now();
+    const startPosition = window.camera.position.clone();
+    const targetPosition = new THREE.Vector3(0, 150, 1200); // Further back, more subtle
+    
+    // Store original positions of all objects
+    const objects = [];
+    window.scene.traverse((child) => {
+      if (child.isMesh && child.userData && !child.userData.isSolly1 && !child.userData.isSolly2) {
+        objects.push({
+          mesh: child,
+          originalPosition: child.position.clone(),
+          originalScale: child.scale.clone()
+        });
+      }
+    });
+    
+    function animatePull() {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Very gentle easing
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      
+      // Move camera back (subtle)
+      window.camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
+      window.camera.lookAt(0, 0, 0);
+      
+      // Very subtle object movement (only 10% towards center)
+      objects.forEach(({ mesh, originalPosition, originalScale }) => {
+        const targetPos = new THREE.Vector3(
+          originalPosition.x * 0.9, // Only move 10% towards center
+          originalPosition.y * 0.9,
+          originalPosition.z * 0.9
+        );
+        mesh.position.lerpVectors(originalPosition, targetPos, easeProgress * 0.2);
+        
+        // Very minimal scale change (only 5% smaller)
+        const scaleFactor = 1 - (easeProgress * 0.05);
+        mesh.scale.setScalar(scaleFactor);
+      });
+      
+      if (progress < 1) {
+        requestAnimationFrame(animatePull);
+      } else {
+        console.log('✅ Subtle universe transition complete');
+        callback();
+      }
+    }
+    
+    animatePull();
+  }
+
+  twirlUniverse(callback) {
+    console.log('🌪️ Subtle twirl effect...');
+    
+    const duration = 600; // 0.6 seconds (much shorter)
+    const startTime = performance.now();
+    
+    function animateTwirl() {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Very subtle twirl - only half rotation
+      const twirlAmount = progress * Math.PI; // Half rotation
+      const radius = 1200; // Keep original distance
+      window.camera.position.x = Math.cos(twirlAmount) * radius * 0.1; // Very small movement
+      window.camera.position.z = Math.sin(twirlAmount) * radius * 0.1;
+      window.camera.position.y = 150 + Math.sin(twirlAmount * 2) * 20; // Minimal vertical movement
+      window.camera.lookAt(0, 0, 0);
+      
+      // Very minimal object rotation
+      window.scene.traverse((child) => {
+        if (child.isMesh && child.userData && !child.userData.isSolly1 && !child.userData.isSolly2) {
+          child.rotation.y += 0.001; // Very slow rotation
+          child.rotation.x += 0.0005;
+        }
+      });
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateTwirl);
+      } else {
+        console.log('✅ Subtle twirl complete');
+        callback();
+      }
+    }
+    
+    animateTwirl();
+  }
+
+  returnCameraToNormal() {
+    console.log('📷 Returning camera to normal position...');
+    
+    const duration = 1000; // 1 second
+    const startTime = performance.now();
+    const startPosition = window.camera.position.clone();
+    const targetPosition = new THREE.Vector3(0, 200, 1000); // Normal game position
+    
+    function animateReturn() {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Smooth easing
+      const easeProgress = 1 - Math.pow(1 - progress, 2);
+      
+      // Move camera to normal position
+      window.camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
+      window.camera.lookAt(0, 0, 0);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateReturn);
+      } else {
+        console.log('✅ Camera returned to normal position');
+      }
+    }
+    
+    animateReturn();
+  }
+
+  completeShapeChange(shape) {
+    console.log('✨ Completing shape change...');
+    
+    // Create basketball hoop effect
+    this.createBasketballHoopEffect(shape);
+  }
+
+  // === 🏀 BASKETBALL HOOP EFFECT ================================================
+  createBasketballHoopEffect(shape) {
+    console.log('🏀 Creating basketball hoop effect...');
+    
+    // Create a portal/hoop
+    this.createPortalHoop();
+    
+    // Animate Solly1 through the hoop
+    this.animateSollyThroughHoop(shape);
+  }
+
+  createPortalHoop() {
+    // Get the size of the current Solly1 to match the hoop size
+    const solly1 = window.solly1;
+    if (!solly1) {
+      console.warn('❌ Solly1 not found for hoop sizing');
+      return;
+    }
+    
+    // Calculate the bounding box of Solly1 to get its size
+    const box = new THREE.Box3().setFromObject(solly1);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDimension = Math.max(size.x, size.y, size.z);
+    
+    // Create hoop with size matching Solly1's largest dimension
+    const hoopRadius = maxDimension * 0.6; // Slightly larger than Solly1
+    const hoopThickness = maxDimension * 0.1; // Thin ring
+    
+    const hoopGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness, hoopRadius, 16);
+    const hoopMaterial = new THREE.MeshBasicMaterial({
+      color: 0xFFD700, // Gold color
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide
+    });
+    
+    const hoop = new THREE.Mesh(hoopGeometry, hoopMaterial);
+    hoop.position.set(0, 0, 0); // Center of universe
+    hoop.rotation.x = Math.PI / 2; // Horizontal
+    hoop.userData.isPortalHoop = true;
+    hoop.userData.hoopRadius = hoopRadius;
+    
+    window.scene.add(hoop);
+    
+    // Add glow effect
+    const glowGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness - 5, hoopRadius + 5, 32);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0xFFD700,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide
+    });
+    
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    glow.position.set(0, 0, 0);
+    glow.rotation.x = Math.PI / 2;
+    glow.userData.isPortalGlow = true;
+    
+    window.scene.add(glow);
+    
+    // Store references
+    window.portalHoop = hoop;
+    window.portalGlow = glow;
+    
+    console.log(`🏀 Created hoop with radius: ${hoopRadius.toFixed(2)} (Solly1 size: ${maxDimension.toFixed(2)})`);
+  }
+
+  animateSollyThroughHoop(shape) {
+    if (!window.solly1) return;
+    
+    const duration = 2000; // 2 seconds for a nice drop
+    const startTime = performance.now();
+    const startPosition = window.solly1.position.clone();
+    const hoopPosition = new THREE.Vector3(0, 0, 0);
+    
+    // Position Solly1 above the hoop
+    window.solly1.position.set(0, 200, 0); // Start above the hoop
+    const newStartPosition = window.solly1.position.clone();
+    
+    // Calculate trajectory - Solly drops straight down through the hoop
+    const endPosition = new THREE.Vector3(0, -200, 0); // End below the hoop
+    
+    function animateSolly() {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Smooth easing for natural drop
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      
+      // Linear drop with slight arc
+      const t = easeProgress;
+      const currentY = newStartPosition.y + (endPosition.y - newStartPosition.y) * t;
+      const currentX = newStartPosition.x + Math.sin(t * Math.PI) * 20; // Slight side movement
+      const currentZ = newStartPosition.z + Math.sin(t * Math.PI * 0.5) * 10; // Slight forward movement
+      
+      window.solly1.position.set(currentX, currentY, currentZ);
+      
+      // Add rotation for falling effect
+      window.solly1.rotation.x += 0.05;
+      window.solly1.rotation.y += 0.1;
+      window.solly1.rotation.z += 0.03;
+      
+      // Check if Solly1 is passing through the hoop
+      if (window.portalHoop && window.portalHoop.userData.hoopRadius) {
+        const distanceFromCenter = Math.sqrt(currentX * currentX + currentZ * currentZ);
+        if (distanceFromCenter < window.portalHoop.userData.hoopRadius && currentY < 50 && currentY > -50) {
+          // Solly1 is passing through the hoop - add a little "swish" effect
+          window.solly1.scale.setScalar(1.1); // Slightly bigger when passing through
+        } else {
+          window.solly1.scale.setScalar(1.0); // Normal size
+        }
+      }
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateSolly);
+      } else {
+        console.log('🏀 Solly dropped through the hoop!');
+        
+        // Complete the shape change
+        this.finishShapeChange(shape);
+      }
+    }
+    
+    animateSolly();
+  }
+
+  finishShapeChange(shape) {
+    // Return camera to normal position
+    this.returnCameraToNormal();
+    
     // Update game state
     if (window.gameManager) {
       window.gameManager.changeShape(shape);
@@ -805,6 +1086,18 @@ class CollisionManager {
     
     // EXTRA: Maak ook een eenvoudige test portal die gegarandeerd zichtbaar is
     this.createSimpleTestPortal(shape);
+    
+    // Clean up hoop after a delay
+    setTimeout(() => {
+      if (window.portalHoop) {
+        window.scene.remove(window.portalHoop);
+        window.portalHoop = null;
+      }
+      if (window.portalGlow) {
+        window.scene.remove(window.portalGlow);
+        window.portalGlow = null;
+      }
+    }, 3000);
     
     // DEBUG: Check of portal echt bestaat
     setTimeout(() => {

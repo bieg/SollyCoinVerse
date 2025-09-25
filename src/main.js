@@ -404,8 +404,9 @@ async function initSollyverse() {
     const infoBtn = document.getElementById('cta-info');
     const instructiesBtn = document.getElementById('cta-instructies');
     const personaliseerBtn = document.getElementById('cta-personaliseer');
+    const locateSollyBtn = document.getElementById('cta-locate-solly');
     // Forceer pointer-events voor klikbaarheid
-    [infoBtn, instructiesBtn, personaliseerBtn].forEach(btn => {
+    [infoBtn, instructiesBtn, personaliseerBtn, locateSollyBtn].forEach(btn => {
         if (btn) btn.style.pointerEvents = 'auto';
     });
 
@@ -427,6 +428,10 @@ async function initSollyverse() {
     if (personaliseerBtn) personaliseerBtn.addEventListener('click', () => {
         console.log('CTA Personaliseer clicked');
         showPersonaliseerModal();
+    });
+    if (locateSollyBtn) locateSollyBtn.addEventListener('click', () => {
+        console.log('CTA Locate Solly clicked');
+        locateSolly();
     });
 
     // ---------- Modal helpers ----------
@@ -656,4 +661,96 @@ function getOrCreateStarsContainer(id, parent, baseStyles) {
         parent.appendChild(el);
     }
     return el;
+}
+
+// === 🎯 LOCATE SOLLY FUNCTIONALITY ================================================
+function locateSolly() {
+    console.log('🎯 Locating Solly...');
+    
+    // Check if Solly1 exists
+    if (!window.solly1) {
+        console.warn('❌ Solly1 not found');
+        alert('❌ Solly niet gevonden! Probeer het spel opnieuw te starten.');
+        return;
+    }
+    
+    // Check if camera exists
+    if (!window.camera) {
+        console.warn('❌ Camera not found');
+        alert('❌ Camera niet gevonden!');
+        return;
+    }
+    
+    // Smooth camera transition to Solly1
+    const startPosition = window.camera.position.clone();
+    
+    // Animation parameters
+    const duration = 2000; // 2 seconds
+    const startTime = performance.now();
+    
+    function animateCamera() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Get Solly1's CURRENT position (updated every frame)
+        const currentSollyPosition = window.solly1.position.clone();
+        
+        // Calculate target position based on current Solly position
+        const targetPosition = new THREE.Vector3(
+            currentSollyPosition.x + 500,  // Offset to the right
+            currentSollyPosition.y + 200,  // Offset above
+            currentSollyPosition.z + 500   // Offset forward
+        );
+        
+        // Smooth easing function
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        
+        // Interpolate camera position
+        window.camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
+        
+        // Look at Solly1's current position
+        window.camera.lookAt(currentSollyPosition);
+        
+        if (progress < 1) {
+            requestAnimationFrame(animateCamera);
+        } else {
+            console.log('✅ Camera focused on Solly1 at position:', currentSollyPosition);
+            
+            // Add visual highlight effect
+            highlightSolly();
+        }
+    }
+    
+    // Start animation
+    animateCamera();
+}
+
+// Highlight Solly1 with visual effect
+function highlightSolly() {
+    if (!window.solly1) return;
+    
+    // Store original material
+    const originalMaterial = window.solly1.material;
+    
+    // Create highlight material
+    const highlightMaterial = new THREE.MeshBasicMaterial({
+        color: 0xFFD700, // Gold color
+        transparent: true,
+        opacity: 0.8,
+        emissive: 0xFFD700,
+        emissiveIntensity: 0.3
+    });
+    
+    // Apply highlight
+    window.solly1.material = highlightMaterial;
+    
+    // Remove highlight after 3 seconds
+    setTimeout(() => {
+        if (window.solly1 && originalMaterial) {
+            window.solly1.material = originalMaterial;
+            console.log('✨ Solly1 highlight removed');
+        }
+    }, 3000);
+    
+    console.log('✨ Solly1 highlighted');
 }
