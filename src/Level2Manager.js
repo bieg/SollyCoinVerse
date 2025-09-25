@@ -1,29 +1,78 @@
 // Level2Manager.js - Level 2: De Cubus (Wireframe Kubus Puzzle)
+
+// @ts-check
+
+// Global THREE.js declaration
+/** @type {any} */
+// @ts-ignore - THREE is loaded globally in browser
+const THREE = globalThis.THREE;
+
+/**
+ * @typedef {Object} PanelConfig
+ * @property {number} baseX - Base X position
+ * @property {number} baseY - Base Y position
+ * @property {number} shapeSize - Size of shapes
+ * @property {number} gapX - X gap between shapes
+ * @property {number} gapY - Y gap between shapes
+ * @property {number} columns - Number of columns
+ * @property {number} rows - Number of rows
+ */
+
+/**
+ * @typedef {Object} GameManagerType
+ * @property {Function} getCurrentShape - Get current shape function
+ */
+
+/**
+ * @typedef {Object} GlobalWindow
+ * @property {any} scene
+ * @property {any} camera  
+ * @property {any} renderer
+ * @property {any} controls
+ * @property {GameManagerType} gameManager
+ * @property {Function} Level2Manager
+ */
+
+/** @type {GlobalWindow & Window} */
+const globalWindow = /** @type {any} */ (window);
+
 class Level2Manager {
     constructor() {
         this.isActive = false;
         this.isInitialized = false;
+        /** @type {any} */
         this.scene = null;
+        /** @type {any} */
         this.camera = null;
+        /** @type {any} */
         this.renderer = null;
+        /** @type {any} */
         this.controls = null;
         
         // Wireframe kubus properties
+        /** @type {any} */
         this.wireframeCube = null;
+        /** @type {any[]} */
         this.cornerPoints = [];
+        /** @type {any[]} */
         this.shapeChoices = [];
         this.isDragging = false;
+        /** @type {any} */
         this.draggedShape = null;
+        /** @type {any} */
         this.dragOffset = null;
         this.placedShapes = 0;
         this.totalCorners = 8;
         this.levelCompleted = false;
         
         // Raycaster voor drag & drop
+        /** @type {any} */
         this.raycaster = null;
+        /** @type {any} */
         this.mouse = null;
         
         // Performance tracking
+        /** @type {number|null} */
         this.animationFrameId = null;
         this.lastFrameTime = 0;
         
@@ -50,10 +99,10 @@ class Level2Manager {
             this.initializeTHREE();
             
             // Get globals from main game
-            this.scene = window.scene || null;
-            this.camera = window.camera || null;
-            this.renderer = window.renderer || null;
-            this.controls = window.controls || null;
+            this.scene = globalWindow.scene || null;
+            this.camera = globalWindow.camera || null;
+            this.renderer = globalWindow.renderer || null;
+            this.controls = globalWindow.controls || null;
             
             if (!this.scene || !this.camera || !this.renderer) {
                 throw new Error('Scene, camera or renderer not available');
@@ -142,8 +191,9 @@ class Level2Manager {
     cleanupOldObjects() {
         if (!this.scene) return;
         
+        /** @type {any[]} */
         const objectsToRemove = [];
-        this.scene.traverse(obj => {
+        this.scene.traverse(/** @param {any} obj */ obj => {
             if (!obj.isCamera && !obj.isLight && obj !== this.scene) {
                 objectsToRemove.push(obj);
             }
@@ -213,6 +263,12 @@ class Level2Manager {
     }
 
     // Create individual UI element
+    /**
+     * @param {Object} config - UI element configuration
+     * @param {string} config.id - Element ID
+     * @param {string} config.content - Element content
+     * @param {Object} config.style - Style object
+     */
     createUIElement(config) {
         const element = document.createElement('div');
         element.id = config.id;
@@ -236,6 +292,10 @@ class Level2Manager {
     }
 
     // Convert style object to CSS string
+    /**
+     * @param {Object} styleObj - Style object with CSS properties
+     * @returns {string} CSS string
+     */
     styleObjectToString(styleObj) {
         return Object.entries(styleObj)
             .map(([key, value]) => `${key}: ${value}`)
@@ -281,6 +341,12 @@ class Level2Manager {
     }
 
     // Create corner point
+    /**
+     * @param {number} index - Corner index
+     * @param {number[]} position - Position array [x, y, z]
+     * @param {number} cubeSize - Size of the cube
+     * @returns {any} Corner point group
+     */
     createCornerPoint(index, position, cubeSize) {
         const cornerGroup = new THREE.Group();
         
@@ -315,8 +381,8 @@ class Level2Manager {
     // Create shape choices panel
     createShapeChoicesPanel() {
         // Determine current shape from GameManager
-        const currentShape = (window.gameManager && window.gameManager.getCurrentShape) ? 
-            window.gameManager.getCurrentShape() : 'piramide';
+        const currentShape = (globalWindow.gameManager && globalWindow.gameManager.getCurrentShape) ? 
+            globalWindow.gameManager.getCurrentShape() : 'piramide';
         
         // Create 8 shape choices
         const shapes = Array(8).fill(currentShape);
@@ -343,6 +409,12 @@ class Level2Manager {
     }
 
     // Create shape choice
+    /**
+     * @param {string} shapeType - Type of shape
+     * @param {number} index - Shape index
+     * @param {PanelConfig} config - Configuration object
+     * @returns {any} Shape choice group
+     */
     createShapeChoice(shapeType, index, config) {
         const shapeGroup = new THREE.Group();
         
@@ -393,6 +465,9 @@ class Level2Manager {
     }
 
     // Create panel frame
+    /**
+     * @param {PanelConfig} config - Panel configuration
+     */
     createPanelFrame(config) {
         const frameGroup = new THREE.Group();
         
@@ -444,6 +519,9 @@ class Level2Manager {
     }
 
     // Pointer down event
+    /**
+     * @param {PointerEvent} event - Pointer event
+     */
     onPointerDown(event) {
         this.updateMousePosition(event);
         this.raycaster.setFromCamera(this.mouse, this.camera);
@@ -461,6 +539,9 @@ class Level2Manager {
     }
 
     // Pointer move event
+    /**
+     * @param {PointerEvent} event - Pointer event
+     */
     onPointerMove(event) {
         if (!this.isDragging || !this.draggedShape) return;
         
@@ -477,6 +558,9 @@ class Level2Manager {
     }
 
     // Pointer up event
+    /**
+     * @param {PointerEvent} event - Pointer event
+     */
     onPointerUp(event) {
         if (!this.isDragging || !this.draggedShape) return;
         
@@ -494,6 +578,9 @@ class Level2Manager {
     }
 
     // Update mouse position
+    /**
+     * @param {PointerEvent} event - Pointer event
+     */
     updateMousePosition(event) {
         const rect = this.renderer.domElement.getBoundingClientRect();
         this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -501,6 +588,10 @@ class Level2Manager {
     }
 
     // Find shape choice parent
+    /**
+     * @param {any} object - THREE.js object
+     * @returns {any} Shape choice parent or null
+     */
     findShapeChoiceParent(object) {
         let parent = object;
         while (parent && !parent.userData.isShapeChoice) {
@@ -510,6 +601,10 @@ class Level2Manager {
     }
 
     // Start dragging
+    /**
+     * @param {any} shapeChoice - Shape choice object
+     * @param {any} hitPoint - Hit point
+     */
     startDragging(shapeChoice, hitPoint) {
         this.draggedShape = shapeChoice;
         this.isDragging = true;
@@ -532,6 +627,10 @@ class Level2Manager {
     }
 
     // Find nearest corner
+    /**
+     * @param {any} position - Position to check
+     * @returns {any} Nearest corner or null
+     */
     findNearestCorner(position) {
         let nearestCorner = null;
         let minDistance = Infinity;
@@ -550,6 +649,10 @@ class Level2Manager {
     }
 
     // Place shape on corner
+    /**
+     * @param {any} shapeChoice - Shape choice object
+     * @param {any} corner - Corner object
+     */
     placeShapeOnCorner(shapeChoice, corner) {
         try {
             // Clone shape for placement
@@ -584,6 +687,9 @@ class Level2Manager {
     }
 
     // Return shape to original position
+    /**
+     * @param {any} shapeChoice - Shape choice object
+     */
     returnShapeToOriginal(shapeChoice) {
         shapeChoice.position.copy(shapeChoice.userData.originalPosition);
     }
@@ -617,7 +723,7 @@ class Level2Manager {
             cancelAnimationFrame(this.animationFrameId);
         }
         
-        const animateWhirl = (currentTime) => {
+        const animateWhirl = (/** @type {number} */ currentTime) => {
             const elapsed = currentTime - startTime;
             const progress = Math.min(elapsed / duration, 1);
             
@@ -634,7 +740,7 @@ class Level2Manager {
                 
                 // Optimized color pulse effect - only update every few frames
                 if (currentTime - this.lastFrameTime > 16) { // ~60fps
-                    this.wireframeCube.children.forEach(child => {
+                    this.wireframeCube.children.forEach(/** @param {any} child */ child => {
                         if (child.material && child.material.color) {
                             const hue = (progress * 360) % 360;
                             child.material.color.setHSL(hue / 360, 1, 0.5);
@@ -825,4 +931,4 @@ class Level2Manager {
 }
 
 // Make Level2Manager globally available
-window.Level2Manager = Level2Manager; 
+globalWindow.Level2Manager = Level2Manager; 
