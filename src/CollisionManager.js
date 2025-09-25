@@ -1975,12 +1975,19 @@ class CollisionManager {
       const currentLevel = window.chapterManager.getCurrentLevel ? window.chapterManager.getCurrentLevel() : 1;
       window.chapterManager.completeLevel(currentLevel);
     } else {
-      // Placeholder: herlaad pagina of toon bericht
-      const msg = document.createElement('div');
-      msg.textContent = 'Hoofdstuk 2 (Brutalism style) laad...';
-      msg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#000;color:#fff;padding:24px 40px;font-size:1.6em;z-index:10002;';
-      document.body.appendChild(msg);
-      setTimeout(()=>{ location.reload(); }, 1500);
+      // Fallback zonder reload: start Level 2 direct via Level2Manager
+      try {
+        if (!window.level2Manager && window.Level2Manager) {
+          window.level2Manager = new Level2Manager();
+        }
+        if (window.level2Manager && !window.level2Manager.isActive) {
+          window.level2Manager.startLevel();
+        } else if (!window.level2Manager) {
+          console.warn('Level2Manager niet beschikbaar; sla reload over.');
+        }
+      } catch (e) {
+        console.error('Kon Level 2 niet starten in fallback:', e);
+      }
     }
   }
 
