@@ -25,11 +25,9 @@
     </style>
 </head>
 <body>
-    <!-- Blockchain Hub Button - Rechtsbovenin -->
-    <div id="blockchain-hub-btn" class="blockchain-hub-btn" onclick="showBlockchainHub()">
-      <div class="hub-icon">🔗⚡</div>
-      <div class="hub-label">Blockchain</div>
-      <div class="hub-status" id="hub-status">🔴</div>
+    <!-- Wallet Hub Button - Rechtsbovenin -->
+    <div id="wallet-hub-btn" class="wallet-hub-btn" onclick="showWalletHub()">
+      <div class="hub-label">Wallet</div>
     </div>
 
     <!-- Blockchain Hub Modal -->
@@ -57,6 +55,24 @@
                 <div class="dashboard-card">
                   <h3>🔐 Wallet Status</h3>
                   <p id="wallet-status">Niet verbonden</p>
+                </div>
+                <div class="dashboard-card">
+                  <h3>🪙 Coin Selectie</h3>
+                  <select id="coin-selector" onchange="switchCoin()">
+                    <option value="solly-default">🪙 SollyCoin Default (SOLLY)</option>
+                    <option value="solly-level1">🪙 SollyCoin Level 1 (SOLLY)</option>
+                    <option value="solly-level2">🪙 SollyCoin Level 2 (SOLLY)</option>
+                    <option value="solly-level3">🪙 SollyCoin Level 3 (SOLLY)</option>
+                    <option value="solly-master">🪙 SollyCoin Master (SOLLY)</option>
+                    <option value="bitcoin">₿ Bitcoin (BTC)</option>
+                    <option value="ethereum">Ξ Ethereum (ETH)</option>
+                    <option value="polygon">⬟ Polygon (MATIC)</option>
+                  </select>
+                  <p id="selected-coin-info">Geselecteerd: SollyCoin Default</p>
+                  <button id="activate-coin-btn" onclick="activateCoin()" class="activate-btn">
+                    🚀 Activeer Coin
+                  </button>
+                  <p id="coin-status">Status: Niet geactiveerd</p>
                 </div>
                 <div class="dashboard-card">
                   <h3>💰 Balances</h3>
@@ -115,8 +131,8 @@
         });
       });
       
-      function showBlockchainHub() {
-        console.log('🔗 Blockchain Hub geopend!');
+      function showWalletHub() {
+        console.log('💳 Wallet Hub geopend!');
         
         // Debug: Check of modal element bestaat
         const modal = document.getElementById('blockchain-hub-modal');
@@ -142,6 +158,247 @@
         }
       }
       
+      // Coin selection functionality
+      function switchCoin() {
+        const selector = document.getElementById('coin-selector');
+        const coinInfo = document.getElementById('selected-coin-info');
+        const tokenBalance = document.getElementById('token-balance');
+        
+        if (!selector || !coinInfo || !tokenBalance) {
+          console.error('❌ Coin selector elements niet gevonden');
+          return;
+        }
+        
+        const selectedCoin = selector.value;
+        const coinNames = {
+          'solly-default': 'SollyCoin Default',
+          'solly-level1': 'SollyCoin Level 1',
+          'solly-level2': 'SollyCoin Level 2',
+          'solly-level3': 'SollyCoin Level 3',
+          'solly-master': 'SollyCoin Master',
+          'bitcoin': 'Bitcoin',
+          'ethereum': 'Ethereum',
+          'polygon': 'Polygon'
+        };
+        
+        const coinSymbols = {
+          'solly-default': 'SOLLY',
+          'solly-level1': 'SOLLY',
+          'solly-level2': 'SOLLY',
+          'solly-level3': 'SOLLY',
+          'solly-master': 'SOLLY',
+          'bitcoin': 'BTC',
+          'ethereum': 'ETH',
+          'polygon': 'MATIC'
+        };
+        
+        // Update UI
+        coinInfo.textContent = `Geselecteerd: ${coinNames[selectedCoin]}`;
+        tokenBalance.textContent = `0 ${coinSymbols[selectedCoin]}`;
+        
+        console.log(`🪙 Coin gewisseld naar: ${coinNames[selectedCoin]} (${coinSymbols[selectedCoin]})`);
+        
+        // TODO: Implementeer daadwerkelijke coin switching logic
+        // - Update wallet connection
+        // - Fetch nieuwe balances
+        // - Update UI voor geselecteerde coin
+      }
+      
+      // Coin activation functionality
+      function activateCoin() {
+        const selector = document.getElementById('coin-selector');
+        const coinStatus = document.getElementById('coin-status');
+        const activateBtn = document.getElementById('activate-coin-btn');
+        
+        if (!selector || !coinStatus || !activateBtn) {
+          console.error('❌ Coin activation elements niet gevonden');
+          return;
+        }
+        
+        const selectedCoin = selector.value;
+        const coinNames = {
+          'solly-default': 'SollyCoin Default',
+          'solly-level1': 'SollyCoin Level 1',
+          'solly-level2': 'SollyCoin Level 2',
+          'solly-level3': 'SollyCoin Level 3',
+          'solly-master': 'SollyCoin Master',
+          'bitcoin': 'Bitcoin',
+          'ethereum': 'Ethereum',
+          'polygon': 'Polygon'
+        };
+        
+        // Check if already activated
+        if (activateBtn.textContent === '✅ Geactiveerd') {
+          // Show switch confirmation
+          const currentCoin = coinStatus.textContent.split(': ')[1].split(' geactiveerd')[0];
+          const newCoin = coinNames[selectedCoin];
+          
+          if (confirm(`🔄 Wil je wisselen van ${currentCoin} naar ${newCoin}?`)) {
+            switchCoin();
+          }
+          return;
+        }
+        
+        // Update UI
+        coinStatus.textContent = `Status: ${coinNames[selectedCoin]} geactiveerd!`;
+        coinStatus.style.color = '#28a745';
+        activateBtn.textContent = '✅ Geactiveerd';
+        activateBtn.style.background = '#28a745';
+        activateBtn.disabled = false; // Keep enabled for switching
+        
+        console.log(`🚀 Coin geactiveerd: ${coinNames[selectedCoin]}`);
+        
+        // Load SollyCoin data and restart universe
+        if (selectedCoin.startsWith('solly-')) {
+          loadSollyCoinData(selectedCoin);
+        } else {
+          // TODO: Implementeer daadwerkelijke coin activation logic voor externe coins
+          // - Connect to blockchain network
+          // - Initialize wallet for selected coin
+          // - Fetch real balances
+          // - Enable trading/minting for this coin
+        }
+      }
+      
+      // Load SollyCoin data and update universe in place
+      async function loadSollyCoinData(coinType) {
+        try {
+          const coinFile = coinType.replace('solly-', 'SollyCoin_');
+          const response = await fetch(`/coins/${coinFile}.json`);
+          const coinData = await response.json();
+          
+          console.log(`🪙 Loading SollyCoin data: ${coinFile}`, coinData);
+          
+          // Load coin data into game manager
+          if (window.gameManager) {
+            window.gameManager.loadCoinData(coinData);
+            console.log('✅ SollyCoin data loaded into GameManager');
+            
+            // Update universe in place without restart
+            updateUniverseInPlace(coinData);
+          } else {
+            console.error('❌ GameManager not available');
+          }
+        } catch (error) {
+          console.error('❌ Error loading SollyCoin data:', error);
+          alert('❌ Fout bij laden van SollyCoin data: ' + error.message);
+        }
+      }
+      
+      // Update universe in place without restarting
+      function updateUniverseInPlace(coinData) {
+        try {
+          console.log('🔄 Updating universe in place with new coin data...');
+          
+          // Get current scene
+          const scene = window.scene;
+          if (!scene) {
+            console.error('❌ Scene not available');
+            return;
+          }
+          
+          // Remove existing game objects (but keep Solly1 and Solly2)
+          const objectsToRemove = [];
+          scene.traverse((child) => {
+            // Remove planets, stars, and other sollys, but keep Solly1 and Solly2
+            if (child.userData && child.userData.type && 
+                !child.userData.isSolly1 && 
+                child.name !== 'Solly1' && 
+                child.name !== 'Solly1Collider' &&
+                child.name !== 'Solly2' &&
+                child.name !== 'Solly2Collider') {
+              objectsToRemove.push(child);
+            }
+          });
+          
+          objectsToRemove.forEach(obj => {
+            scene.remove(obj);
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) obj.material.dispose();
+          });
+          
+          console.log(`🗑️ Removed ${objectsToRemove.length} existing objects (kept Solly1 & Solly2)`);
+          
+          // Re-add objects with new coin data (but skip Solly1 & Solly2)
+          setTimeout(() => {
+            if (typeof addPlanets === 'function') {
+              addPlanets(scene);
+              console.log('🪐 Planets updated');
+            }
+            if (typeof addSollys === 'function') {
+              addSollys(scene);
+              console.log('🪙 Sollys updated');
+            }
+            if (typeof addWhiteStars === 'function') {
+              addWhiteStars(scene);
+              console.log('⭐ Stars updated');
+            }
+            // Skip addSolly1AndSolly2 - we keep the existing ones
+            
+            console.log('✅ Universe updated in place! (Solly1 & Solly2 preserved)');
+          }, 100);
+          
+        } catch (error) {
+          console.error('❌ Error updating universe:', error);
+        }
+      }
+      
+      // Enhanced coin switching with reset functionality
+      function switchCoin() {
+        const selector = document.getElementById('coin-selector');
+        const coinInfo = document.getElementById('selected-coin-info');
+        const tokenBalance = document.getElementById('token-balance');
+        const coinStatus = document.getElementById('coin-status');
+        const activateBtn = document.getElementById('activate-coin-btn');
+        
+        if (!selector || !coinInfo || !tokenBalance) {
+          console.error('❌ Coin selector elements niet gevonden');
+          return;
+        }
+        
+        const selectedCoin = selector.value;
+        const coinNames = {
+          'solly-default': 'SollyCoin Default',
+          'solly-level1': 'SollyCoin Level 1',
+          'solly-level2': 'SollyCoin Level 2',
+          'solly-level3': 'SollyCoin Level 3',
+          'solly-master': 'SollyCoin Master',
+          'bitcoin': 'Bitcoin',
+          'ethereum': 'Ethereum',
+          'polygon': 'Polygon'
+        };
+        
+        const coinSymbols = {
+          'solly-default': 'SOLLY',
+          'solly-level1': 'SOLLY',
+          'solly-level2': 'SOLLY',
+          'solly-level3': 'SOLLY',
+          'solly-master': 'SOLLY',
+          'bitcoin': 'BTC',
+          'ethereum': 'ETH',
+          'polygon': 'MATIC'
+        };
+        
+        // Reset activation state
+        if (coinStatus && activateBtn) {
+          coinStatus.textContent = 'Status: Niet geactiveerd';
+          coinStatus.style.color = '#6c757d';
+          activateBtn.textContent = '🚀 Activeer Coin';
+          activateBtn.style.background = '#667eea';
+        }
+        
+        // Update UI
+        coinInfo.textContent = `Geselecteerd: ${coinNames[selectedCoin]}`;
+        tokenBalance.textContent = `0 ${coinSymbols[selectedCoin]}`;
+        
+        console.log(`🪙 Coin gewisseld naar: ${coinNames[selectedCoin]} (${coinSymbols[selectedCoin]})`);
+        
+        // TODO: Implementeer daadwerkelijke coin switching logic
+        // - Update wallet connection
+        // - Fetch nieuwe balances
+        // - Update UI voor geselecteerde coin
+      }
+      
       function mintTokens() {
         alert('🪙 Token minting functionaliteit komt binnenkort!');
       }
@@ -158,20 +415,20 @@
         alert('🎮 Score conversie functionaliteit komt binnenkort!');
       }
 
-      // Functie om Blockchain Hub knop zichtbaar te maken na game start
-      function showBlockchainHubButton() {
-        const hubBtn = document.getElementById('blockchain-hub-btn');
+      // Functie om Wallet Hub knop zichtbaar te maken na game start
+      function showWalletHubButton() {
+        const hubBtn = document.getElementById('wallet-hub-btn');
         if (hubBtn) {
           hubBtn.style.display = 'block';
-          console.log('🔗 Blockchain Hub knop wordt zichtbaar gemaakt');
+          console.log('💳 Wallet Hub knop wordt zichtbaar gemaakt');
         }
       }
       
       // Luister naar game start events
       document.addEventListener('DOMContentLoaded', () => {
-        // Toon Blockchain Hub knop na 5 seconden (simuleer game start)
+        // Toon Wallet Hub knop na 5 seconden (simuleer game start)
         setTimeout(() => {
-          showBlockchainHubButton();
+          showWalletHubButton();
         }, 5000);
         
         console.log('🔗 Blockchain Hub knop wacht op game start (5 seconden)');
