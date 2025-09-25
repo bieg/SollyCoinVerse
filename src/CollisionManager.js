@@ -1818,9 +1818,18 @@ class CollisionManager {
     const scene = window.scene;
     if (!scene) return;
 
+<<<<<<< HEAD
     // ===== 1. Spawn nieuwe sterren (200% van huidige count) =====
     const currentStarCount = (window.whiteStars && window.whiteStars.length) ? window.whiteStars.length : 1000;
     const extraStarCount = Math.round(currentStarCount * 2); // +200 %
+=======
+    // ===== 1. Maak een spectaculaire vortex in het centrum =====
+    this.createSpectacularVortex(targetPos);
+
+    // ===== 2. Spawn nieuwe sterren (300% van huidige count) =====
+    const currentStarCount = (window.whiteStars && window.whiteStars.length) ? window.whiteStars.length : 1000;
+    const extraStarCount = Math.round(currentStarCount * 3); // +300 %
+>>>>>>> phase4_portal
     const newStars = [];
     const starMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
     for (let i = 0; i < extraStarCount; i++) {
@@ -2652,6 +2661,7 @@ class CollisionManager {
   goToChapter2() {
     console.log('➡️ Automatisch doorgaan naar hoofdstuk 2');
     
+<<<<<<< HEAD
     // Gebruik ChapterManager om naar hoofdstuk 2 te gaan
     if (window.chapterManager && typeof window.chapterManager.completeLevel === 'function') {
       const currentLevel = window.chapterManager.getCurrentLevel ? window.chapterManager.getCurrentLevel() : 1;
@@ -2677,7 +2687,183 @@ class CollisionManager {
       // Fallback: reload page
       console.log('⚠️ ChapterManager niet gevonden, pagina herladen...');
       window.location.reload();
+=======
+    // Toon spectaculair laadbericht
+    const msg = document.createElement('div');
+    msg.style.cssText = `
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #8A2BE2, #4B0082);
+      color: white; padding: 30px 50px; border-radius: 15px;
+      font-size: 24px; font-weight: bold; z-index: 10000;
+      text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      border: 3px solid #9370DB; font-family: 'Open Sans', sans-serif;
+    `;
+    msg.innerHTML = '🌀 HOOFDSTUK 2 LAADT... 🌀<br><br>De Cubus wacht op je!';
+    document.body.appendChild(msg);
+    
+    // Start Level 2 na 2 seconden
+    setTimeout(() => {
+      if (msg.parentNode) {
+        msg.parentNode.removeChild(msg);
+      }
+      
+      // Start Chapter 2 (2D platte versie)
+      if (window.initChapter2) {
+        try {
+          console.log('🚀 Starting Chapter 2: De Cubus (2D platte versie)');
+          window.initChapter2();
+        } catch (error) {
+          console.error('❌ Error starting Chapter 2:', error);
+          // Fallback: show error message
+          const errorMsg = document.createElement('div');
+          errorMsg.style.cssText = `
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(255,0,0,0.8); color: white; padding: 20px;
+            border-radius: 10px; font-size: 18px; z-index: 10000;
+          `;
+          errorMsg.textContent = 'Error loading Chapter 2. Page will reload...';
+          document.body.appendChild(errorMsg);
+          setTimeout(() => window.location.reload(), 3000);
+        }
+      } else {
+        console.error('❌ initChapter2 not found');
+        window.location.reload();
+      }
+    }, 2000);
+  }
+
+  // ===================== SPECTACULAIRE VORTEX CREATIE =====================
+  createSpectacularVortex(targetPos) {
+    const scene = window.scene;
+    if (!scene) return;
+
+    // Maak een vortex groep
+    const vortexGroup = new THREE.Group();
+    vortexGroup.position.copy(targetPos);
+    scene.add(vortexGroup);
+    window.vortex = vortexGroup; // Store globally
+
+    // 1. Centrale vortex ring met glow effect
+    const ringGeometry = new THREE.TorusGeometry(200, 50, 16, 100);
+    const ringMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x8A2BE2, 
+      transparent: true, 
+      opacity: 0.8,
+      side: THREE.DoubleSide
+    });
+    const vortexRing = new THREE.Mesh(ringGeometry, ringMaterial);
+    vortexGroup.add(vortexRing);
+
+    // 2. Binnenste draaiende ring
+    const innerRingGeometry = new THREE.TorusGeometry(100, 30, 12, 50);
+    const innerRingMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0xFFD700, 
+      transparent: true, 
+      opacity: 0.9,
+      side: THREE.DoubleSide
+    });
+    const innerRing = new THREE.Mesh(innerRingGeometry, innerRingMaterial);
+    vortexGroup.add(innerRing);
+
+    // 3. Partikel systeem voor vortex effect
+    const particleCount = 500;
+    const particles = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      const radius = 50 + Math.random() * 200;
+      const angle = Math.random() * Math.PI * 2;
+      const height = (Math.random() - 0.5) * 100;
+      
+      positions[i3] = Math.cos(angle) * radius;
+      positions[i3 + 1] = height;
+      positions[i3 + 2] = Math.sin(angle) * radius;
+      
+      // Kleur van paars naar goud
+      const colorMix = Math.random();
+      colors[i3] = 0.5 + colorMix * 0.5; // R: 0.5-1.0
+      colors[i3 + 1] = 0.2 + colorMix * 0.3; // G: 0.2-0.5
+      colors[i3 + 2] = 0.8 + colorMix * 0.2; // B: 0.8-1.0
+>>>>>>> phase4_portal
     }
+    
+    particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    
+    const particleMaterial = new THREE.PointsMaterial({
+      size: 3,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8
+    });
+    
+    const particleSystem = new THREE.Points(particles, particleMaterial);
+    vortexGroup.add(particleSystem);
+
+    // 4. Energie lijnen die naar het centrum wijzen
+    const lineCount = 20;
+    for (let i = 0; i < lineCount; i++) {
+      const lineGeometry = new THREE.BufferGeometry();
+      const linePositions = new Float32Array(6);
+      
+      const angle = (i / lineCount) * Math.PI * 2;
+      const radius = 300;
+      
+      linePositions[0] = Math.cos(angle) * radius;
+      linePositions[1] = 0;
+      linePositions[2] = Math.sin(angle) * radius;
+      linePositions[3] = 0;
+      linePositions[4] = 0;
+      linePositions[5] = 0;
+      
+      lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+      
+      const lineMaterial = new THREE.LineBasicMaterial({
+        color: 0x00FFFF,
+        transparent: true,
+        opacity: 0.6
+      });
+      
+      const line = new THREE.Line(lineGeometry, lineMaterial);
+      vortexGroup.add(line);
+    }
+
+    // 5. Animeer de vortex
+    const animateVortex = () => {
+      if (!vortexGroup.parent) return; // Stop als vortex is weggehaald
+      
+      const time = performance.now() * 0.001;
+      
+      // Rotatie van de ringen
+      vortexRing.rotation.x = time * 2;
+      vortexRing.rotation.z = time * 1.5;
+      innerRing.rotation.x = -time * 3;
+      innerRing.rotation.z = -time * 2;
+      
+      // Partikel rotatie
+      particleSystem.rotation.y = time * 4;
+      
+      // Energie lijnen pulseren
+      vortexGroup.children.forEach((child, index) => {
+        if (child instanceof THREE.Line) {
+          const opacity = 0.3 + 0.7 * Math.sin(time * 3 + index * 0.5);
+          child.material.opacity = opacity;
+        }
+      });
+      
+      // Kleur cycling
+      const hue = (time * 0.1) % 1;
+      vortexRing.material.color.setHSL(hue, 1, 0.5);
+      innerRing.material.color.setHSL((hue + 0.5) % 1, 1, 0.7);
+      
+      requestAnimationFrame(animateVortex);
+    };
+    
+    animateVortex();
+    
+    console.log('🌀 Spectaculaire vortex gecreëerd!');
   }
 
   addFloatingAnimation(element) {
