@@ -99,7 +99,13 @@ function addSollySun(scene) {
 }
 
 function addPlanets(scene) {
-    const currentUser = gameManager.getCurrentUser();
+    // Check if gameManager exists and is initialized
+    if (!window.gameManager) {
+        console.warn('⚠️ gameManager not available for planets, gebruik default waarden');
+        return;
+    }
+    
+    const currentUser = window.gameManager.getCurrentUser();
     
     if (!currentUser || !currentUser.planeten) {
         console.warn('⚠️ currentUser of currentUser.planeten is null, gebruik default waarden');
@@ -166,7 +172,13 @@ function addPlanets(scene) {
 }
 
 function addSollys(scene) {
-    const currentUser = gameManager.getCurrentUser();
+    // Check if gameManager exists and is initialized
+    if (!window.gameManager) {
+        console.warn('⚠️ gameManager not available for sollys, gebruik default waarden');
+        return;
+    }
+    
+    const currentUser = window.gameManager.getCurrentUser();
     
     if (!currentUser || !currentUser.sollys) {
         console.warn('⚠️ currentUser of currentUser.sollys is null, gebruik default waarden');
@@ -254,7 +266,15 @@ function addSollys(scene) {
 }
 
 function addWhiteStars(scene) {
-    const currentUser = gameManager.getCurrentUser();
+    // Check if gameManager exists and is initialized
+    if (!window.gameManager) {
+        console.warn('⚠️ gameManager not available, gebruik default waarden');
+        const wit = 4000;
+        addStarToScene(wit, 0xFFFFFF, whiteStars);
+        return;
+    }
+    
+    const currentUser = window.gameManager.getCurrentUser();
     
     if (!currentUser || !currentUser.sterren) {
         console.warn('⚠️ currentUser of currentUser.sterren is null, gebruik default waarden');

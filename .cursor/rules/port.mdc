@@ -1,0 +1,11 @@
+---
+alwaysApply: true
+---
+# Server Poort Configuratie
+
+**ALTIJD gebruik poort 5555 voor de SollyCoin server**
+
+- Server moet draaien op: `http://127.0.0.1:5555`
+- Geen andere poorten gebruiken
+- Zorg dat er geen conflicten zijn
+- Start server met: `python3 -m http.server 5555`

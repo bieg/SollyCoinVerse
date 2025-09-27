@@ -2110,19 +2110,12 @@ class CollisionManager {
 
     const scene = window.scene;
     if (!scene) return;
-
-<<<<<<< HEAD
-    // ===== 1. Spawn nieuwe sterren (200% van huidige count) =====
-    const currentStarCount = (window.whiteStars && window.whiteStars.length) ? window.whiteStars.length : 1000;
-    const extraStarCount = Math.round(currentStarCount * 2); // +200 %
-=======
     // ===== 1. Maak een spectaculaire vortex in het centrum =====
     this.createSpectacularVortex(targetPos);
 
     // ===== 2. Spawn nieuwe sterren (300% van huidige count) =====
     const currentStarCount = (window.whiteStars && window.whiteStars.length) ? window.whiteStars.length : 1000;
     const extraStarCount = Math.round(currentStarCount * 3); // +300 %
->>>>>>> phase4_portal
     const newStars = [];
     const starMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
     for (let i = 0; i < extraStarCount; i++) {
@@ -2961,13 +2954,12 @@ class CollisionManager {
   goToChapter2() {
     console.log('➡️ Automatisch doorgaan naar hoofdstuk 2');
     
-<<<<<<< HEAD
-    // Gebruik ChapterManager om naar hoofdstuk 2 te gaan
+    // 1) Probeer via ChapterManager naar de volgende level te gaan
     if (window.chapterManager && typeof window.chapterManager.completeLevel === 'function') {
       const currentLevel = window.chapterManager.getCurrentLevel ? window.chapterManager.getCurrentLevel() : 1;
       window.chapterManager.completeLevel(currentLevel);
-      
-      // Toon bericht
+
+      // Toon kort laadbericht
       const msg = document.createElement('div');
       msg.style.cssText = `
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -2976,19 +2968,11 @@ class CollisionManager {
       `;
       msg.textContent = 'Hoofdstuk 2 (Brutalism style) laad...';
       document.body.appendChild(msg);
-      
-      // Verwijder bericht na 3 seconden
-      setTimeout(() => {
-        if (msg.parentNode) {
-          msg.parentNode.removeChild(msg);
-        }
-      }, 3000);
-    } else {
-      // Fallback: reload page
-      console.log('⚠️ ChapterManager niet gevonden, pagina herladen...');
-      window.location.reload();
-=======
-    // Toon spectaculair laadbericht
+      setTimeout(() => { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 2000);
+      return;
+    }
+
+    // 2) Fallback: toon spectaculair bericht en start Chapter 2 2D indien beschikbaar
     const msg = document.createElement('div');
     msg.style.cssText = `
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -3001,29 +2985,15 @@ class CollisionManager {
     msg.innerHTML = '🌀 HOOFDSTUK 2 LAADT... 🌀<br><br>De Cubus wacht op je!';
     document.body.appendChild(msg);
     
-    // Start Level 2 na 2 seconden
     setTimeout(() => {
-      if (msg.parentNode) {
-        msg.parentNode.removeChild(msg);
-      }
-      
-      // Start Chapter 2 (2D platte versie)
+      if (msg.parentNode) msg.parentNode.removeChild(msg);
       if (window.initChapter2) {
         try {
           console.log('🚀 Starting Chapter 2: De Cubus (2D platte versie)');
           window.initChapter2();
         } catch (error) {
           console.error('❌ Error starting Chapter 2:', error);
-          // Fallback: show error message
-          const errorMsg = document.createElement('div');
-          errorMsg.style.cssText = `
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(255,0,0,0.8); color: white; padding: 20px;
-            border-radius: 10px; font-size: 18px; z-index: 10000;
-          `;
-          errorMsg.textContent = 'Error loading Chapter 2. Page will reload...';
-          document.body.appendChild(errorMsg);
-          setTimeout(() => window.location.reload(), 3000);
+          window.location.reload();
         }
       } else {
         console.error('❌ initChapter2 not found');
@@ -3086,7 +3056,6 @@ class CollisionManager {
       colors[i3] = 0.5 + colorMix * 0.5; // R: 0.5-1.0
       colors[i3 + 1] = 0.2 + colorMix * 0.3; // G: 0.2-0.5
       colors[i3 + 2] = 0.8 + colorMix * 0.2; // B: 0.8-1.0
->>>>>>> phase4_portal
     }
     
     particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
