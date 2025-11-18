@@ -187,6 +187,14 @@
     const cta = document.getElementById('cta-buttons');
     if (cta) cta.remove();
 
+    // Verwijder Wallet button rechtsbovenin
+    const walletBtn = document.getElementById('wallet-hub-btn');
+    if (walletBtn) {
+      walletBtn.style.display = 'none';
+      walletBtn.remove();
+      console.log('🗑️ Wallet button verwijderd');
+    }
+
     // Maak camera & controls statisch
     if (controls) {
       controls.enabled = false;
@@ -221,6 +229,82 @@
 
     cleanupChapter1Objects();
 
+    // VERWIJDER ALLE SOLLY OBJECTEN (witte Solly en andere Sollys)
+    const sollyObjectsToRemove = [];
+    scene.traverse((obj) => {
+      // Verwijder Solly1 (witte Solly)
+      if (obj.userData && (obj.userData.isSolly1 || obj.name === 'Solly1')) {
+        sollyObjectsToRemove.push(obj);
+      }
+      // Verwijder alle Solly objecten (mini Sollys, etc.)
+      if (obj.userData && (obj.userData.isSolly || obj.userData.type === 'solly')) {
+        sollyObjectsToRemove.push(obj);
+      }
+      // Verwijder op basis van geometrie (TetrahedronGeometry = Solly)
+      if (obj.geometry && obj.geometry.type === 'TetrahedronGeometry') {
+        if (!obj.userData.isDraggable && !obj.userData.isPlaceholder) {
+          sollyObjectsToRemove.push(obj);
+        }
+      }
+    });
+    sollyObjectsToRemove.forEach((obj) => {
+      if (obj.parent) obj.parent.remove(obj);
+      else scene.remove(obj);
+      console.log('🗑️ Solly object verwijderd:', obj.name || obj.userData);
+    });
+    console.log(`🗑️ Totaal ${sollyObjectsToRemove.length} Solly objecten verwijderd`);
+
+    // VERWIJDER ALLE STERREN uit de scene
+    const starsToRemove = [];
+    scene.traverse((obj) => {
+      // Verwijder InstancedMesh sterren (gebruikt voor performance)
+      if (obj.isInstancedMesh && obj.geometry && obj.geometry.type === 'SphereGeometry') {
+        const radius = obj.geometry.parameters?.radius || 0;
+        if (radius < 10 && obj.material && obj.material.color) {
+          const color = obj.material.color;
+          const isWhite = color.r > 0.9 && color.g > 0.9 && color.b > 0.9;
+          if (isWhite) {
+            starsToRemove.push(obj);
+          }
+        }
+      }
+      // Verwijder alle sterren met userData.isStar
+      if (obj.userData && (obj.userData.isStar || obj.userData.type === 'star')) {
+        starsToRemove.push(obj);
+      }
+      // Ook verwijderen op basis van naam
+      if (obj.name && obj.name.toLowerCase().includes('star')) {
+        starsToRemove.push(obj);
+      }
+      // Verwijder kleine witte bollen die waarschijnlijk sterren zijn
+      if (obj.geometry && obj.geometry.type === 'SphereGeometry' && !obj.isInstancedMesh) {
+        const radius = obj.geometry.parameters?.radius || 0;
+        if (radius < 10 && obj.material && obj.material.color) {
+          const color = obj.material.color;
+          const isWhite = color.r > 0.9 && color.g > 0.9 && color.b > 0.9;
+          if (
+            isWhite &&
+            !obj.userData.isDraggable &&
+            !obj.userData.isPlaceholder &&
+            !obj.userData.isHotspot
+          ) {
+            starsToRemove.push(obj);
+          }
+        }
+      }
+    });
+    starsToRemove.forEach((obj) => {
+      if (obj.parent) obj.parent.remove(obj);
+      else scene.remove(obj);
+      // Dispose geometry en material voor InstancedMesh
+      if (obj.isInstancedMesh) {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) obj.material.dispose();
+      }
+      console.log('⭐ Ster verwijderd:', obj.type || obj.constructor.name);
+    });
+    console.log(`🗑️ Totaal ${starsToRemove.length} sterren verwijderd`);
+
     // VERWIJDER ALLE GEplaatste BLOKJES EN SHAPES
     // Verwijder geplaatste blokjes op de kubus en alle dragShapes
     const toRemove = [];
@@ -252,22 +336,21 @@
       }
     });
 
-    // Verwijder ook eventuele groene objecten die per ongeluk op (0,0,0) staan
-    scene.children.forEach((child) => {
-      if (child.material && child.material.color) {
-        const color = child.material.color;
+    // Verwijder ALLE groene objecten uit de scene (behalve draggable shapes)
+    const greenObjectsToRemove = [];
+    scene.traverse((obj) => {
+      if (obj.material && obj.material.color && !obj.userData.isDraggable) {
+        const color = obj.material.color;
         const isGreen = color.getHex() === 0x00ff00 || color.getHex() === 0x00ffaa;
-        if (
-          isGreen &&
-          child.position &&
-          Math.abs(child.position.x) < 50 &&
-          Math.abs(child.position.y) < 50 &&
-          Math.abs(child.position.z) < 50 &&
-          !child.userData.isDraggable
-        ) {
-          scene.remove(child);
+        if (isGreen) {
+          greenObjectsToRemove.push(obj);
         }
       }
+    });
+    greenObjectsToRemove.forEach((obj) => {
+      if (obj.parent) obj.parent.remove(obj);
+      else scene.remove(obj);
+      console.log('🗑️ Groen object verwijderd:', obj);
     });
 
     // Reset alle placeholders
@@ -281,7 +364,7 @@
 
     createBrutalistUI();
     createCube();
-    // createShapeChoices(); // UITGESCHAKELD - geen gekleurde shapes meer
+    createShapeChoices(); // ✅ GEACTIVEERD - drag & drop shapes beschikbaar
 
     // Pointer events - alleen voor hoofdstuk 2
     canvas.addEventListener('pointerdown', onPointerDown, { capture: true });
@@ -442,21 +525,26 @@
       { x: -half, y: -half, z: -half }, // 7: Links beneden achter
     ];
 
-    // ZICHTBARE paarse placeholders op hoekpunten (zoals in screenshot)
+    // ZICHTBARE HOTSPOTS op elke hoek van de kubus
     points.forEach((p, i) => {
-      // Maak zichtbare paarse bol als placeholder
-      const placeholderSphere = new THREE.SphereGeometry(50, 16, 16);
+      // Maak zichtbare hotspot bol voor elke hoek
+      const placeholderSphere = new THREE.SphereGeometry(80, 16, 16);
       const placeholderMaterial = new THREE.MeshBasicMaterial({
         color: 0x8a2be2, // Paars, matching kubus
         transparent: true,
-        opacity: 0.3, // Semi-transparant zoals in screenshot
+        opacity: 0.5, // Semi-transparant
+        side: THREE.DoubleSide,
       });
       const placeholderMesh = new THREE.Mesh(placeholderSphere, placeholderMaterial);
       placeholderMesh.position.set(p.x, p.y, p.z);
       placeholderMesh.userData.cornerIndex = i;
       placeholderMesh.userData.isPlaceholder = true;
+      placeholderMesh.userData.isHotspot = true; // Markeer als hotspot voor drag & drop
+      placeholderMesh.visible = true; // EXPLICIET zichtbaar maken voor raycasting
+      placeholderMesh.raycast = THREE.Mesh.prototype.raycast; // Zorg dat raycast werkt
       cubeGroup.add(placeholderMesh);
       placeholders.push({ mesh: placeholderMesh, filled: false });
+      console.log(`📍 Hotspot ${i} geplaatst op hoek:`, p);
     });
 
     // PERFECT gecentreerd op oorsprong (BoxGeometry is al gecentreerd)
@@ -492,97 +580,84 @@
     });
     dragShapes = [];
 
-    // Maak een aparte groep voor alle shapes
-    const shapesGroup = new THREE.Group();
+    // Positie links met padding (2x4 grid)
+    const viewSize = 4000; // Zelfde als camera viewSize
+    const aspect = window.innerWidth / window.innerHeight;
+    const halfWidth = (viewSize / 2) * aspect;
+    const padding = 200; // Padding vanaf linkerrand
+    const startX = -halfWidth + padding; // Links met padding
+    const startY = -400; // Onder instructiebox
+    const horizontalGap = 180; // Ruimte tussen kolommen
+    const verticalGap = 200; // Ruimte tussen rijen
 
-    // Positie links onder instructiebox (2x4 grid zoals in screenshot)
-    const startX = -1800; // Links van scherm
-    const startY = -600; // Onder instructiebox
+    // Maak een groep voor de shape choices box
+    const shapesBoxGroup = new THREE.Group();
 
-    // 8 VERSCHILLENDE SHAPES zoals in het screenshot
-    const shapeTypes = [
-      'kubus', // Rood - Box
-      'piramide', // Turquoise - Cone
-      'bol', // Geel - Sphere
-      'oktaeder', // Lichtblauw - Octahedron
-      'torus', // Roze - Torus
-      'cylinder', // Lichtpaars - Cylinder
-      'tetraeder', // Lichtpaars-blauw - Tetrahedron
-      'icosaeder', // Goud-geel - Icosahedron
-    ];
+    // 8 IDENTIEKE GROENE BLOKJES (allemaal kubussen) in 2x4 GRID
+    const shapeSize = 120; // Grootte van de blokjes
+    const blockColor = 0x00ff00; // GROEN voor alle blokjes
 
-    const colors = [
-      0xff6b6b, // Rood
-      0x4ecdc4, // Turquoise
-      0xffe66d, // Geel
-      0x95e1d3, // Lichtblauw
-      0xf38181, // Roze
-      0xaa96da, // Lichtpaars
-      0xc7ceea, // Lichtpaars-blauw
-      0xffd93d, // Goud-geel
-    ];
-
-    const shapeSize = 120; // Grotere shapes voor duidelijkheid
-    const gridGap = 180; // Ruimte tussen shapes
-
-    // Maak 8 verschillende shapes in 2x4 grid
+    // Maak 8 identieke groene kubussen in 2x4 grid (2 breed, 4 hoog)
     for (let i = 0; i < 8; i++) {
-      const col = i % 4;
-      const row = Math.floor(i / 4);
+      const col = i % 2; // 0 of 1 (2 kolommen)
+      const row = Math.floor(i / 2); // 0-3 (4 rijen)
 
-      let geometry;
-
-      switch (shapeTypes[i]) {
-        case 'kubus':
-          geometry = new THREE.BoxGeometry(shapeSize, shapeSize, shapeSize);
-          break;
-        case 'piramide':
-          geometry = new THREE.ConeGeometry(shapeSize / 2, shapeSize, 4);
-          break;
-        case 'bol':
-          geometry = new THREE.SphereGeometry(shapeSize / 2, 16, 16);
-          break;
-        case 'oktaeder':
-          geometry = new THREE.OctahedronGeometry(shapeSize / 2);
-          break;
-        case 'torus':
-          geometry = new THREE.TorusGeometry(shapeSize / 3, shapeSize / 6, 8, 16);
-          break;
-        case 'cylinder':
-          geometry = new THREE.CylinderGeometry(shapeSize / 3, shapeSize / 3, shapeSize, 16);
-          break;
-        case 'tetraeder':
-          geometry = new THREE.TetrahedronGeometry(shapeSize / 2);
-          break;
-        case 'icosaeder':
-          geometry = new THREE.IcosahedronGeometry(shapeSize / 2);
-          break;
-        default:
-          geometry = new THREE.BoxGeometry(shapeSize, shapeSize, shapeSize);
-      }
-
+      // Allemaal identieke kubussen - DUidelijk 3D met rotatie
+      const geometry = new THREE.BoxGeometry(shapeSize, shapeSize, shapeSize);
       const material = new THREE.MeshBasicMaterial({
-        color: colors[i],
+        color: blockColor,
         transparent: true,
-        opacity: 0.9,
+        opacity: 0.95,
         side: THREE.DoubleSide,
       });
 
       const mesh = new THREE.Mesh(geometry, material);
       mesh.userData.isDraggable = true;
-      mesh.userData.shape = shapeTypes[i];
-      mesh.position.set(startX + col * gridGap, startY - row * gridGap, 0);
+      mesh.userData.shape = 'kubus'; // Allemaal kubussen
+      mesh.userData.index = i; // Unieke index voor elk blokje
+      // Grid positie: X voor kolommen, Y voor rijen
+      mesh.position.set(startX + col * horizontalGap, startY - row * verticalGap, 0);
+
+      // Rotatie toevoegen zodat het duidelijk 3D is (niet plat)
+      mesh.rotation.x = Math.PI / 6; // 30 graden
+      mesh.rotation.y = Math.PI / 4; // 45 graden
 
       dragShapes.push(mesh);
-      shapesGroup.add(mesh);
-      console.log(`✅ ${shapeTypes[i]} toegevoegd op positie:`, mesh.position);
+      shapesBoxGroup.add(mesh);
+      console.log(
+        `✅ Groen blokje ${i + 1} toegevoegd in grid (kolom ${col}, rij ${row}) op positie:`,
+        mesh.position,
+      );
     }
 
-    // Voeg de hele shapes groep toe aan de scene
-    shapesGroup.position.z = 0; // Zorg dat shapes op voorgrond blijven
-    scene.add(shapesGroup);
+    // Maak OUTLINE BOX rond de shape choices (alleen outline, geen vulling)
+    const boxWidth = 2 * horizontalGap + shapeSize + 50; // Breedte voor 2 kolommen
+    const boxHeight = 4 * verticalGap + shapeSize + 50; // Hoogte voor 4 rijen
+    const boxDepth = 10; // Diepte voor 3D effect
 
-    console.log(`🎯 Totaal ${dragShapes.length} groene driehoeken gemaakt onder instructiebox!`);
+    // Maak wireframe box (alleen edges, geen vlakken)
+    const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+    const boxEdges = new THREE.EdgesGeometry(boxGeometry);
+    const boxLineMaterial = new THREE.LineBasicMaterial({
+      color: 0x00ff00, // Groene outline
+      linewidth: 3,
+    });
+    const boxWireframe = new THREE.LineSegments(boxEdges, boxLineMaterial);
+
+    // Centreer de box rond de blokjes
+    const boxCenterX = startX + horizontalGap / 2; // Midden tussen de 2 kolommen
+    const boxCenterY = startY - (3 * verticalGap) / 2; // Midden tussen de 4 rijen
+    boxWireframe.position.set(boxCenterX, boxCenterY, 0);
+
+    shapesBoxGroup.add(boxWireframe);
+    shapesBoxGroup.position.z = 0; // Op voorgrond
+
+    // Voeg de hele groep toe aan de scene
+    scene.add(shapesBoxGroup);
+
+    console.log(
+      `🎯 Totaal ${dragShapes.length} groene blokjes gemaakt in 2x4 grid met outline box!`,
+    );
   }
 
   function positionHolder() {
@@ -619,39 +694,69 @@
   const mouse = new THREE.Vector2();
 
   function onPointerDown(e) {
+    e.preventDefault();
     updateMouse(e);
     raycaster.setFromCamera(mouse, camera);
 
-    // Zoek eerst naar geplaatste blokjes op de kubus (die kunnen we wegslepen)
-    const placedBlocks = scene.children.filter((obj) => obj.userData && obj.userData.isPlacedBlock);
-    const allDraggable = [...dragShapes, ...placedBlocks];
+    // Raycaster met recursive: true om door groepen heen te kijken
+    const intersects = raycaster.intersectObjects(scene.children, true);
 
-    const intersects = raycaster.intersectObjects(allDraggable, false);
-    if (intersects.length) {
-      dragged = intersects[0].object;
-      const pt = intersects[0].point;
-      offset.copy(dragged.position).sub(pt);
-      isDragging = true;
+    // Filter op draggable objecten
+    const draggableHits = intersects.filter(
+      (hit) =>
+        hit.object &&
+        hit.object.userData &&
+        (hit.object.userData.isDraggable || hit.object.userData.isPlacedBlock),
+    );
 
-      // Visuele feedback tijdens drag
-      dragged.position.z = 100;
-      dragged.material.opacity = 0.6;
-      dragged.scale.multiplyScalar(1.1); // Maak iets groter tijdens drag
+    console.log(`🎯 Draggable hits: ${draggableHits.length}`);
 
-      // Cursor aanpassen
-      renderer.domElement.style.cursor = 'grabbing';
+    if (draggableHits.length > 0) {
+      // Neem het eerste draggable object
+      const hit = draggableHits[0];
+
+      if (hit && hit.object) {
+        dragged = hit.object;
+        const pt = hit.point;
+
+        // Bereken offset correct (wereldpositie gebruiken)
+        const worldPos = new THREE.Vector3();
+        dragged.getWorldPosition(worldPos);
+        offset.copy(worldPos).sub(pt);
+        isDragging = true;
+
+        // Visuele feedback tijdens drag
+        dragged.position.z = 100;
+        if (dragged.material) {
+          dragged.material.opacity = 0.6;
+        }
+        dragged.scale.multiplyScalar(1.1); // Maak iets groter tijdens drag
+
+        // Cursor aanpassen
+        renderer.domElement.style.cursor = 'grabbing';
+        console.log('🖱️ Drag gestart:', dragged.userData, 'op positie:', dragged.position);
+      } else {
+        console.log('⚠️ Hit object heeft geen draggable userData:', hit.object);
+      }
+    } else {
+      console.log('⚠️ Geen draggable intersects gevonden');
     }
   }
   function onPointerMove(e) {
     if (!isDragging || !dragged) return;
+    e.preventDefault();
     updateMouse(e);
     raycaster.setFromCamera(mouse, camera);
+
     // Projecteer muispositie op Z=100 vlak (waar dragged object is)
     const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), -100);
     const intersect = new THREE.Vector3();
     raycaster.ray.intersectPlane(planeZ, intersect);
+
     if (intersect) {
+      // Gebruik lokale positie (niet wereldpositie) omdat object in groep kan zitten
       dragged.position.set(intersect.x + offset.x, intersect.y + offset.y, 100);
+      console.log('🖱️ Drag beweging:', dragged.position);
     }
   }
   function onPointerUp() {
@@ -672,23 +777,55 @@
       } else {
         // Normale drag van holder naar kubus
         let hit = null;
-        let minDist = Infinity;
-        const snapThreshold = 200;
 
-        placeholders.forEach((p) => {
-          if (p.filled) return;
-          const worldPos = new THREE.Vector3();
-          p.mesh.getWorldPosition(worldPos);
+        // ============================================================
+        // ⭐ RAYCASTING - Detecteer welke paarse bol je ECHT raakt!
+        // ============================================================
+        // In plaats van "dichtstbijzijnde hoek" berekenen (wat vaak fout gaat),
+        // kijken we met raycasting welke 3D object onder de muis zit.
+        // Dit is de ENIGE correcte manier om dit te doen in 3D!
+        // ============================================================
 
-          const dx = worldPos.x - dragged.position.x;
-          const dy = worldPos.y - dragged.position.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+        // Update raycaster met huidige muis positie
+        raycaster.setFromCamera(mouse, camera);
 
-          if (dist < snapThreshold && dist < minDist) {
-            minDist = dist;
-            hit = p;
+        // Doe raycasting om ALLE objecten onder de muis te vinden
+        const intersects = raycaster.intersectObjects(scene.children, true);
+
+        // Zoek de EERSTE placeholder (paarse bol) die geraakt wordt
+        for (const intersect of intersects) {
+          const obj = intersect.object;
+
+          // Check of dit een placeholder is EN niet gevuld
+          if (obj.userData && obj.userData.isPlaceholder) {
+            const placeholder = placeholders.find((p) => p.mesh === obj);
+            if (placeholder && !placeholder.filled) {
+              hit = placeholder;
+              break; // Stop zodra we de eerste (dichtste) hebben
+            }
           }
-        });
+        }
+
+        // FALLBACK: Als raycaster niks vond, zoek dichtstbijzijnde hoek
+        if (!hit) {
+          let minDist = Infinity;
+          const snapThreshold = 200;
+
+          placeholders.forEach((p) => {
+            if (p.filled) return;
+            const worldPos = new THREE.Vector3();
+            p.mesh.getWorldPosition(worldPos);
+
+            const dx = worldPos.x - dragged.position.x;
+            const dy = worldPos.y - dragged.position.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < snapThreshold && dist < minDist) {
+              minDist = dist;
+              hit = p;
+            }
+          });
+        }
 
         if (hit) {
           // Snap naar kubus hoek met animatie
