@@ -915,8 +915,8 @@
   }
 
   function placeShapeOnCorner(placeholder, shapeType) {
-    const worldPos = new THREE.Vector3();
-    placeholder.mesh.getWorldPosition(worldPos);
+    // Gebruik de LOKALE positie van de placeholder binnen de cubeGroup
+    const localPos = placeholder.mesh.position.clone();
 
     const geometry = createGeometry(shapeType);
     const material = new THREE.MeshBasicMaterial({
@@ -927,19 +927,24 @@
     });
 
     const placedShape = new THREE.Mesh(geometry, material);
-    placedShape.position.copy(worldPos);
+
+    // Plaats de shape op de LOKALE positie binnen cubeGroup
+    placedShape.position.copy(localPos);
     placedShape.userData.isPlacedBlock = true;
     placedShape.userData.cornerIndex = placeholder.mesh.userData.cornerIndex;
     placedShape.userData.shape = shapeType;
 
-    scene.add(placedShape);
+    // Voeg toe aan de cubeGroup (niet scene!) zodat het meedraait met de kubus
+    cubeGroup.add(placedShape);
 
     placeholder.filled = true;
     placeholder.mesh.visible = false;
 
     checkCompletion();
 
-    console.log(`✅ 3D Shape geplaatst op hoek ${placeholder.mesh.userData.cornerIndex}`);
+    console.log(
+      `✅ 3D Shape EXACT geplaatst op hoek ${placeholder.mesh.userData.cornerIndex} (lokale positie: ${localPos.x}, ${localPos.y}, ${localPos.z})`,
+    );
   }
 
   function checkCompletion() {
