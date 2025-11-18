@@ -364,7 +364,7 @@
 
     createBrutalistUI();
     createCube();
-    createShapeChoices(); // ✅ GEACTIVEERD - drag & drop shapes beschikbaar
+    createShapeChoicesHolder(); // ✅ HTML holder onder instructiepanel
 
     // Pointer events - alleen voor hoofdstuk 2
     canvas.addEventListener('pointerdown', onPointerDown, { capture: true });
@@ -570,6 +570,393 @@
     scene.add(cubeGroup);
   }
 
+  // ============================================================
+  // ⭐ SHAPE CHOICES HOLDER - HTML CONTENT BLOCK
+  // ============================================================
+  function createShapeChoicesHolder() {
+    console.log('🎨 Creating shape choices holder...');
+
+    // Haal de gekozen shape op uit hoofdstuk 1
+    let userShape = 'piramide'; // Default
+    if (window.gameManager && window.gameManager.getCurrentShape) {
+      userShape = window.gameManager.getCurrentShape();
+    }
+    console.log(`🎯 User chose shape in chapter 1: ${userShape}`);
+
+    // Verwijder oude holder als die bestaat
+    const oldHolder = document.getElementById('shape-choices-holder');
+    if (oldHolder) oldHolder.remove();
+
+    // Bereken positie: ONDER het instructiepaneel
+    const uiPanel = document.getElementById('chapter2-ui-panel');
+    let topPosition = 260; // Fallback
+    if (uiPanel) {
+      const rect = uiPanel.getBoundingClientRect();
+      topPosition = rect.bottom + 20; // 20px marge onder het panel
+      console.log(`📍 UI panel bottom: ${rect.bottom}px, holder top: ${topPosition}px`);
+    }
+
+    // Blokjes: 28px
+    const blockSize = 28;
+    const gap = 8;
+    const padding = 10;
+
+    // Maak de holder container
+    const holder = document.createElement('div');
+    holder.id = 'shape-choices-holder';
+    holder.style.cssText = `
+      position: fixed;
+      top: ${topPosition}px;
+      left: 20px;
+      padding: ${padding}px;
+      background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+      border: 0.5px solid #00ff00;
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, ${blockSize}px);
+      grid-template-rows: repeat(4, ${blockSize}px);
+      gap: ${gap}px;
+      z-index: 9999;
+      box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
+    `;
+
+    // Maak 8 blokjes (2 kolommen x 4 rijen)
+    for (let i = 0; i < 8; i++) {
+      const block = document.createElement('div');
+      block.className = 'shape-choice-block';
+      block.draggable = true;
+      block.dataset.shapeType = userShape;
+      block.dataset.blockIndex = i;
+      block.style.cssText = `
+        width: ${blockSize}px;
+        height: ${blockSize}px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 255, 0, 0.2);
+        border: 0.075px solid #00ff00;
+        border-radius: 4px;
+        cursor: grab;
+        transition: all 0.2s ease;
+      `;
+
+      // Maak de shape (gebaseerd op de keuze uit hoofdstuk 1)
+      const shapeElement = document.createElement('div');
+      shapeElement.style.cssText = getShapeStyle(userShape);
+      shapeElement.style.pointerEvents = 'none';
+
+      block.appendChild(shapeElement);
+
+      // Hover effect
+      block.addEventListener('mouseenter', () => {
+        if (!block.dataset.placed) {
+          block.style.background = 'rgba(0, 255, 0, 0.4)';
+          block.style.transform = 'scale(1.1)';
+        }
+      });
+      block.addEventListener('mouseleave', () => {
+        if (!block.dataset.placed) {
+          block.style.background = 'rgba(0, 255, 0, 0.2)';
+          block.style.transform = 'scale(1)';
+        }
+      });
+
+      // Drag & Drop event listeners
+      block.addEventListener('dragstart', handleDragStart);
+      block.addEventListener('dragend', handleDragEnd);
+
+      holder.appendChild(block);
+    }
+
+    // Add drop zone listeners to canvas
+    setTimeout(() => {
+      const canvas = renderer.domElement;
+      canvas.addEventListener('dragover', handleDragOver);
+      canvas.addEventListener('drop', handleDrop);
+    }, 100);
+
+    document.body.appendChild(holder);
+    console.log(`✅ Shape choices holder created with 8 blocks (shape: ${userShape})`);
+  }
+
+  // Helper functie: Geef de juiste CSS style voor elke shape
+  function getShapeStyle(shape) {
+    switch (shape) {
+      case 'piramide':
+        return `
+          width: 0;
+          height: 0;
+          border-left: 9.6px solid transparent;
+          border-right: 9.6px solid transparent;
+          border-bottom: 17.6px solid #00ff00;
+        `;
+
+      case 'kubus':
+      case 'vierkant':
+        return `
+          width: 17.6px;
+          height: 17.6px;
+          background: #00ff00;
+          border: 0.8px solid #00cc00;
+        `;
+
+      case 'bol':
+        return `
+          width: 17.6px;
+          height: 17.6px;
+          background: #00ff00;
+          border-radius: 50%;
+          border: 0.8px solid #00cc00;
+        `;
+
+      case 'ruit':
+      case 'oktaeder':
+        return `
+          width: 16px;
+          height: 16px;
+          background: #00ff00;
+          border: 0.8px solid #00cc00;
+          transform: rotate(45deg);
+        `;
+
+      case 'zandloper':
+        return `
+          width: 0;
+          height: 0;
+          border-left: 8px solid transparent;
+          border-right: 8px solid transparent;
+          border-top: 8px solid #00ff00;
+          border-bottom: 8px solid #00ff00;
+        `;
+
+      default:
+        return `
+          width: 17.6px;
+          height: 17.6px;
+          background: #00ff00;
+          border: 0.8px solid #00cc00;
+        `;
+    }
+  }
+
+  // ============================================================
+  // ⭐ DRAG & DROP SYSTEEM - HTML BLOKJES NAAR KUBUS
+  // ============================================================
+
+  let draggedBlock = null;
+  let draggedShapeType = null;
+
+  function handleDragStart(e) {
+    draggedBlock = e.target;
+    draggedShapeType = e.target.dataset.shapeType;
+
+    e.target.style.opacity = '0.6';
+    e.target.style.cursor = 'grabbing';
+    e.target.style.transform = 'scale(1.2)';
+
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.innerHTML);
+
+    const dragImage = e.target.cloneNode(true);
+    dragImage.style.opacity = '0.8';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 14, 14);
+    setTimeout(() => dragImage.remove(), 0);
+
+    console.log(`🎯 START DRAG: ${draggedShapeType}`);
+  }
+
+  function handleDragEnd(e) {
+    if (draggedBlock && draggedBlock.parentElement) {
+      draggedBlock.style.opacity = '1';
+      draggedBlock.style.cursor = 'grab';
+      draggedBlock.style.transform = 'scale(1)';
+    }
+    console.log('🎯 EINDE DRAG');
+  }
+
+  function handleDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+  }
+
+  function handleDrop(e) {
+    if (e.stopPropagation) {
+      e.stopPropagation();
+    }
+    e.preventDefault();
+
+    if (!draggedBlock || !draggedShapeType) {
+      console.log('❌ Geen gedraggd block');
+      return false;
+    }
+
+    console.log(`🎯 DROP at pixels: (${e.clientX}, ${e.clientY})`);
+
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    const mouse = new THREE.Vector2(mouseX, mouseY);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(scene.children, true);
+
+    let closestPlaceholder = null;
+
+    // Zoek de EERSTE placeholder (paarse bol) die geraakt wordt
+    for (const intersect of intersects) {
+      const obj = intersect.object;
+
+      if (obj.userData && obj.userData.isPlaceholder) {
+        const placeholder = placeholders.find((p) => p.mesh === obj);
+        if (placeholder && !placeholder.filled) {
+          closestPlaceholder = placeholder;
+          break;
+        }
+      }
+    }
+
+    // FALLBACK: Als raycaster niks vond, zoek dichtstbijzijnde hoek
+    if (!closestPlaceholder) {
+      let minDistance = Infinity;
+
+      placeholders.forEach((p) => {
+        if (p.filled) return;
+
+        const worldPos = new THREE.Vector3();
+        p.mesh.getWorldPosition(worldPos);
+
+        const screenPos = worldPos.clone();
+        screenPos.project(camera);
+
+        const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
+        const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
+
+        const dx = screenX - e.clientX;
+        const dy = screenY - e.clientY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestPlaceholder = p;
+        }
+      });
+    }
+
+    if (closestPlaceholder) {
+      console.log(`✅ SNAP naar hoek ${closestPlaceholder.mesh.userData.cornerIndex}`);
+
+      closestPlaceholder.mesh.visible = true;
+      closestPlaceholder.mesh.material.opacity = 1.0;
+      closestPlaceholder.mesh.material.color.setHex(0x00ff00);
+
+      setTimeout(() => {
+        if (closestPlaceholder) {
+          placeShapeOnCorner(closestPlaceholder, draggedShapeType);
+
+          if (draggedBlock) {
+            draggedBlock.style.transition = 'all 0.3s ease';
+            draggedBlock.style.transform = 'scale(0)';
+            draggedBlock.style.opacity = '0';
+
+            setTimeout(() => {
+              if (draggedBlock && draggedBlock.parentElement) {
+                draggedBlock.remove();
+                console.log('🗑️ Shape choice verwijderd uit lijstje');
+              }
+            }, 300);
+          }
+
+          console.log(
+            `✅ SUCCES! Shape geplaatst op hoek ${closestPlaceholder.mesh.userData.cornerIndex}!`,
+          );
+        }
+      }, 100);
+
+      draggedBlock = null;
+      draggedShapeType = null;
+      return false;
+    } else {
+      console.log(`❌ Geen beschikbare hoek gevonden`);
+      if (draggedBlock) {
+        draggedBlock.style.opacity = '1';
+      }
+      draggedBlock = null;
+      draggedShapeType = null;
+    }
+
+    return false;
+  }
+
+  function createGeometry(shapeType) {
+    switch (shapeType) {
+      case 'piramide':
+        return new THREE.TetrahedronGeometry(70, 0);
+      case 'kubus':
+      case 'vierkant':
+        return new THREE.BoxGeometry(100, 100, 100);
+      case 'bol':
+        return new THREE.SphereGeometry(60, 24, 24);
+      case 'ruit':
+      case 'oktaeder':
+        return new THREE.OctahedronGeometry(70, 0);
+      case 'zandloper': {
+        const hourglassGeometry = new THREE.CylinderGeometry(0, 50, 80, 8);
+        return hourglassGeometry;
+      }
+      default:
+        return new THREE.BoxGeometry(100, 100, 100);
+    }
+  }
+
+  function placeShapeOnCorner(placeholder, shapeType) {
+    const worldPos = new THREE.Vector3();
+    placeholder.mesh.getWorldPosition(worldPos);
+
+    const geometry = createGeometry(shapeType);
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      transparent: true,
+      opacity: 0.9,
+      side: THREE.DoubleSide,
+    });
+
+    const placedShape = new THREE.Mesh(geometry, material);
+    placedShape.position.copy(worldPos);
+    placedShape.userData.isPlacedBlock = true;
+    placedShape.userData.cornerIndex = placeholder.mesh.userData.cornerIndex;
+    placedShape.userData.shape = shapeType;
+
+    scene.add(placedShape);
+
+    placeholder.filled = true;
+    placeholder.mesh.visible = false;
+
+    checkCompletion();
+
+    console.log(`✅ 3D Shape geplaatst op hoek ${placeholder.mesh.userData.cornerIndex}`);
+  }
+
+  function checkCompletion() {
+    const allFilled = placeholders.every((p) => p.filled);
+
+    if (allFilled) {
+      console.log('🎉 ALLE 8 HOEKEN GEVULD! PUZZEL COMPLEET!');
+
+      setTimeout(() => {
+        alert('🎉 Gefeliciteerd! Je hebt de kubus voltooid!');
+      }, 500);
+    } else {
+      const filledCount = placeholders.filter((p) => p.filled).length;
+      console.log(`📊 Progress: ${filledCount}/8 hoeken gevuld`);
+    }
+  }
+
   function createShapeChoices() {
     console.log('🔧 createShapeChoices() wordt aangeroepen!');
 
@@ -662,31 +1049,6 @@
 
   function positionHolder() {
     // Geen holder meer - blokjes staan direct op vaste posities
-  }
-
-  function createGeometry(shape) {
-    // Maak de juiste geometry voor elk shape type wanneer geplaatst op kubus
-    const size = 90; // Kleinere versie voor op kubus
-    switch (shape) {
-      case 'kubus':
-        return new THREE.BoxGeometry(size, size, size);
-      case 'piramide':
-        return new THREE.ConeGeometry(size / 2, size, 4);
-      case 'bol':
-        return new THREE.SphereGeometry(size / 2, 16, 16);
-      case 'oktaeder':
-        return new THREE.OctahedronGeometry(size / 2);
-      case 'torus':
-        return new THREE.TorusGeometry(size / 3, size / 6, 8, 16);
-      case 'cylinder':
-        return new THREE.CylinderGeometry(size / 3, size / 3, size, 16);
-      case 'tetraeder':
-        return new THREE.TetrahedronGeometry(size / 2);
-      case 'icosaeder':
-        return new THREE.IcosahedronGeometry(size / 2);
-      default:
-        return new THREE.BoxGeometry(size, size, size);
-    }
   }
 
   // === Drag & Drop ===
@@ -875,45 +1237,6 @@
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  }
-
-  function checkCompletion() {
-    const filled = placeholders.filter((p) => p.filled).length;
-    const counter = document.getElementById('wireframe-counter');
-    if (counter)
-      counter.innerHTML = `<strong>Geplaatst:</strong><br><span style="font-weight: normal">Blokjes [${filled}/8]</span>`;
-
-    if (placeholders.every((p) => p.filled)) {
-      // Alle 8 hoeken gevuld!
-      // Geen 3D rotatie - gewoon een simpele fade out voor 2D
-      fadeOutAndComplete();
-    }
-  }
-
-  function fadeOutAndComplete() {
-    const start = performance.now();
-    const duration = 2000; // Kortere animatie
-    const animate = () => {
-      const t = (performance.now() - start) / duration;
-      const opacity = 1 - t;
-
-      // Fade out alle objecten
-      cubeGroup.children.forEach((child) => {
-        if (child.material) {
-          child.material.opacity = opacity;
-          child.material.transparent = true;
-        }
-      });
-
-      if (t < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        scene.remove(cubeGroup);
-        // Toon completion bericht
-        showCompletionMessage();
-      }
-    };
-    animate();
   }
 
   function showCompletionMessage() {
