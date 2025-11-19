@@ -833,8 +833,8 @@
 
     // FALLBACK: Als raycaster niks vond, zoek dichtstbijzijnde hoek
     if (!closestPlaceholder) {
-      console.log('⚠️ Raycaster vond niks, gebruik 2D fallback');
-      let minDistance = Infinity;
+      console.log('⚠️ Raycaster vond niks, gebruik 2D fallback met Z-depth');
+      let bestScore = Infinity;
       let closestInfo = null;
 
       placeholders.forEach((p, index) => {
@@ -851,22 +851,37 @@
 
         const dx = screenX - e.clientX;
         const dy = screenY - e.clientY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const distance2D = Math.sqrt(dx * dx + dy * dy);
+
+        // Z-depth: hoger = dichter bij camera (voorkant)
+        // NDC z gaat van -1 (ver) tot 1 (dichtbij)
+        const zDepth = screenPos.z;
+
+        // Score: combineer 2D afstand met Z-depth
+        // Geef voorrang aan hoeken dichter bij de camera (hogere z)
+        // Als z < 0, hoek is achter de camera view - geef zeer hoge penalty
+        const depthPenalty = zDepth < 0 ? 10000 : (1 - zDepth) * 500;
+        const score = distance2D + depthPenalty;
 
         console.log(
-          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - afstand: ${Math.round(distance)}px`,
+          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - 2D afstand: ${Math.round(distance2D)}px, Z-depth: ${zDepth.toFixed(3)}, score: ${Math.round(score)}`,
         );
 
-        if (distance < minDistance) {
-          minDistance = distance;
+        if (score < bestScore) {
+          bestScore = score;
           closestPlaceholder = p;
-          closestInfo = { index: p.mesh.userData.cornerIndex, distance };
+          closestInfo = {
+            index: p.mesh.userData.cornerIndex,
+            distance: distance2D,
+            zDepth: zDepth,
+            score: score,
+          };
         }
       });
 
       if (closestInfo) {
         console.log(
-          `✅ 2D FALLBACK: dichtstbijzijnde is hoek ${closestInfo.index} op ${Math.round(closestInfo.distance)}px`,
+          `✅ 2D FALLBACK: beste match is hoek ${closestInfo.index} (2D: ${Math.round(closestInfo.distance)}px, Z: ${closestInfo.zDepth.toFixed(3)}, score: ${Math.round(closestInfo.score)})`,
         );
       }
     }
