@@ -980,6 +980,14 @@
     const localPos = new THREE.Vector3();
     localPos.copy(placeholder.mesh.position);
 
+    // DEBUG: Log de exacte positie
+    console.log(
+      `📍 Plaats shape op hoek ${placeholder.mesh.userData.cornerIndex} - lokale positie:`,
+      localPos.x,
+      localPos.y,
+      localPos.z,
+    );
+
     const geometry = createGeometry(shapeType);
     const material = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
@@ -991,10 +999,17 @@
     const placedShape = new THREE.Mesh(geometry, material);
 
     // Plaats de shape EXACT op dezelfde lokale positie als de placeholder
-    placedShape.position.set(localPos.x, localPos.y, localPos.z);
+    // Gebruik set() met exacte waarden (niet copy) om zeker te zijn
+    placedShape.position.x = localPos.x;
+    placedShape.position.y = localPos.y;
+    placedShape.position.z = localPos.z;
 
     // Zorg dat de shape NIET roteert (behoudt lokale orientatie)
     placedShape.rotation.set(0, 0, 0);
+
+    // Lock de positie zodat deze niet kan worden veranderd
+    placedShape.userData.positionLocked = true;
+    placedShape.userData.lockedPosition = localPos.clone();
 
     placedShape.userData.isPlacedBlock = true;
     placedShape.userData.cornerIndex = placeholder.mesh.userData.cornerIndex;
@@ -1002,6 +1017,30 @@
 
     // Voeg toe aan de cubeGroup (niet scene!) zodat het meedraait met de kubus
     cubeGroup.add(placedShape);
+
+    // VERIFICATIE: Check direct na toevoegen of positie correct is
+    const verifyPos = new THREE.Vector3();
+    placedShape.getWorldPosition(verifyPos);
+    const placeholderWorldPos = new THREE.Vector3();
+    placeholder.mesh.getWorldPosition(placeholderWorldPos);
+
+    console.log(
+      `🔍 VERIFICATIE - Shape world positie:`,
+      verifyPos.x.toFixed(1),
+      verifyPos.y.toFixed(1),
+      verifyPos.z.toFixed(1),
+    );
+    console.log(
+      `🔍 VERIFICATIE - Placeholder world positie:`,
+      placeholderWorldPos.x.toFixed(1),
+      placeholderWorldPos.y.toFixed(1),
+      placeholderWorldPos.z.toFixed(1),
+    );
+
+    const distance = verifyPos.distanceTo(placeholderWorldPos);
+    if (distance > 1) {
+      console.warn(`⚠️ WAARSCHUWING: Shape staat ${distance.toFixed(1)} units van placeholder af!`);
+    }
 
     // Markeer placeholder als gevuld
     placeholder.filled = true;
@@ -1011,6 +1050,9 @@
     if (renderer && scene && camera) {
       renderer.render(scene, camera);
     }
+
+    // Zorg dat de positie behouden blijft
+    maintainPlacedShapesPositions();
 
     checkCompletion();
 
@@ -1032,6 +1074,36 @@
       const filledCount = placeholders.filter((p) => p.filled).length;
       console.log(`📊 Progress: ${filledCount}/8 hoeken gevuld`);
     }
+  }
+
+  // Functie om geplaatste shapes op hun juiste positie te houden
+  function maintainPlacedShapesPositions() {
+    cubeGroup.traverse((obj) => {
+      if (obj.userData && obj.userData.positionLocked && obj.userData.lockedPosition) {
+        // Reset positie naar locked positie als deze is veranderd
+        const currentPos = obj.position;
+        const lockedPos = obj.userData.lockedPosition;
+
+        const dx = Math.abs(currentPos.x - lockedPos.x);
+        const dy = Math.abs(currentPos.y - lockedPos.y);
+        const dz = Math.abs(currentPos.z - lockedPos.z);
+
+        // Als positie meer dan 0.1 units afwijkt, reset het
+        if (dx > 0.1 || dy > 0.1 || dz > 0.1) {
+          console.warn(
+            `🔒 Reset positie van shape op hoek ${obj.userData.cornerIndex} - was:`,
+            currentPos.x.toFixed(1),
+            currentPos.y.toFixed(1),
+            currentPos.z.toFixed(1),
+            `-> wordt:`,
+            lockedPos.x.toFixed(1),
+            lockedPos.y.toFixed(1),
+            lockedPos.z.toFixed(1),
+          );
+          obj.position.copy(lockedPos);
+        }
+      }
+    });
   }
 
   function createShapeChoices() {
@@ -1140,12 +1212,13 @@
     // Raycaster met recursive: true om door groepen heen te kijken
     const intersects = raycaster.intersectObjects(scene.children, true);
 
-    // Filter op draggable objecten
+    // Filter op draggable objecten (maar NIET locked shapes)
     const draggableHits = intersects.filter(
       (hit) =>
         hit.object &&
         hit.object.userData &&
-        (hit.object.userData.isDraggable || hit.object.userData.isPlacedBlock),
+        (hit.object.userData.isDraggable || hit.object.userData.isPlacedBlock) &&
+        !hit.object.userData.positionLocked, // Skip locked shapes
     );
 
     console.log(`🎯 Draggable hits: ${draggableHits.length}`);
@@ -1207,7 +1280,8 @@
       renderer.domElement.style.cursor = 'default';
 
       // Check of we een geplaatst blokje wegslepen (terug naar holder)
-      if (dragged.userData && dragged.userData.isPlacedBlock) {
+      // Maar alleen als het NIET locked is
+      if (dragged.userData && dragged.userData.isPlacedBlock && !dragged.userData.positionLocked) {
         // Wegslepen van kubus - verwijder het blokje en maak placeholder weer beschikbaar
         const cornerIndex = dragged.userData.cornerIndex;
         placeholders[cornerIndex].filled = false;
