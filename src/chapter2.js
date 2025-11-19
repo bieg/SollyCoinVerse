@@ -527,12 +527,12 @@
 
     // ZICHTBARE HOTSPOTS op elke hoek van de kubus
     points.forEach((p, i) => {
-      // Maak zichtbare hotspot bol voor elke hoek
-      const placeholderSphere = new THREE.SphereGeometry(80, 16, 16);
+      // Maak GROTE zichtbare hotspot bol voor elke hoek (groter = beter detecteerbaar)
+      const placeholderSphere = new THREE.SphereGeometry(150, 16, 16); // 150 radius (was 80)
       const placeholderMaterial = new THREE.MeshBasicMaterial({
         color: 0x8a2be2, // Paars, matching kubus
         transparent: true,
-        opacity: 0.5, // Semi-transparant
+        opacity: 0.6, // Iets minder transparant voor betere zichtbaarheid
         side: THREE.DoubleSide,
       });
       const placeholderMesh = new THREE.Mesh(placeholderSphere, placeholderMaterial);
@@ -804,73 +804,99 @@
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
-    // Zoek ALLEEN in de placeholders
-    const placeholderMeshes = placeholders.map((p) => p.mesh);
-    const intersects = raycaster.intersectObjects(placeholderMeshes, false);
+    // Zoek recursief in de cubeGroup (inclusief alle children)
+    // Dit zorgt ervoor dat placeholders binnen cubeGroup gevonden worden
+    const intersects = raycaster.intersectObjects([cubeGroup], true);
 
-    console.log(`🔍 Raycaster vond ${intersects.length} placeholder hits`);
+    console.log(
+      `🔍 Raycaster vond ${intersects.length} object hits (inclusief cubeGroup children)`,
+    );
 
     let closestPlaceholder = null;
 
     // EERST: Probeer directe raycast hit op placeholder
     if (intersects.length > 0) {
+      // Filter alleen placeholders uit de intersects
       for (const intersect of intersects) {
         const obj = intersect.object;
-        const placeholder = placeholders.find((p) => p.mesh === obj);
 
-        if (placeholder && !placeholder.filled) {
-          closestPlaceholder = placeholder;
-          console.log(`✅ DIRECT HIT op hoek ${placeholder.mesh.userData.cornerIndex}`);
-          break;
+        // Check of dit object een placeholder is
+        if (obj.userData && obj.userData.isPlaceholder) {
+          const placeholder = placeholders.find((p) => p.mesh === obj);
+
+          if (placeholder && !placeholder.filled) {
+            closestPlaceholder = placeholder;
+            console.log(
+              `✅ DIRECT HIT op hoek ${placeholder.mesh.userData.cornerIndex} (distance: ${intersect.distance.toFixed(1)})`,
+            );
+            break;
+          } else if (placeholder && placeholder.filled) {
+            console.log(`⚠️ Hoek ${placeholder.mesh.userData.cornerIndex} is al gevuld`);
+          }
         }
       }
     }
 
-    // FALLBACK: Bereken 3D drop positie en vind dichtstbijzijnde hoek
+    // FALLBACK: Gebruik screen space distance, maar alleen voor ZICHTBARE hoeken
     if (!closestPlaceholder) {
-      console.log('⚠️ Geen directe hit, bereken 3D drop positie');
+      console.log('⚠️ Geen directe hit, gebruik screen space distance voor zichtbare hoeken');
 
-      // Bereken waar de ray de kubus raakt (of dichtstbijzijnde punt)
-      // Gebruik een vlak door het midden van de kubus
-      const cubeCenter = new THREE.Vector3(0, 0, 0);
-      const cameraDir = new THREE.Vector3();
-      camera.getWorldDirection(cameraDir);
+      let minScreenDistance = Infinity;
+      let bestPlaceholder = null;
 
-      // Projecteer drop positie naar 3D ruimte op een vlak voor de kubus
-      const dropPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-      const dropPoint3D = new THREE.Vector3();
+      placeholders.forEach((p) => {
+        if (p.filled) return;
 
-      if (raycaster.ray.intersectPlane(dropPlane, dropPoint3D)) {
-        // Vind dichtstbijzijnde hoek op basis van 3D afstand
-        let minDistance3D = Infinity;
+        // Bereken world positie van hoek
+        const worldPos = new THREE.Vector3();
+        p.mesh.getWorldPosition(worldPos);
 
-        placeholders.forEach((p) => {
-          if (p.filled) return;
+        // Projecteer naar screen space
+        const screenPos = worldPos.clone();
+        screenPos.project(camera);
 
-          // Gebruik LOKALE positie (binnen cubeGroup)
-          const cornerPos = p.mesh.position.clone();
+        // Check of hoek zichtbaar is (tussen -1 en 1 in alle dimensies, en z > 0 = voor camera)
+        const isVisible =
+          screenPos.x >= -1 &&
+          screenPos.x <= 1 &&
+          screenPos.y >= -1 &&
+          screenPos.y <= 1 &&
+          screenPos.z >= -1 &&
+          screenPos.z <= 1 &&
+          screenPos.z > 0; // Alleen hoeken VOOR de camera (niet achter)
 
-          // Bereken 3D afstand
-          const dx = dropPoint3D.x - cornerPos.x;
-          const dy = dropPoint3D.y - cornerPos.y;
-          const dz = dropPoint3D.z - cornerPos.z;
-          const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
+        if (!isVisible) {
           console.log(
-            `📏 Hoek ${p.mesh.userData.cornerIndex}: 3D afstand = ${Math.round(distance3D)}`,
+            `👁️ Hoek ${p.mesh.userData.cornerIndex} is niet zichtbaar (z: ${screenPos.z.toFixed(3)})`,
           );
-
-          if (distance3D < minDistance3D) {
-            minDistance3D = distance3D;
-            closestPlaceholder = p;
-          }
-        });
-
-        if (closestPlaceholder) {
-          console.log(
-            `✅ Dichtstbijzijnde hoek: ${closestPlaceholder.mesh.userData.cornerIndex} (3D afstand: ${Math.round(minDistance3D)})`,
-          );
+          return; // Skip niet-zichtbare hoeken
         }
+
+        // Bereken screen space afstand in pixels
+        const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
+        const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
+
+        const dx = screenX - e.clientX;
+        const dy = screenY - e.clientY;
+        const screenDistance = Math.sqrt(dx * dx + dy * dy);
+
+        console.log(
+          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - afstand: ${Math.round(screenDistance)}px, z: ${screenPos.z.toFixed(3)}`,
+        );
+
+        if (screenDistance < minScreenDistance) {
+          minScreenDistance = screenDistance;
+          bestPlaceholder = p;
+        }
+      });
+
+      if (bestPlaceholder) {
+        closestPlaceholder = bestPlaceholder;
+        console.log(
+          `✅ Dichtstbijzijnde ZICHTBARE hoek: ${closestPlaceholder.mesh.userData.cornerIndex} (screen afstand: ${Math.round(minScreenDistance)}px)`,
+        );
+      } else {
+        console.log('❌ Geen zichtbare hoeken gevonden!');
       }
     }
 
