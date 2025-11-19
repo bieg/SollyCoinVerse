@@ -529,12 +529,12 @@
 
     // ZICHTBARE HOTSPOTS op elke hoek van de kubus
     points.forEach((p, i) => {
-      // Maak GROTE zichtbare hotspot bol voor elke hoek (groter = beter detecteerbaar)
-      const placeholderSphere = new THREE.SphereGeometry(150, 16, 16); // 150 radius (was 80)
+      // Maak EXTRA GROTE zichtbare hotspot bol voor elke hoek (nog groter = veel beter detecteerbaar)
+      const placeholderSphere = new THREE.SphereGeometry(250, 16, 16); // 250 radius (was 150)
       const placeholderMaterial = new THREE.MeshBasicMaterial({
         color: 0x8a2be2, // Paars, matching kubus
         transparent: true,
-        opacity: 0.6, // Iets minder transparant voor betere zichtbaarheid
+        opacity: 0.5, // Semi-transparant maar goed zichtbaar
         side: THREE.DoubleSide,
       });
       const placeholderMesh = new THREE.Mesh(placeholderSphere, placeholderMaterial);
@@ -806,6 +806,9 @@
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
+    // Verhoog threshold voor betere detectie van grote placeholders
+    raycaster.params.Mesh.threshold = 300; // Grotere threshold voor betere hit detection
+
     // Zoek recursief in de cubeGroup (inclusief alle children)
     // Dit zorgt ervoor dat placeholders binnen cubeGroup gevonden worden
     const intersects = raycaster.intersectObjects([cubeGroup], true);
@@ -851,10 +854,11 @@
       }
     }
 
-    // FALLBACK: Gebruik screen space distance voor ALLE hoeken
+    // FALLBACK: Gebruik screen space distance, maar alleen binnen THRESHOLD
     if (!closestPlaceholder) {
-      console.log('⚠️ Geen directe hit, gebruik screen space distance voor alle hoeken');
+      console.log('⚠️ Geen directe hit, gebruik screen space distance met threshold');
 
+      const DROP_THRESHOLD = 150; // Alleen hoeken binnen 150px worden overwogen
       let minScreenDistance = Infinity;
       let bestPlaceholder = null;
 
@@ -889,22 +893,25 @@
         const screenDistance = Math.sqrt(dx * dx + dy * dy);
 
         console.log(
-          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - afstand: ${Math.round(screenDistance)}px, z: ${screenPos.z.toFixed(3)}`,
+          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - afstand: ${Math.round(screenDistance)}px (drop op: ${e.clientX}, ${e.clientY}), z: ${screenPos.z.toFixed(3)}`,
         );
 
-        if (screenDistance < minScreenDistance) {
+        // Alleen hoeken binnen threshold overwogen
+        if (screenDistance < DROP_THRESHOLD && screenDistance < minScreenDistance) {
           minScreenDistance = screenDistance;
           bestPlaceholder = p;
         }
       });
 
-      if (bestPlaceholder) {
+      if (bestPlaceholder && minScreenDistance < DROP_THRESHOLD) {
         closestPlaceholder = bestPlaceholder;
         console.log(
-          `✅ Dichtstbijzijnde hoek: ${closestPlaceholder.mesh.userData.cornerIndex} (screen afstand: ${Math.round(minScreenDistance)}px)`,
+          `✅ Dichtstbijzijnde hoek binnen threshold: ${closestPlaceholder.mesh.userData.cornerIndex} (screen afstand: ${Math.round(minScreenDistance)}px, threshold: ${DROP_THRESHOLD}px)`,
         );
       } else {
-        console.log('❌ Geen hoeken binnen viewport gevonden!');
+        console.log(
+          `❌ Geen hoek binnen threshold gevonden! Dichtstbijzijnde was ${minScreenDistance < Infinity ? Math.round(minScreenDistance) : 'N/A'}px (threshold: ${DROP_THRESHOLD}px)`,
+        );
       }
     }
 
