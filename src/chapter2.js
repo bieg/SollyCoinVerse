@@ -507,6 +507,8 @@
       opacity: 1.0,
     });
     const wireframe = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+    // Wireframe niet raycastable maken (zodat alleen placeholders worden geraakt)
+    wireframe.raycast = () => {};
     cubeGroup.add(wireframe);
 
     // Bereken PERFECTE hoekpunten voor placeholders
@@ -812,6 +814,18 @@
       `🔍 Raycaster vond ${intersects.length} object hits (inclusief cubeGroup children)`,
     );
 
+    // DEBUG: Log alle gevonden objecten
+    if (intersects.length > 0) {
+      intersects.forEach((hit, i) => {
+        const obj = hit.object;
+        console.log(
+          `  Hit ${i}: ${obj.type} - name: ${obj.name || 'unnamed'}, userData:`,
+          obj.userData,
+          `distance: ${hit.distance.toFixed(1)}`,
+        );
+      });
+    }
+
     let closestPlaceholder = null;
 
     // EERST: Probeer directe raycast hit op placeholder
@@ -837,9 +851,9 @@
       }
     }
 
-    // FALLBACK: Gebruik screen space distance, maar alleen voor ZICHTBARE hoeken
+    // FALLBACK: Gebruik screen space distance voor ALLE hoeken
     if (!closestPlaceholder) {
-      console.log('⚠️ Geen directe hit, gebruik screen space distance voor zichtbare hoeken');
+      console.log('⚠️ Geen directe hit, gebruik screen space distance voor alle hoeken');
 
       let minScreenDistance = Infinity;
       let bestPlaceholder = null;
@@ -855,21 +869,15 @@
         const screenPos = worldPos.clone();
         screenPos.project(camera);
 
-        // Check of hoek zichtbaar is (tussen -1 en 1 in alle dimensies, en z > 0 = voor camera)
-        const isVisible =
-          screenPos.x >= -1 &&
-          screenPos.x <= 1 &&
-          screenPos.y >= -1 &&
-          screenPos.y <= 1 &&
-          screenPos.z >= -1 &&
-          screenPos.z <= 1 &&
-          screenPos.z > 0; // Alleen hoeken VOOR de camera (niet achter)
+        // Check of hoek binnen viewport is (tussen -1 en 1 in x en y)
+        const isInViewport =
+          screenPos.x >= -1 && screenPos.x <= 1 && screenPos.y >= -1 && screenPos.y <= 1;
 
-        if (!isVisible) {
+        if (!isInViewport) {
           console.log(
-            `👁️ Hoek ${p.mesh.userData.cornerIndex} is niet zichtbaar (z: ${screenPos.z.toFixed(3)})`,
+            `👁️ Hoek ${p.mesh.userData.cornerIndex} is buiten viewport (x: ${screenPos.x.toFixed(3)}, y: ${screenPos.y.toFixed(3)})`,
           );
-          return; // Skip niet-zichtbare hoeken
+          return; // Skip hoeken buiten het scherm
         }
 
         // Bereken screen space afstand in pixels
@@ -893,10 +901,10 @@
       if (bestPlaceholder) {
         closestPlaceholder = bestPlaceholder;
         console.log(
-          `✅ Dichtstbijzijnde ZICHTBARE hoek: ${closestPlaceholder.mesh.userData.cornerIndex} (screen afstand: ${Math.round(minScreenDistance)}px)`,
+          `✅ Dichtstbijzijnde hoek: ${closestPlaceholder.mesh.userData.cornerIndex} (screen afstand: ${Math.round(minScreenDistance)}px)`,
         );
       } else {
-        console.log('❌ Geen zichtbare hoeken gevonden!');
+        console.log('❌ Geen hoeken binnen viewport gevonden!');
       }
     }
 
