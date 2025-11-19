@@ -804,28 +804,40 @@
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
-    const intersects = raycaster.intersectObjects(scene.children, true);
+    // Vergroot de raycaster threshold voor grotere detectie
+    raycaster.params.Points.threshold = 100;
+
+    // Zoek ALLEEN in de placeholders (niet in hele scene)
+    const placeholderMeshes = placeholders.map((p) => p.mesh);
+    const intersects = raycaster.intersectObjects(placeholderMeshes, false);
+
+    console.log(`🔍 Raycaster vond ${intersects.length} placeholder hits`);
 
     let closestPlaceholder = null;
 
     // Zoek de EERSTE placeholder (paarse bol) die geraakt wordt
-    for (const intersect of intersects) {
-      const obj = intersect.object;
-
-      if (obj.userData && obj.userData.isPlaceholder) {
+    if (intersects.length > 0) {
+      for (const intersect of intersects) {
+        const obj = intersect.object;
         const placeholder = placeholders.find((p) => p.mesh === obj);
+
         if (placeholder && !placeholder.filled) {
           closestPlaceholder = placeholder;
+          console.log(`✅ Raycaster HIT op hoek ${placeholder.mesh.userData.cornerIndex}`);
           break;
+        } else if (placeholder && placeholder.filled) {
+          console.log(`⚠️ Hoek ${placeholder.mesh.userData.cornerIndex} is al gevuld`);
         }
       }
     }
 
     // FALLBACK: Als raycaster niks vond, zoek dichtstbijzijnde hoek
     if (!closestPlaceholder) {
+      console.log('⚠️ Raycaster vond niks, gebruik 2D fallback');
       let minDistance = Infinity;
+      let closestInfo = null;
 
-      placeholders.forEach((p) => {
+      placeholders.forEach((p, index) => {
         if (p.filled) return;
 
         const worldPos = new THREE.Vector3();
@@ -841,11 +853,22 @@
         const dy = screenY - e.clientY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
+        console.log(
+          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - afstand: ${Math.round(distance)}px`,
+        );
+
         if (distance < minDistance) {
           minDistance = distance;
           closestPlaceholder = p;
+          closestInfo = { index: p.mesh.userData.cornerIndex, distance };
         }
       });
+
+      if (closestInfo) {
+        console.log(
+          `✅ 2D FALLBACK: dichtstbijzijnde is hoek ${closestInfo.index} op ${Math.round(closestInfo.distance)}px`,
+        );
+      }
     }
 
     if (closestPlaceholder) {
