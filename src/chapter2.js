@@ -804,10 +804,7 @@
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
-    // Vergroot de raycaster threshold voor grotere detectie
-    raycaster.params.Points.threshold = 100;
-
-    // Zoek ALLEEN in de placeholders (niet in hele scene)
+    // Zoek ALLEEN in de placeholders
     const placeholderMeshes = placeholders.map((p) => p.mesh);
     const intersects = raycaster.intersectObjects(placeholderMeshes, false);
 
@@ -815,7 +812,7 @@
 
     let closestPlaceholder = null;
 
-    // Zoek de EERSTE placeholder (paarse bol) die geraakt wordt
+    // EERST: Probeer directe raycast hit op placeholder
     if (intersects.length > 0) {
       for (const intersect of intersects) {
         const obj = intersect.object;
@@ -823,66 +820,57 @@
 
         if (placeholder && !placeholder.filled) {
           closestPlaceholder = placeholder;
-          console.log(`✅ Raycaster HIT op hoek ${placeholder.mesh.userData.cornerIndex}`);
+          console.log(`✅ DIRECT HIT op hoek ${placeholder.mesh.userData.cornerIndex}`);
           break;
-        } else if (placeholder && placeholder.filled) {
-          console.log(`⚠️ Hoek ${placeholder.mesh.userData.cornerIndex} is al gevuld`);
         }
       }
     }
 
-    // FALLBACK: Als raycaster niks vond, zoek dichtstbijzijnde hoek
+    // FALLBACK: Bereken 3D drop positie en vind dichtstbijzijnde hoek
     if (!closestPlaceholder) {
-      console.log('⚠️ Raycaster vond niks, gebruik 2D fallback met Z-depth');
-      let bestScore = Infinity;
-      let closestInfo = null;
+      console.log('⚠️ Geen directe hit, bereken 3D drop positie');
 
-      placeholders.forEach((p, index) => {
-        if (p.filled) return;
+      // Bereken waar de ray de kubus raakt (of dichtstbijzijnde punt)
+      // Gebruik een vlak door het midden van de kubus
+      const cubeCenter = new THREE.Vector3(0, 0, 0);
+      const cameraDir = new THREE.Vector3();
+      camera.getWorldDirection(cameraDir);
 
-        const worldPos = new THREE.Vector3();
-        p.mesh.getWorldPosition(worldPos);
+      // Projecteer drop positie naar 3D ruimte op een vlak voor de kubus
+      const dropPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+      const dropPoint3D = new THREE.Vector3();
 
-        const screenPos = worldPos.clone();
-        screenPos.project(camera);
+      if (raycaster.ray.intersectPlane(dropPlane, dropPoint3D)) {
+        // Vind dichtstbijzijnde hoek op basis van 3D afstand
+        let minDistance3D = Infinity;
 
-        const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
-        const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
+        placeholders.forEach((p) => {
+          if (p.filled) return;
 
-        const dx = screenX - e.clientX;
-        const dy = screenY - e.clientY;
-        const distance2D = Math.sqrt(dx * dx + dy * dy);
+          // Gebruik LOKALE positie (binnen cubeGroup)
+          const cornerPos = p.mesh.position.clone();
 
-        // Z-depth: hoger = dichter bij camera (voorkant)
-        // NDC z gaat van -1 (ver) tot 1 (dichtbij)
-        const zDepth = screenPos.z;
+          // Bereken 3D afstand
+          const dx = dropPoint3D.x - cornerPos.x;
+          const dy = dropPoint3D.y - cornerPos.y;
+          const dz = dropPoint3D.z - cornerPos.z;
+          const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        // Score: combineer 2D afstand met Z-depth
-        // Geef voorrang aan hoeken dichter bij de camera (hogere z)
-        // Als z < 0, hoek is achter de camera view - geef zeer hoge penalty
-        const depthPenalty = zDepth < 0 ? 10000 : (1 - zDepth) * 500;
-        const score = distance2D + depthPenalty;
+          console.log(
+            `📏 Hoek ${p.mesh.userData.cornerIndex}: 3D afstand = ${Math.round(distance3D)}`,
+          );
 
-        console.log(
-          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - 2D afstand: ${Math.round(distance2D)}px, Z-depth: ${zDepth.toFixed(3)}, score: ${Math.round(score)}`,
-        );
+          if (distance3D < minDistance3D) {
+            minDistance3D = distance3D;
+            closestPlaceholder = p;
+          }
+        });
 
-        if (score < bestScore) {
-          bestScore = score;
-          closestPlaceholder = p;
-          closestInfo = {
-            index: p.mesh.userData.cornerIndex,
-            distance: distance2D,
-            zDepth: zDepth,
-            score: score,
-          };
+        if (closestPlaceholder) {
+          console.log(
+            `✅ Dichtstbijzijnde hoek: ${closestPlaceholder.mesh.userData.cornerIndex} (3D afstand: ${Math.round(minDistance3D)})`,
+          );
         }
-      });
-
-      if (closestInfo) {
-        console.log(
-          `✅ 2D FALLBACK: beste match is hoek ${closestInfo.index} (2D: ${Math.round(closestInfo.distance)}px, Z: ${closestInfo.zDepth.toFixed(3)}, score: ${Math.round(closestInfo.score)})`,
-        );
       }
     }
 
@@ -953,8 +941,10 @@
   }
 
   function placeShapeOnCorner(placeholder, shapeType) {
-    // Gebruik de LOKALE positie van de placeholder binnen de cubeGroup
-    const localPos = placeholder.mesh.position.clone();
+    // Gebruik de EXACTE lokale positie van de placeholder
+    // De placeholder is al een child van cubeGroup, dus zijn positie is al lokaal
+    const localPos = new THREE.Vector3();
+    localPos.copy(placeholder.mesh.position);
 
     const geometry = createGeometry(shapeType);
     const material = new THREE.MeshBasicMaterial({
@@ -966,8 +956,12 @@
 
     const placedShape = new THREE.Mesh(geometry, material);
 
-    // Plaats de shape op de LOKALE positie binnen cubeGroup
-    placedShape.position.copy(localPos);
+    // Plaats de shape EXACT op dezelfde lokale positie als de placeholder
+    placedShape.position.set(localPos.x, localPos.y, localPos.z);
+
+    // Zorg dat de shape NIET roteert (behoudt lokale orientatie)
+    placedShape.rotation.set(0, 0, 0);
+
     placedShape.userData.isPlacedBlock = true;
     placedShape.userData.cornerIndex = placeholder.mesh.userData.cornerIndex;
     placedShape.userData.shape = shapeType;
@@ -975,8 +969,14 @@
     // Voeg toe aan de cubeGroup (niet scene!) zodat het meedraait met de kubus
     cubeGroup.add(placedShape);
 
+    // Markeer placeholder als gevuld
     placeholder.filled = true;
     placeholder.mesh.visible = false;
+
+    // Forceer een render update
+    if (renderer && scene && camera) {
+      renderer.render(scene, camera);
+    }
 
     checkCompletion();
 
