@@ -8,6 +8,12 @@
   const CHAPTER2 = {};
   window.initChapter2 = initChapter2;
 
+  // ============================================================
+  // 🔧 CONFIGURATIE
+  // ============================================================
+  const DEBUG = false; // Zet op true voor uitgebreide console logs
+  const Z_DEPTH_WEIGHT = 0.3; // Gewicht voor Z-depth in afstand berekening (0-1)
+
   let scene, camera, renderer, controls;
   let cubeGroup,
     placeholders = [],
@@ -17,6 +23,7 @@
     dragged = null,
     offset = new THREE.Vector3();
   let loadingScene, loadingCamera;
+  let highlightedPlaceholder = null; // Voor visual feedback tijdens drag
 
   function showLoadingScreen(callback) {
     // Maak statisch 2D loading screen - exact zoals screenshot
@@ -742,6 +749,41 @@
   }
 
   // ============================================================
+  // 🔧 HELPER FUNCTIES
+  // ============================================================
+
+  // Debug logging helper
+  function debugLog(...args) {
+    if (DEBUG) {
+      console.log(...args);
+    }
+  }
+
+  // Reset alle placeholder highlights
+  function resetPlaceholderHighlights() {
+    placeholders.forEach((p) => {
+      if (!p.filled) {
+        p.mesh.material.opacity = 0.5;
+        p.mesh.material.color.setHex(0x8a2be2); // Terug naar paars
+      }
+    });
+    highlightedPlaceholder = null;
+  }
+
+  // Highlight een specifieke placeholder
+  function highlightPlaceholder(placeholder) {
+    if (!placeholder || placeholder.filled) return;
+
+    // Reset alle andere
+    resetPlaceholderHighlights();
+
+    // Highlight deze
+    placeholder.mesh.material.opacity = 0.9;
+    placeholder.mesh.material.color.setHex(0x00ff00); // Groen
+    highlightedPlaceholder = placeholder;
+  }
+
+  // ============================================================
   // ⭐ DRAG & DROP SYSTEEM - HTML BLOKJES NAAR KUBUS
   // ============================================================
 
@@ -765,16 +807,19 @@
     e.dataTransfer.setDragImage(dragImage, 14, 14);
     setTimeout(() => dragImage.remove(), 0);
 
-    console.log(`🎯 START DRAG: ${draggedShapeType}`);
+    debugLog(`🎯 START DRAG: ${draggedShapeType}`);
   }
 
   function handleDragEnd(e) {
+    // Reset visual feedback
+    resetPlaceholderHighlights();
+
     if (draggedBlock && draggedBlock.parentElement) {
       draggedBlock.style.opacity = '1';
       draggedBlock.style.cursor = 'grab';
       draggedBlock.style.transform = 'scale(1)';
     }
-    console.log('🎯 EINDE DRAG');
+    debugLog('🎯 EINDE DRAG');
   }
 
   function handleDragOver(e) {
@@ -782,6 +827,62 @@
       e.preventDefault();
     }
     e.dataTransfer.dropEffect = 'move';
+
+    // VISUAL FEEDBACK: Highlight dichtstbijzijnde hoek tijdens drag
+    if (draggedBlock && draggedShapeType) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      const mouse = new THREE.Vector2(mouseX, mouseY);
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, camera);
+      raycaster.params.Mesh.threshold = 300;
+
+      // Bereken relatief threshold
+      const DROP_THRESHOLD = Math.min(rect.width, rect.height) * 0.15; // 15% van scherm
+      let minWeightedDistance = Infinity;
+      let closestPlaceholder = null;
+
+      placeholders.forEach((p) => {
+        if (p.filled) return;
+
+        const worldPos = new THREE.Vector3();
+        p.mesh.getWorldPosition(worldPos);
+        const screenPos = worldPos.clone();
+        screenPos.project(camera);
+
+        const isInViewport =
+          screenPos.x >= -1 && screenPos.x <= 1 && screenPos.y >= -1 && screenPos.y <= 1;
+        if (!isInViewport) return;
+
+        const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
+        const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
+
+        const dx = screenX - e.clientX;
+        const dy = screenY - e.clientY;
+        const screenDistance = Math.sqrt(dx * dx + dy * dy);
+
+        // Z-DEPTH SORTING: Weeg Z-depth mee (hoe verder weg, hoe zwaarder)
+        // screenPos.z is tussen -1 (dichtbij) en 1 (ver weg)
+        const zDepth = (screenPos.z + 1) / 2; // Normaliseer naar 0-1
+        const weightedDistance =
+          screenDistance + zDepth * Z_DEPTH_WEIGHT * Math.min(rect.width, rect.height);
+
+        if (weightedDistance < minWeightedDistance && screenDistance < DROP_THRESHOLD) {
+          minWeightedDistance = weightedDistance;
+          closestPlaceholder = p;
+        }
+      });
+
+      // Highlight de dichtstbijzijnde hoek
+      if (closestPlaceholder && closestPlaceholder !== highlightedPlaceholder) {
+        highlightPlaceholder(closestPlaceholder);
+      } else if (!closestPlaceholder) {
+        resetPlaceholderHighlights();
+      }
+    }
+
     return false;
   }
 
@@ -791,12 +892,15 @@
     }
     e.preventDefault();
 
+    // Reset visual feedback
+    resetPlaceholderHighlights();
+
     if (!draggedBlock || !draggedShapeType) {
-      console.log('❌ Geen gedraggd block');
+      debugLog('❌ Geen gedraggd block');
       return false;
     }
 
-    console.log(`🎯 DROP at pixels: (${e.clientX}, ${e.clientY})`);
+    debugLog(`🎯 DROP at pixels: (${e.clientX}, ${e.clientY})`);
 
     const rect = renderer.domElement.getBoundingClientRect();
     const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -807,21 +911,18 @@
     raycaster.setFromCamera(mouse, camera);
 
     // Verhoog threshold voor betere detectie van grote placeholders
-    raycaster.params.Mesh.threshold = 300; // Grotere threshold voor betere hit detection
+    raycaster.params.Mesh.threshold = 300;
 
     // Zoek recursief in de cubeGroup (inclusief alle children)
-    // Dit zorgt ervoor dat placeholders binnen cubeGroup gevonden worden
     const intersects = raycaster.intersectObjects([cubeGroup], true);
 
-    console.log(
-      `🔍 Raycaster vond ${intersects.length} object hits (inclusief cubeGroup children)`,
-    );
+    debugLog(`🔍 Raycaster vond ${intersects.length} object hits (inclusief cubeGroup children)`);
 
     // DEBUG: Log alle gevonden objecten
-    if (intersects.length > 0) {
+    if (DEBUG && intersects.length > 0) {
       intersects.forEach((hit, i) => {
         const obj = hit.object;
-        console.log(
+        debugLog(
           `  Hit ${i}: ${obj.type} - name: ${obj.name || 'unnamed'}, userData:`,
           obj.userData,
           `distance: ${hit.distance.toFixed(1)}`,
@@ -833,33 +934,32 @@
 
     // EERST: Probeer directe raycast hit op placeholder
     if (intersects.length > 0) {
-      // Filter alleen placeholders uit de intersects
       for (const intersect of intersects) {
         const obj = intersect.object;
 
-        // Check of dit object een placeholder is
         if (obj.userData && obj.userData.isPlaceholder) {
           const placeholder = placeholders.find((p) => p.mesh === obj);
 
           if (placeholder && !placeholder.filled) {
             closestPlaceholder = placeholder;
-            console.log(
+            debugLog(
               `✅ DIRECT HIT op hoek ${placeholder.mesh.userData.cornerIndex} (distance: ${intersect.distance.toFixed(1)})`,
             );
             break;
           } else if (placeholder && placeholder.filled) {
-            console.log(`⚠️ Hoek ${placeholder.mesh.userData.cornerIndex} is al gevuld`);
+            debugLog(`⚠️ Hoek ${placeholder.mesh.userData.cornerIndex} is al gevuld`);
           }
         }
       }
     }
 
-    // FALLBACK: Gebruik screen space distance, maar alleen binnen THRESHOLD
+    // FALLBACK: Gebruik screen space distance met Z-DEPTH SORTING en relatief THRESHOLD
     if (!closestPlaceholder) {
-      console.log('⚠️ Geen directe hit, gebruik screen space distance met threshold');
+      debugLog('⚠️ Geen directe hit, gebruik screen space distance met threshold en Z-depth');
 
-      const DROP_THRESHOLD = 150; // Alleen hoeken binnen 150px worden overwogen
-      let minScreenDistance = Infinity;
+      // RELATIEF THRESHOLD: 15% van scherm (werkt op alle schermformaten)
+      const DROP_THRESHOLD = Math.min(rect.width, rect.height) * 0.15;
+      let minWeightedDistance = Infinity;
       let bestPlaceholder = null;
 
       placeholders.forEach((p) => {
@@ -878,7 +978,7 @@
           screenPos.x >= -1 && screenPos.x <= 1 && screenPos.y >= -1 && screenPos.y <= 1;
 
         if (!isInViewport) {
-          console.log(
+          debugLog(
             `👁️ Hoek ${p.mesh.userData.cornerIndex} is buiten viewport (x: ${screenPos.x.toFixed(3)}, y: ${screenPos.y.toFixed(3)})`,
           );
           return; // Skip hoeken buiten het scherm
@@ -892,31 +992,37 @@
         const dy = screenY - e.clientY;
         const screenDistance = Math.sqrt(dx * dx + dy * dy);
 
-        console.log(
-          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - afstand: ${Math.round(screenDistance)}px (drop op: ${e.clientX}, ${e.clientY}), z: ${screenPos.z.toFixed(3)}`,
+        // Z-DEPTH SORTING: Weeg Z-depth mee (hoe verder weg, hoe zwaarder)
+        // screenPos.z is tussen -1 (dichtbij) en 1 (ver weg)
+        const zDepth = (screenPos.z + 1) / 2; // Normaliseer naar 0-1
+        const weightedDistance =
+          screenDistance + zDepth * Z_DEPTH_WEIGHT * Math.min(rect.width, rect.height);
+
+        debugLog(
+          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - screenDist: ${Math.round(screenDistance)}px, weightedDist: ${Math.round(weightedDistance)}px, z: ${screenPos.z.toFixed(3)}, zDepth: ${zDepth.toFixed(3)}`,
         );
 
-        // Alleen hoeken binnen threshold overwogen
-        if (screenDistance < DROP_THRESHOLD && screenDistance < minScreenDistance) {
-          minScreenDistance = screenDistance;
+        // Alleen hoeken binnen threshold overwogen, gebruik weighted distance
+        if (screenDistance < DROP_THRESHOLD && weightedDistance < minWeightedDistance) {
+          minWeightedDistance = weightedDistance;
           bestPlaceholder = p;
         }
       });
 
-      if (bestPlaceholder && minScreenDistance < DROP_THRESHOLD) {
+      if (bestPlaceholder && minWeightedDistance < Infinity) {
         closestPlaceholder = bestPlaceholder;
-        console.log(
-          `✅ Dichtstbijzijnde hoek binnen threshold: ${closestPlaceholder.mesh.userData.cornerIndex} (screen afstand: ${Math.round(minScreenDistance)}px, threshold: ${DROP_THRESHOLD}px)`,
+        debugLog(
+          `✅ Dichtstbijzijnde hoek binnen threshold: ${closestPlaceholder.mesh.userData.cornerIndex} (weighted afstand: ${Math.round(minWeightedDistance)}px, threshold: ${Math.round(DROP_THRESHOLD)}px)`,
         );
       } else {
-        console.log(
-          `❌ Geen hoek binnen threshold gevonden! Dichtstbijzijnde was ${minScreenDistance < Infinity ? Math.round(minScreenDistance) : 'N/A'}px (threshold: ${DROP_THRESHOLD}px)`,
+        debugLog(
+          `❌ Geen hoek binnen threshold gevonden! Threshold: ${Math.round(DROP_THRESHOLD)}px`,
         );
       }
     }
 
     if (closestPlaceholder) {
-      console.log(`✅ SNAP naar hoek ${closestPlaceholder.mesh.userData.cornerIndex}`);
+      debugLog(`✅ SNAP naar hoek ${closestPlaceholder.mesh.userData.cornerIndex}`);
 
       closestPlaceholder.mesh.visible = true;
       closestPlaceholder.mesh.material.opacity = 1.0;
@@ -934,12 +1040,12 @@
             setTimeout(() => {
               if (draggedBlock && draggedBlock.parentElement) {
                 draggedBlock.remove();
-                console.log('🗑️ Shape choice verwijderd uit lijstje');
+                debugLog('🗑️ Shape choice verwijderd uit lijstje');
               }
             }, 300);
           }
 
-          console.log(
+          debugLog(
             `✅ SUCCES! Shape geplaatst op hoek ${closestPlaceholder.mesh.userData.cornerIndex}!`,
           );
         }
@@ -949,7 +1055,7 @@
       draggedShapeType = null;
       return false;
     } else {
-      console.log(`❌ Geen beschikbare hoek gevonden`);
+      debugLog(`❌ Geen beschikbare hoek gevonden`);
       if (draggedBlock) {
         draggedBlock.style.opacity = '1';
       }
@@ -988,7 +1094,7 @@
     localPos.copy(placeholder.mesh.position);
 
     // DEBUG: Log de exacte positie
-    console.log(
+    debugLog(
       `📍 Plaats shape op hoek ${placeholder.mesh.userData.cornerIndex} - lokale positie:`,
       localPos.x,
       localPos.y,
@@ -1031,13 +1137,13 @@
     const placeholderWorldPos = new THREE.Vector3();
     placeholder.mesh.getWorldPosition(placeholderWorldPos);
 
-    console.log(
+    debugLog(
       `🔍 VERIFICATIE - Shape world positie:`,
       verifyPos.x.toFixed(1),
       verifyPos.y.toFixed(1),
       verifyPos.z.toFixed(1),
     );
-    console.log(
+    debugLog(
       `🔍 VERIFICATIE - Placeholder world positie:`,
       placeholderWorldPos.x.toFixed(1),
       placeholderWorldPos.y.toFixed(1),
@@ -1046,7 +1152,7 @@
 
     const distance = verifyPos.distanceTo(placeholderWorldPos);
     if (distance > 1) {
-      console.warn(`⚠️ WAARSCHUWING: Shape staat ${distance.toFixed(1)} units van placeholder af!`);
+      debugLog(`⚠️ WAARSCHUWING: Shape staat ${distance.toFixed(1)} units van placeholder af!`);
     }
 
     // Markeer placeholder als gevuld
@@ -1063,7 +1169,7 @@
 
     checkCompletion();
 
-    console.log(
+    debugLog(
       `✅ 3D Shape EXACT geplaatst op hoek ${placeholder.mesh.userData.cornerIndex} (lokale positie: ${localPos.x}, ${localPos.y}, ${localPos.z})`,
     );
   }
@@ -1072,14 +1178,14 @@
     const allFilled = placeholders.every((p) => p.filled);
 
     if (allFilled) {
-      console.log('🎉 ALLE 8 HOEKEN GEVULD! PUZZEL COMPLEET!');
+      console.log('🎉 ALLE 8 HOEKEN GEVULD! PUZZEL COMPLEET!'); // Success message blijft zichtbaar
 
       setTimeout(() => {
         alert('🎉 Gefeliciteerd! Je hebt de kubus voltooid!');
       }, 500);
     } else {
       const filledCount = placeholders.filter((p) => p.filled).length;
-      console.log(`📊 Progress: ${filledCount}/8 hoeken gevuld`);
+      debugLog(`📊 Progress: ${filledCount}/8 hoeken gevuld`);
     }
   }
 
