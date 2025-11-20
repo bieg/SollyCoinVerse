@@ -121,6 +121,42 @@ contract SollyCoin is ERC20, Ownable, Pausable, ReentrancyGuard {
     }
     
     /**
+     * @dev Unlock chapter met SollyCoins (burn coins)
+     */
+    function unlockChapter(uint256 _chapter, uint256 _price) external whenNotPaused nonReentrant {
+        require(_chapter > 0, "Invalid chapter");
+        require(_price > 0, "Invalid price");
+        require(balanceOf(msg.sender) >= _price * 10**18, "Insufficient SollyCoin balance");
+        
+        _burn(msg.sender, _price * 10**18);
+        
+        GameState storage state = playerGameState[msg.sender];
+        if (_chapter > state.level / 10) {
+            state.level = _chapter * 10;
+        }
+        
+        emit GameRewardClaimed(msg.sender, _price * 10**18, "Chapter unlocked");
+    }
+    
+    /**
+     * @dev Buy progress within chapter (skip level)
+     */
+    function buyProgress(uint256 _levelsToSkip, uint256 _pricePerLevel) external whenNotPaused nonReentrant {
+        require(_levelsToSkip > 0, "Invalid levels");
+        require(_pricePerLevel > 0, "Invalid price");
+        
+        uint256 totalCost = _levelsToSkip * _pricePerLevel * 10**18;
+        require(balanceOf(msg.sender) >= totalCost, "Insufficient SollyCoin balance");
+        
+        _burn(msg.sender, totalCost);
+        
+        GameState storage state = playerGameState[msg.sender];
+        state.level += _levelsToSkip;
+        
+        emit GameRewardClaimed(msg.sender, totalCost, "Progress purchased");
+    }
+    
+    /**
      * @dev Pause/unpause contract (alleen owner)
      */
     function pause() external onlyOwner {

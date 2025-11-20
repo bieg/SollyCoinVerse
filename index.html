@@ -104,10 +104,26 @@
             <!-- Game Tab -->
             <div id="game-tab" class="tab-pane">
               <div class="game-section">
-                <h3>🎮 Game Integration</h3>
+                <h3>🎮 Game Progress</h3>
                 <p>Score: <span id="game-score">0</span></p>
                 <p>Level: <span id="game-level">1</span></p>
+                <p>SollyCoin Balance: <span id="coin-balance">0</span> SOLLY</p>
                 <button onclick="convertScore()">Converteer Score naar Tokens</button>
+                
+                <hr style="margin: 20px 0;">
+                
+                <h3>🔓 Unlock Hoofdstukken met Coins</h3>
+                <div id="chapter-unlock-list" style="display: flex; flex-direction: column; gap: 12px;">
+                  <!-- Dynamically populated -->
+                </div>
+                
+                <hr style="margin: 20px 0;">
+                
+                <h3>🚀 Level Skip</h3>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                  <input type="number" id="levels-to-skip" min="1" max="10" value="1" style="width: 60px;">
+                  <button onclick="buyLevelSkip()">Skip Levels (2 SOLLY per level)</button>
+                </div>
               </div>
             </div>
           </div>
@@ -370,6 +386,123 @@
       function convertScore() {
         alert('🎮 Score conversie functionaliteit komt binnenkort!');
       }
+
+      // Chapter unlock with coins functions
+      async function populateChapterUnlockList() {
+        const listContainer = document.getElementById('chapter-unlock-list');
+        if (!listContainer || !window.ChapterPrices) return;
+
+        const prices = window.ChapterPrices.getAllChapterPrices();
+        listContainer.innerHTML = '';
+        
+        for (const [chapter, price] of Object.entries(prices)) {
+          const chapterNum = parseInt(chapter);
+          if (chapterNum > 4) continue;
+          
+          const isUnlocked = window.chapterManager && window.chapterManager.isChapterUnlocked(chapterNum);
+          
+          const chapterDiv = document.createElement('div');
+          chapterDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px;';
+          
+          const infoSpan = document.createElement('span');
+          infoSpan.textContent = `Hoofdstuk ${chapterNum}${isUnlocked ? ' ✅' : ''}`;
+          
+          const btnDiv = document.createElement('div');
+          btnDiv.style.cssText = 'display: flex; gap: 8px; align-items: center;';
+          
+          const priceSpan = document.createElement('span');
+          priceSpan.textContent = `${price} SOLLY`;
+          priceSpan.style.color = '#FFD700';
+          
+          const unlockBtn = document.createElement('button');
+          unlockBtn.textContent = isUnlocked ? 'Unlocked' : 'Unlock';
+          unlockBtn.disabled = isUnlocked;
+          unlockBtn.onclick = () => unlockChapterWithCoins(chapterNum);
+          
+          btnDiv.appendChild(priceSpan);
+          btnDiv.appendChild(unlockBtn);
+          chapterDiv.appendChild(infoSpan);
+          chapterDiv.appendChild(btnDiv);
+          listContainer.appendChild(chapterDiv);
+        }
+      }
+
+      async function unlockChapterWithCoins(chapterNumber) {
+        if (window.chapterManager) {
+          const success = await window.chapterManager.unlockChapterWithCoins(chapterNumber);
+          if (success) {
+            populateChapterUnlockList();
+            updateCoinBalance();
+          }
+        }
+      }
+
+      async function buyLevelSkip() {
+        const levelsInput = document.getElementById('levels-to-skip');
+        if (!levelsInput) return;
+
+        const levelsToSkip = parseInt(levelsInput.value);
+        if (levelsToSkip < 1 || levelsToSkip > 10) {
+          alert('⚠️ Kies tussen 1 en 10 levels');
+          return;
+        }
+
+        const pricePerLevel = window.ChapterPrices ? window.ChapterPrices.getLevelSkipPrice() : 2;
+        const totalCost = levelsToSkip * pricePerLevel;
+
+        if (!window.web3Manager || !window.web3Manager.isConnected) {
+          alert('⚠️ Verbind eerst je wallet!');
+          return;
+        }
+
+        try {
+          const balance = await window.contractManager.getSollyCoinBalance();
+          if (parseFloat(balance) < totalCost) {
+            alert(`⚠️ Niet genoeg SollyCoins! Nodig: ${totalCost} SOLLY`);
+            return;
+          }
+
+          await window.contractManager.buyProgress(levelsToSkip, pricePerLevel);
+          
+          if (window.chapterManager) {
+            const currentLevel = window.chapterManager.getCurrentLevel();
+            for (let i = 1; i <= levelsToSkip; i++) {
+              window.chapterManager.unlockLevel(currentLevel + i);
+            }
+          }
+
+          alert(`🎉 ${levelsToSkip} levels geskipped voor ${totalCost} SOLLY!`);
+          updateCoinBalance();
+        } catch (error) {
+          alert('❌ Level skip mislukt: ' + error.message);
+        }
+      }
+
+      async function updateCoinBalance() {
+        const balanceSpan = document.getElementById('coin-balance');
+        if (!balanceSpan) return;
+
+        if (window.web3Manager && window.web3Manager.isConnected && window.contractManager) {
+          try {
+            const balance = await window.contractManager.getSollyCoinBalance();
+            balanceSpan.textContent = parseFloat(balance).toFixed(2);
+          } catch (error) {
+            balanceSpan.textContent = '0';
+          }
+        } else {
+          balanceSpan.textContent = '0';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const gameTabBtn = document.querySelector('[data-tab="game"]');
+        if (gameTabBtn) {
+          gameTabBtn.addEventListener('click', () => {
+            populateChapterUnlockList();
+            updateCoinBalance();
+          });
+        }
+      });
 
       // Functie om Wallet Hub knop zichtbaar te maken na game start
       function showWalletHubButton() {

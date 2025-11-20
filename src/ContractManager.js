@@ -318,6 +318,56 @@ class ContractManager {
     };
   }
 
+  // Unlock chapter with SollyCoins (burns coins)
+  async unlockChapter(chapterNumber, price) {
+    try {
+      if (!this.currentAccount) {
+        throw new Error('No account specified');
+      }
+      
+      this.debugLog(`🔓 Unlocking chapter ${chapterNumber} with ${price} SollyCoins...`);
+      
+      const result = await this.contracts.sollyCoin.methods.unlockChapter(
+        chapterNumber,
+        price
+      ).send({
+        from: this.currentAccount,
+        gas: 200000
+      });
+      
+      this.debugLog('✅ Chapter unlocked successfully:', result.transactionHash);
+      return result;
+    } catch (error) {
+      this.debugLog('❌ Failed to unlock chapter:', error);
+      throw error;
+    }
+  }
+
+  // Buy progress (skip levels) with SollyCoins
+  async buyProgress(levelsToSkip, pricePerLevel) {
+    try {
+      if (!this.currentAccount) {
+        throw new Error('No account specified');
+      }
+      
+      this.debugLog(`🚀 Buying progress: skip ${levelsToSkip} levels at ${pricePerLevel} SOLLY each...`);
+      
+      const result = await this.contracts.sollyCoin.methods.buyProgress(
+        levelsToSkip,
+        pricePerLevel
+      ).send({
+        from: this.currentAccount,
+        gas: 200000
+      });
+      
+      this.debugLog('✅ Progress purchased successfully:', result.transactionHash);
+      return result;
+    } catch (error) {
+      this.debugLog('❌ Failed to buy progress:', error);
+      throw error;
+    }
+  }
+
   // Cleanup resources
   cleanup() {
     this.debugLog('🧹 Cleaning up ContractManager resources...');
