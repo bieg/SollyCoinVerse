@@ -542,12 +542,12 @@
 
     // ZICHTBARE HOTSPOTS op elke hoek van de kubus
     points.forEach((p, i) => {
-      // Maak zichtbare hotspot bol voor elke hoek - groot genoeg voor goede detectie
-      const placeholderSphere = new THREE.SphereGeometry(300, 16, 16); // 300 radius voor betere drag & drop
+      // Kleinere, subtielere hotspots die niet in de weg zitten
+      const placeholderSphere = new THREE.SphereGeometry(150, 16, 16); // 150 radius - klein en subtiel
       const placeholderMaterial = new THREE.MeshBasicMaterial({
         color: 0x8a2be2, // Paars, matching kubus
         transparent: true,
-        opacity: 0.5, // Semi-transparant maar goed zichtbaar
+        opacity: 0.15, // Bijna onzichtbaar, alleen als hint
         side: THREE.DoubleSide,
       });
       const placeholderMesh = new THREE.Mesh(placeholderSphere, placeholderMaterial);
