@@ -1008,22 +1008,19 @@ function sendPlayerMovement(position, rotation) {
   }
 }
 
-// Keyboard shortcut om hoofdstuk 2 direct te laden (Ctrl+2 of Cmd+2)
+// Keyboard shortcuts om hoofdstukken direct te laden
 document.addEventListener('keydown', (e) => {
-  // Ctrl+2 (Windows/Linux) of Cmd+2 (Mac)
+  // Ctrl+2 (Windows/Linux) of Cmd+2 (Mac) - Chapter 2
   if ((e.ctrlKey || e.metaKey) && e.key === '2') {
     e.preventDefault();
     console.log('⌨️ Keyboard shortcut: Direct naar Hoofdstuk 2');
 
-    // Check of initChapter2 beschikbaar is
     if (window.initChapter2) {
-      // Als we al in hoofdstuk 2 zitten, doe niets
       if (window.level2Active) {
         console.log('⚠️ Hoofdstuk 2 is al actief');
         return;
       }
 
-      // Start hoofdstuk 2 direct
       try {
         console.log('🚀 Loading Hoofdstuk 2 via keyboard shortcut...');
         window.initChapter2();
@@ -1031,7 +1028,29 @@ document.addEventListener('keydown', (e) => {
         console.error('❌ Error loading Hoofdstuk 2:', error);
       }
     } else {
-      console.warn('⚠️ initChapter2 niet beschikbaar - hoofdstuk 2 script niet geladen?');
+      console.warn('⚠️ initChapter2 niet beschikbaar');
+    }
+  }
+  
+  // Ctrl+3 (Windows/Linux) of Cmd+3 (Mac) - Chapter 3
+  if ((e.ctrlKey || e.metaKey) && e.key === '3') {
+    e.preventDefault();
+    console.log('⌨️ Keyboard shortcut: Direct naar Hoofdstuk 3 (Neon Cyberpunk)');
+
+    if (window.initChapter3) {
+      if (window.level3Active) {
+        console.log('⚠️ Hoofdstuk 3 is al actief');
+        return;
+      }
+
+      try {
+        console.log('🚀 Loading Hoofdstuk 3: Neon Cyberpunk via keyboard shortcut...');
+        window.initChapter3();
+      } catch (error) {
+        console.error('❌ Error loading Hoofdstuk 3:', error);
+      }
+    } else {
+      console.warn('⚠️ initChapter3 niet beschikbaar');
     }
   }
 });
