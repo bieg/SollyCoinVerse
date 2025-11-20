@@ -2954,10 +2954,22 @@ class CollisionManager {
   goToChapter2() {
     console.log('➡️ Automatisch doorgaan naar hoofdstuk 2');
     
+    // Save progress before transition
+    if (window.gameManager && typeof window.gameManager.saveProgress === 'function') {
+      window.gameManager.saveProgress();
+      console.log('💾 Progress saved before chapter transition');
+    }
+    
     // 1) Probeer via ChapterManager naar de volgende level te gaan
     if (window.chapterManager && typeof window.chapterManager.completeLevel === 'function') {
       const currentLevel = window.chapterManager.getCurrentLevel ? window.chapterManager.getCurrentLevel() : 1;
       window.chapterManager.completeLevel(currentLevel);
+      
+      // Unlock chapter 2 if not unlocked
+      if (!window.chapterManager.isChapterUnlocked(2)) {
+        window.chapterManager.unlockChapter(2);
+        console.log('🔓 Chapter 2 unlocked');
+      }
 
       // Toon kort laadbericht
       const msg = document.createElement('div');
