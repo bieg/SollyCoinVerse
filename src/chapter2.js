@@ -172,7 +172,7 @@
     // Deze configuratie zorgt voor een geometrisch correcte kubus zonder vervorming
     // ============================================================
     const aspect = window.innerWidth / window.innerHeight;
-    const viewSize = 4000; // View size voor kubus van 2500 units (met wat ruimte)
+    const viewSize = 6000; // Vergroot view size voor betere zichtbaarheid van hoeken (was 4000)
     const halfHeight = viewSize / 2;
     const halfWidth = halfHeight * aspect;
     camera = new THREE.OrthographicCamera(
@@ -225,7 +225,7 @@
     // Responderen op resize (houd orthographic view consistent)
     function onResize() {
       const aspect = window.innerWidth / window.innerHeight;
-      const viewSize = 4000;
+      const viewSize = 6000; // Match met camera setup (was 4000)
       const halfHeight = viewSize / 2;
       const halfWidth = halfHeight * aspect;
       camera.left = -halfWidth;
@@ -542,8 +542,8 @@
 
     // ZICHTBARE HOTSPOTS op elke hoek van de kubus
     points.forEach((p, i) => {
-      // Maak zichtbare hotspot bol voor elke hoek (30% kleiner dan voorheen)
-      const placeholderSphere = new THREE.SphereGeometry(175, 16, 16); // 175 radius (30% kleiner dan 250)
+      // Maak zichtbare hotspot bol voor elke hoek - groot genoeg voor goede detectie
+      const placeholderSphere = new THREE.SphereGeometry(300, 16, 16); // 300 radius voor betere drag & drop
       const placeholderMaterial = new THREE.MeshBasicMaterial({
         color: 0x8a2be2, // Paars, matching kubus
         transparent: true,
@@ -916,8 +916,8 @@
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
-    // Verhoog threshold voor betere detectie van grote placeholders
-    raycaster.params.Mesh.threshold = 300;
+    // Verhoog threshold voor betere detectie van placeholders (verdubbeld)
+    raycaster.params.Mesh.threshold = 600;
 
     // Zoek recursief in de cubeGroup (inclusief alle children)
     const intersects = raycaster.intersectObjects([cubeGroup], true);
@@ -963,8 +963,8 @@
     if (!closestPlaceholder) {
       debugLog('⚠️ Geen directe hit, gebruik screen space distance met threshold en Z-depth');
 
-      // RELATIEF THRESHOLD: 15% van scherm (werkt op alle schermformaten)
-      const DROP_THRESHOLD = Math.min(rect.width, rect.height) * 0.15;
+      // RELATIEF THRESHOLD: 25% van scherm voor betere dragability (was 15%)
+      const DROP_THRESHOLD = Math.min(rect.width, rect.height) * 0.25;
       let minWeightedDistance = Infinity;
       let bestPlaceholder = null;
 
