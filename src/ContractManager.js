@@ -27,13 +27,13 @@ class ContractManager {
   async initialize(web3Instance) {
     try {
       this.debugLog('🔗 Initializing ContractManager...');
-      
+
       this.web3 = web3Instance;
       this.isConnected = true;
-      
+
       // Load contract ABIs and addresses
       await this.loadContracts();
-      
+
       this.debugLog('✅ ContractManager initialized successfully');
       return true;
     } catch (error) {
@@ -46,34 +46,33 @@ class ContractManager {
   async loadContracts() {
     try {
       this.debugLog('📋 Loading contract instances...');
-      
+
       // SollyCoin contract
       if (window.SOLLY_COIN_ABI && window.SOLLY_COIN_ADDRESS) {
         this.contracts.sollyCoin = new this.web3.eth.Contract(
           window.SOLLY_COIN_ABI,
-          window.SOLLY_COIN_ADDRESS
+          window.SOLLY_COIN_ADDRESS,
         );
         this.debugLog('✅ SollyCoin contract loaded');
       }
-      
+
       // SollyNFT contract
       if (window.SOLLY_NFT_ABI && window.SOLLY_NFT_ADDRESS) {
         this.contracts.sollyNFT = new this.web3.eth.Contract(
           window.SOLLY_NFT_ABI,
-          window.SOLLY_NFT_ADDRESS
+          window.SOLLY_NFT_ADDRESS,
         );
         this.debugLog('✅ SollyNFT contract loaded');
       }
-      
+
       // GameFactory contract
       if (window.GAME_FACTORY_ABI && window.GAME_FACTORY_ADDRESS) {
         this.contracts.gameFactory = new this.web3.eth.Contract(
           window.GAME_FACTORY_ABI,
-          window.GAME_FACTORY_ADDRESS
+          window.GAME_FACTORY_ADDRESS,
         );
         this.debugLog('✅ GameFactory contract loaded');
       }
-      
     } catch (error) {
       this.debugLog('❌ Failed to load contracts:', error);
       throw error;
@@ -93,10 +92,10 @@ class ContractManager {
       if (!targetAccount) {
         throw new Error('No account specified');
       }
-      
+
       const balance = await this.contracts.sollyCoin.methods.balanceOf(targetAccount).call();
       this.debugLog('💰 SollyCoin balance:', balance);
-      
+
       return this.web3.utils.fromWei(balance, 'ether');
     } catch (error) {
       this.debugLog('❌ Failed to get SollyCoin balance:', error);
@@ -111,16 +110,16 @@ class ContractManager {
       if (!targetAccount) {
         throw new Error('No account specified');
       }
-      
+
       const weiAmount = this.web3.utils.toWei(amount.toString(), 'ether');
-      
+
       this.debugLog('🪙 Minting SollyCoin:', amount, 'to:', targetAccount);
-      
+
       const result = await this.contracts.sollyCoin.methods.mint(targetAccount, weiAmount).send({
         from: this.currentAccount,
-        gas: 200000
+        gas: 200000,
       });
-      
+
       this.debugLog('✅ SollyCoin minted successfully:', result.transactionHash);
       return result;
     } catch (error) {
@@ -135,16 +134,16 @@ class ContractManager {
       if (!this.currentAccount) {
         throw new Error('No account specified');
       }
-      
+
       const weiAmount = this.web3.utils.toWei(amount.toString(), 'ether');
-      
+
       this.debugLog('🔄 Transferring SollyCoin:', amount, 'to:', to);
-      
+
       const result = await this.contracts.sollyCoin.methods.transfer(to, weiAmount).send({
         from: this.currentAccount,
-        gas: 100000
+        gas: 100000,
       });
-      
+
       this.debugLog('✅ SollyCoin transferred successfully:', result.transactionHash);
       return result;
     } catch (error) {
@@ -159,17 +158,16 @@ class ContractManager {
       if (!this.currentAccount) {
         throw new Error('No account specified');
       }
-      
+
       this.debugLog('🎨 Minting SollyNFT with metadata:', metadata);
-      
-      const result = await this.contracts.sollyNFT.methods.mint(
-        this.currentAccount,
-        metadata.tokenURI
-      ).send({
-        from: this.currentAccount,
-        gas: 300000
-      });
-      
+
+      const result = await this.contracts.sollyNFT.methods
+        .mint(this.currentAccount, metadata.tokenURI)
+        .send({
+          from: this.currentAccount,
+          gas: 300000,
+        });
+
       this.debugLog('✅ SollyNFT minted successfully:', result.transactionHash);
       return result;
     } catch (error) {
@@ -182,16 +180,16 @@ class ContractManager {
   async getSollyNFTData(tokenId) {
     try {
       this.debugLog('📋 Getting SollyNFT data for token:', tokenId);
-      
+
       const tokenURI = await this.contracts.sollyNFT.methods.tokenURI(tokenId).call();
       const owner = await this.contracts.sollyNFT.methods.ownerOf(tokenId).call();
-      
+
       const data = {
         tokenId: tokenId,
         tokenURI: tokenURI,
-        owner: owner
+        owner: owner,
       };
-      
+
       this.debugLog('✅ SollyNFT data retrieved:', data);
       return data;
     } catch (error) {
@@ -206,18 +204,16 @@ class ContractManager {
       if (!this.currentAccount) {
         throw new Error('No account specified');
       }
-      
+
       this.debugLog('🎮 Creating new game with config:', gameConfig);
-      
-      const result = await this.contracts.gameFactory.methods.createGame(
-        gameConfig.level,
-        gameConfig.shape,
-        gameConfig.size
-      ).send({
-        from: this.currentAccount,
-        gas: 500000
-      });
-      
+
+      const result = await this.contracts.gameFactory.methods
+        .createGame(gameConfig.level, gameConfig.shape, gameConfig.size)
+        .send({
+          from: this.currentAccount,
+          gas: 500000,
+        });
+
       this.debugLog('✅ Game created successfully:', result.transactionHash);
       return result;
     } catch (error) {
@@ -230,9 +226,9 @@ class ContractManager {
   async getGameData(gameId) {
     try {
       this.debugLog('📋 Getting game data for game:', gameId);
-      
+
       const gameData = await this.contracts.gameFactory.methods.getGame(gameId).call();
-      
+
       this.debugLog('✅ Game data retrieved:', gameData);
       return gameData;
     } catch (error) {
@@ -247,19 +243,16 @@ class ContractManager {
       if (!this.currentAccount) {
         throw new Error('No account specified');
       }
-      
+
       this.debugLog('🔄 Updating game progress for game:', gameId, 'progress:', progress);
-      
-      const result = await this.contracts.gameFactory.methods.updateProgress(
-        gameId,
-        progress.kaboom,
-        progress.score,
-        progress.level
-      ).send({
-        from: this.currentAccount,
-        gas: 200000
-      });
-      
+
+      const result = await this.contracts.gameFactory.methods
+        .updateProgress(gameId, progress.kaboom, progress.score, progress.level)
+        .send({
+          from: this.currentAccount,
+          gas: 200000,
+        });
+
       this.debugLog('✅ Game progress updated successfully:', result.transactionHash);
       return result;
     } catch (error) {
@@ -272,9 +265,9 @@ class ContractManager {
   async getTransactionStatus(txHash) {
     try {
       this.debugLog('📊 Getting transaction status for:', txHash);
-      
+
       const receipt = await this.web3.eth.getTransactionReceipt(txHash);
-      
+
       if (receipt) {
         const status = receipt.status ? 'success' : 'failed';
         this.debugLog('✅ Transaction status:', status);
@@ -282,13 +275,13 @@ class ContractManager {
           hash: txHash,
           status: status,
           blockNumber: receipt.blockNumber,
-          gasUsed: receipt.gasUsed
+          gasUsed: receipt.gasUsed,
         };
       } else {
         this.debugLog('⏳ Transaction pending...');
         return {
           hash: txHash,
-          status: 'pending'
+          status: 'pending',
         };
       }
     } catch (error) {
@@ -301,12 +294,12 @@ class ContractManager {
   async estimateGas(method, params = []) {
     try {
       this.debugLog('⛽ Estimating gas for method:', method);
-      
+
       const gasEstimate = await method.estimateGas({
         from: this.currentAccount,
-        ...params
+        ...params,
       });
-      
+
       this.debugLog('✅ Gas estimate:', gasEstimate);
       return gasEstimate;
     } catch (error) {
@@ -321,7 +314,7 @@ class ContractManager {
       isConnected: this.isConnected,
       currentAccount: this.currentAccount,
       contracts: Object.keys(this.contracts),
-      web3: !!this.web3
+      web3: !!this.web3,
     };
   }
 
@@ -339,6 +332,8 @@ class ContractManager {
 window.ContractManager = ContractManager;
 
 // Export voor gebruik in andere modules
+/* eslint-disable no-undef */
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = ContractManager;
-} 
+}
+/* eslint-enable no-undef */
