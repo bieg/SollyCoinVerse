@@ -158,51 +158,7 @@
         }
       }
       
-      // Coin selection functionality
-      function switchCoin() {
-        const selector = document.getElementById('coin-selector');
-        const coinInfo = document.getElementById('selected-coin-info');
-        const tokenBalance = document.getElementById('token-balance');
-        
-        if (!selector || !coinInfo || !tokenBalance) {
-          console.error('❌ Coin selector elements niet gevonden');
-          return;
-        }
-        
-        const selectedCoin = selector.value;
-        const coinNames = {
-          'solly-default': 'SollyCoin Default',
-          'solly-level1': 'SollyCoin Level 1',
-          'solly-level2': 'SollyCoin Level 2',
-          'solly-level3': 'SollyCoin Level 3',
-          'solly-master': 'SollyCoin Master',
-          'bitcoin': 'Bitcoin',
-          'ethereum': 'Ethereum',
-          'polygon': 'Polygon'
-        };
-        
-        const coinSymbols = {
-          'solly-default': 'SOLLY',
-          'solly-level1': 'SOLLY',
-          'solly-level2': 'SOLLY',
-          'solly-level3': 'SOLLY',
-          'solly-master': 'SOLLY',
-          'bitcoin': 'BTC',
-          'ethereum': 'ETH',
-          'polygon': 'MATIC'
-        };
-        
-        // Update UI
-        coinInfo.textContent = `Geselecteerd: ${coinNames[selectedCoin]}`;
-        tokenBalance.textContent = `0 ${coinSymbols[selectedCoin]}`;
-        
-        console.log(`🪙 Coin gewisseld naar: ${coinNames[selectedCoin]} (${coinSymbols[selectedCoin]})`);
-        
-        // TODO: Implementeer daadwerkelijke coin switching logic
-        // - Update wallet connection
-        // - Fetch nieuwe balances
-        // - Update UI voor geselecteerde coin
-      }
+      // Coin selection functionality - gedefinieerd verderop (regel 347) met extra reset functionaliteit
       
       // Coin activation functionality
       function activateCoin() {
@@ -431,7 +387,7 @@
           showWalletHubButton();
         }, 5000);
         
-        console.log('🔗 Blockchain Hub knop wacht op game start (5 seconden)');
+        console.log('🔗 Blockchain Hub knowacht op game start (5 seconden)');
       });
     </script>
     <div id="startscreen">
@@ -445,7 +401,7 @@
     <div id="starwars-intro" class="starwars-modal" style="display:none;">
         <div class="starwars-crawl-container" id="starwars-crawl">
             <h2>Lang lang geleden, in een Sollystelsel online...</h2>
-            <p>De Sollyverse is een mysterieuze 3D ruimte waar je doorheen kunt vliegen.<br>Als Solly ben je een bijzondere piramide die door de ruimte zweeft.<br>Ontdek alle geheimen en mogelijkheden in deze magische wereld!<br>Interacteren met andere Sollies, los raadsels op of geniet van het zweven.<br>Ontdek, kies en beleef jouw avontuur.</p>
+            <p>De Sollyverse is een mysterieuze 3D ruimte waar je doorheen kunt vliegen. Als Solly ben je een bijzondere piramide die door de ruimte zweeft. Ontdek alle geheimen en mogelijkheden in deze magische wereld! Interacteren met andere Sollies, los raadsels op of geniet van het zweven.<br>Ontdek, kies en beleef jouw avontuur.</p>
             <p>May the Solly move with you.</p>
         </div>
     </div>
@@ -461,6 +417,7 @@
     </div>
     <!-- Load JavaScript files in correct order -->
     <script src="src/Constants.js"></script>
+    <script src="config/ChapterPrices.js"></script>
     <script src="src/ErrorHandler.js"></script>
     <script src="src/SecurityManager.js"></script>
     <script src="src/EventBus.js"></script>
@@ -476,11 +433,13 @@
     <script src="src/galaxy.js"></script>
     <script src="src/portal.js"></script>
     <script src="src/sollys.js"></script>
-    <script src="src/chapter2.js"></script>
+    <script src="src/chapter2.js?v=FLAT2D"></script>
     <script src="src/animation.js"></script>
     <!-- Web3 library en manager -->
     <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="src/Web3Manager.js"></script>
-    <script src="src/main.js?v=2"></script>
+    <script src="src/WebSocketClientManager.js"></script>
+    <script src="src/main.js?v=6"></script>
 </body>
 </html>
