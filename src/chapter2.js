@@ -963,8 +963,8 @@
     if (!closestPlaceholder) {
       debugLog('⚠️ Geen directe hit, gebruik screen space distance met threshold en Z-depth');
 
-      // RELATIEF THRESHOLD: 25% van scherm voor betere dragability (was 15%)
-      const DROP_THRESHOLD = Math.min(rect.width, rect.height) * 0.25;
+      // RELATIEF THRESHOLD: 40% van scherm voor makkelijke dragability (was 25%)
+      const DROP_THRESHOLD = Math.min(rect.width, rect.height) * 0.4;
       let minWeightedDistance = Infinity;
       let bestPlaceholder = null;
 
