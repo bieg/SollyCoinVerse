@@ -341,8 +341,6 @@ class ChapterManager {
   }
 
   // Event system
-  eventListeners = {};
-
   on(event, callback) {
     if (!this.eventListeners[event]) {
       this.eventListeners[event] = [];
@@ -457,6 +455,8 @@ class ChapterManager {
 window.ChapterManager = ChapterManager;
 
 // Export voor gebruik in andere modules
+/* eslint-disable no-undef */
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = ChapterManager;
-} 
+}
+/* eslint-enable no-undef */ 
