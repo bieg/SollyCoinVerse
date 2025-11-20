@@ -11,7 +11,7 @@
   // ============================================================
   // 🔧 CONFIGURATIE
   // ============================================================
-  const DEBUG = false; // Zet op true voor uitgebreide console logs
+  const DEBUG = true; // Zet op true voor uitgebreide console logs
   const Z_DEPTH_WEIGHT = 0.3; // Gewicht voor Z-depth in afstand berekening (0-1)
 
   let scene, camera, renderer, controls;
@@ -29,34 +29,34 @@
     // Maak statisch 2D loading screen - exact zoals screenshot
     loadingScene = new THREE.Scene();
     loadingScene.background = new THREE.Color(0x000000);
-    
+
     const aspect = window.innerWidth / window.innerHeight;
     const halfH = 600;
     const halfW = halfH * aspect;
     loadingCamera = new THREE.OrthographicCamera(-halfW, halfW, halfH, -halfH, 0.1, 3000);
     loadingCamera.position.set(0, 0, 1000);
     loadingCamera.lookAt(0, 0, 0);
-    
+
     // Twee wireframe kubussen (boven en onder) - STATISCH 2D
     const cubeSize = 280;
     const boxGeo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
     const edges = new THREE.EdgesGeometry(boxGeo);
     const lineMat = new THREE.LineBasicMaterial({ color: 0x5b3fa3, linewidth: 2 });
-    
+
     // Bovenste kubus - vaste rotatie voor perspectief
     const topCube = new THREE.LineSegments(edges.clone(), lineMat.clone());
     topCube.position.set(0, 180, 0);
     topCube.rotation.y = 0.4;
     topCube.rotation.x = 0.25;
     loadingScene.add(topCube);
-    
+
     // Onderste kubus - vaste rotatie
     const bottomCube = new THREE.LineSegments(edges.clone(), lineMat.clone());
     bottomCube.position.set(0, -180, 0);
     bottomCube.rotation.y = 0.4;
     bottomCube.rotation.x = 0.25;
     loadingScene.add(bottomCube);
-    
+
     // Gele bollen op hoekpunten
     const sphereGeo = new THREE.SphereGeometry(12, 16, 16);
     const yellowMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
@@ -78,20 +78,20 @@
         cube.add(sphere);
       });
     });
-    
+
     // Paars rechthoekig vlak in het midden (horizontaal)
     const planeGeo = new THREE.PlaneGeometry(260, 35);
     const planeMat = new THREE.MeshBasicMaterial({ color: 0x7b3fa3, side: THREE.DoubleSide });
     const plane = new THREE.Mesh(planeGeo, planeMat);
     plane.position.set(0, 0, 0);
     loadingScene.add(plane);
-    
+
     // Groene driehoeken links boven (2 kolommen x 3 rijen = 6 stuks)
     const triangleGeo = new THREE.ConeGeometry(25, 45, 3);
     const greenMat = new THREE.MeshBasicMaterial({ color: 0x00ffaa });
     const holderX = -halfW + 140;
     const holderY = halfH - 220;
-    
+
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 2; col++) {
         const triangle = new THREE.Mesh(triangleGeo, greenMat.clone());
@@ -100,7 +100,7 @@
         loadingScene.add(triangle);
       }
     }
-    
+
     // Witte rechthoekige rand om driehoeken
     const frameGeo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(holderX - 40, holderY + 35, 0),
@@ -114,7 +114,7 @@
       new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 }),
     );
     loadingScene.add(frameLine);
-    
+
     // Tekst "Hoofdstuk 2" gecentreerd
     const loadingText = document.createElement('div');
     loadingText.id = 'loading-text';
@@ -125,10 +125,10 @@
     `;
     loadingText.innerHTML = 'Hoofdstuk 2';
     document.body.appendChild(loadingText);
-    
+
     // Render STATISCH - geen animatie
     renderer.render(loadingScene, loadingCamera);
-    
+
     // Wacht 3 seconden, dan verder naar het hoofdstuk
     setTimeout(() => {
       loadingText.remove();
@@ -368,7 +368,7 @@
 
     // Reset alle placeholders
     placeholders = [];
-    
+
     // VERWIJDER ALLE OUDE EVENT LISTENERS VAN HOOFDSTUK 1
     // Verwijder oude pointer listeners (zonder canvas te vervangen!)
     const canvas = renderer.domElement;
@@ -411,7 +411,7 @@
     if (oldTerm) oldTerm.remove();
     const oldPanel = document.getElementById('chapter2-ui-panel');
     if (oldPanel) oldPanel.remove();
-    
+
     // Maak één panel voor alle UI elementen
     const uiPanel = document.createElement('div');
     uiPanel.id = 'chapter2-ui-panel';
@@ -433,7 +433,7 @@
       border: 2px solid #9370DB;
       width: 158px; /* 126px + 25% breder */
     `;
-    
+
     // Level indicator (grotere titel)
     const levelIndicator = document.createElement('div');
     levelIndicator.style.cssText = `
@@ -442,7 +442,7 @@
       font-weight: bold;
     `;
     levelIndicator.innerHTML = '🎯 LEVEL 2:<br>De Cubus (3D)';
-    
+
     // Instructions (nu tweede)
     const instructions = document.createElement('div');
     instructions.style.cssText = `
@@ -452,7 +452,7 @@
     `;
     instructions.innerHTML =
       '<strong>Doel:</strong><br><span style="font-weight: normal">Sleep de shapes naar de hoekpunten van de kubus!</span>';
-    
+
     // Progress counter (nu derde)
     const progressCounter = document.createElement('div');
     progressCounter.id = 'wireframe-counter';
@@ -462,12 +462,12 @@
     `;
     progressCounter.innerHTML =
       '<strong>Geplaatst:</strong><br><span style="font-weight: normal">Blokjes [0/8]</span>';
-    
+
     // Voeg alle elementen toe aan het panel
     uiPanel.appendChild(levelIndicator);
     uiPanel.appendChild(instructions);
     uiPanel.appendChild(progressCounter);
-    
+
     // Voeg het panel toe aan de pagina
     document.body.appendChild(uiPanel);
   }
@@ -504,7 +504,7 @@
     placeholders = [];
 
     cubeGroup = new THREE.Group();
-    
+
     // PERFECTE SYMMETRISCHE 3D KUBUS
     const size = 2500;
 
@@ -1110,7 +1110,7 @@
     const geometry = createGeometry(shapeType);
     const material = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
-          transparent: true,
+      transparent: true,
       opacity: 0.9,
       side: THREE.DoubleSide,
     });
@@ -1354,17 +1354,17 @@
         const worldPos = new THREE.Vector3();
         dragged.getWorldPosition(worldPos);
         offset.copy(worldPos).sub(pt);
-      isDragging = true;
-      
-      // Visuele feedback tijdens drag
-      dragged.position.z = 100;
+        isDragging = true;
+
+        // Visuele feedback tijdens drag
+        dragged.position.z = 100;
         if (dragged.material) {
-      dragged.material.opacity = 0.6;
+          dragged.material.opacity = 0.6;
         }
-      dragged.scale.multiplyScalar(1.1); // Maak iets groter tijdens drag
-      
-      // Cursor aanpassen
-      renderer.domElement.style.cursor = 'grabbing';
+        dragged.scale.multiplyScalar(1.1); // Maak iets groter tijdens drag
+
+        // Cursor aanpassen
+        renderer.domElement.style.cursor = 'grabbing';
         console.log('🖱️ Drag gestart:', dragged.userData, 'op positie:', dragged.position);
       } else {
         console.log('⚠️ Hit object heeft geen draggable userData:', hit.object);
@@ -1397,7 +1397,7 @@
       dragged.material.opacity = 0.8;
       dragged.scale.divideScalar(1.1);
       renderer.domElement.style.cursor = 'default';
-      
+
       // Check of we een geplaatst blokje wegslepen (terug naar holder)
       // Maar alleen als het NIET locked is
       if (dragged.userData && dragged.userData.isPlacedBlock && !dragged.userData.positionLocked) {
@@ -1440,30 +1440,30 @@
 
         // FALLBACK: Als raycaster niks vond, zoek dichtstbijzijnde hoek
         if (!hit) {
-        let minDist = Infinity;
-        const snapThreshold = 200;
-        
+          let minDist = Infinity;
+          const snapThreshold = 200;
+
           placeholders.forEach((p) => {
             if (p.filled) return;
-          const worldPos = new THREE.Vector3();
-          p.mesh.getWorldPosition(worldPos);
-          
-          const dx = worldPos.x - dragged.position.x;
-          const dy = worldPos.y - dragged.position.y;
+            const worldPos = new THREE.Vector3();
+            p.mesh.getWorldPosition(worldPos);
+
+            const dx = worldPos.x - dragged.position.x;
+            const dy = worldPos.y - dragged.position.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-          
+
             if (dist < snapThreshold && dist < minDist) {
-            minDist = dist;
-            hit = p;
-          }
-        });
+              minDist = dist;
+              hit = p;
+            }
+          });
         }
-        
+
         if (hit) {
           // Snap naar kubus hoek met animatie
           const worldPos = new THREE.Vector3();
           hit.mesh.getWorldPosition(worldPos);
-          
+
           // Maak nieuwe mesh met juiste geometry en kleur voor op kubus
           const shapeType = dragged.userData.shape || 'kubus';
           const geometry = createGeometry(shapeType);
@@ -1480,16 +1480,16 @@
           placedShape.userData.isPlacedBlock = true;
           placedShape.userData.cornerIndex = hit.mesh.userData.cornerIndex;
           placedShape.userData.shape = shapeType;
-          
+
           // Visuele feedback bij plaatsing
           placedShape.scale.multiplyScalar(1.2);
           scene.add(placedShape);
-          
+
           // Kleine "pop" animatie
           setTimeout(() => {
             placedShape.scale.divideScalar(1.2);
           }, 150);
-          
+
           hit.filled = true;
           dragged.visible = false;
           checkCompletion();
@@ -1520,9 +1520,9 @@
     `;
     msg.innerHTML = '🎉 HOOFDSTUK 2 VOLTOOID! 🎉<br><br>De Cubus is compleet!';
     document.body.appendChild(msg);
-    
+
     setTimeout(() => {
       if (msg.parentNode) msg.remove();
     }, 3000);
   }
-})(); 
+})();
