@@ -536,8 +536,8 @@
 
     // ZICHTBARE HOTSPOTS op elke hoek van de kubus
     points.forEach((p, i) => {
-      // Maak EXTRA GROTE zichtbare hotspot bol voor elke hoek (nog groter = veel beter detecteerbaar)
-      const placeholderSphere = new THREE.SphereGeometry(250, 16, 16); // 250 radius (was 150)
+      // Maak zichtbare hotspot bol voor elke hoek (30% kleiner dan voorheen)
+      const placeholderSphere = new THREE.SphereGeometry(175, 16, 16); // 175 radius (30% kleiner dan 250)
       const placeholderMaterial = new THREE.MeshBasicMaterial({
         color: 0x8a2be2, // Paars, matching kubus
         transparent: true,
@@ -553,7 +553,7 @@
       placeholderMesh.raycast = THREE.Mesh.prototype.raycast; // Zorg dat raycast werkt
       cubeGroup.add(placeholderMesh);
       placeholders.push({ mesh: placeholderMesh, filled: false });
-      console.log(`📍 Hotspot ${i} geplaatst op hoek:`, p);
+      debugLog(`📍 Hotspot ${i} geplaatst op hoek:`, p);
     });
 
     // PERFECT gecentreerd op oorsprong (BoxGeometry is al gecentreerd)
@@ -583,14 +583,14 @@
   // ⭐ SHAPE CHOICES HOLDER - HTML CONTENT BLOCK
   // ============================================================
   function createShapeChoicesHolder() {
-    console.log('🎨 Creating shape choices holder...');
+    debugLog('🎨 Creating shape choices holder...');
 
     // Haal de gekozen shape op uit hoofdstuk 1
     let userShape = 'piramide'; // Default
     if (window.gameManager && window.gameManager.getCurrentShape) {
       userShape = window.gameManager.getCurrentShape();
     }
-    console.log(`🎯 User chose shape in chapter 1: ${userShape}`);
+    debugLog(`🎯 User chose shape in chapter 1: ${userShape}`);
 
     // Verwijder oude holder als die bestaat
     const oldHolder = document.getElementById('shape-choices-holder');
@@ -602,7 +602,7 @@
     if (uiPanel) {
       const rect = uiPanel.getBoundingClientRect();
       topPosition = rect.bottom + 20; // 20px marge onder het panel
-      console.log(`📍 UI panel bottom: ${rect.bottom}px, holder top: ${topPosition}px`);
+      debugLog(`📍 UI panel bottom: ${rect.bottom}px, holder top: ${topPosition}px`);
     }
 
     // Blokjes: 28px
@@ -685,7 +685,7 @@
     }, 100);
 
     document.body.appendChild(holder);
-    console.log(`✅ Shape choices holder created with 8 blocks (shape: ${userShape})`);
+    debugLog(`✅ Shape choices holder created with 8 blocks (shape: ${userShape})`);
   }
 
   // Helper functie: Geef de juiste CSS style voor elke shape
