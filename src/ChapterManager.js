@@ -137,6 +137,13 @@ class ChapterManager {
     return this.currentChapter;
   }
 
+  // Set current chapter
+  setCurrentChapter(chapterNumber) {
+    this.currentChapter = chapterNumber;
+    this.debugLog(`📚 Current chapter set to: ${chapterNumber}`);
+    this.saveProgress();
+  }
+
   // Get current level
   getCurrentLevel() {
     return this.currentLevel;
