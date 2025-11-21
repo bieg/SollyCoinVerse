@@ -11,7 +11,7 @@
   // ============================================================
   // 🔧 CONFIGURATIE
   // ============================================================
-  const DEBUG = false; // Zet op true voor uitgebreide console logs
+  const DEBUG = true; // Zet op true voor uitgebreide console logs
   const Z_DEPTH_WEIGHT = 0.3; // Gewicht voor Z-depth in afstand berekening (0-1)
 
   let scene, camera, renderer, controls;
@@ -542,12 +542,12 @@
 
     // ZICHTBARE HOTSPOTS op elke hoek van de kubus
     points.forEach((p, i) => {
-      // Kleinere, subtielere hotspots die niet in de weg zitten
-      const placeholderSphere = new THREE.SphereGeometry(150, 16, 16); // 150 radius - klein en subtiel
+      // Grote drop-zones voor accurate raycasting - je moet echt op de hoek mikken
+      const placeholderSphere = new THREE.SphereGeometry(400, 16, 16); // 400 radius voor goede raycasting detectie
       const placeholderMaterial = new THREE.MeshBasicMaterial({
         color: 0x8a2be2, // Paars, matching kubus
         transparent: true,
-        opacity: 0.15, // Bijna onzichtbaar, alleen als hint
+        opacity: 0.2, // Semi-transparant voor zichtbaarheid
         side: THREE.DoubleSide,
       });
       const placeholderMesh = new THREE.Mesh(placeholderSphere, placeholderMaterial);
@@ -860,8 +860,8 @@
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
-    // Verhoog threshold voor betere detectie van placeholders (verdubbeld)
-    raycaster.params.Mesh.threshold = 600;
+    // Hoge threshold voor goede detectie van grote placeholders
+    raycaster.params.Mesh.threshold = 800;
 
     // Zoek recursief in de cubeGroup (inclusief alle children)
     const intersects = raycaster.intersectObjects([cubeGroup], true);
@@ -907,8 +907,8 @@
     if (!closestPlaceholder) {
       debugLog('⚠️ Geen directe hit, gebruik screen space distance met threshold en Z-depth');
 
-      // RELATIEF THRESHOLD: 40% van scherm voor makkelijke dragability (was 25%)
-      const DROP_THRESHOLD = Math.min(rect.width, rect.height) * 0.4;
+      // STRIKTE THRESHOLD: je moet dicht bij de hoek droppen (15% van scherm)
+      const DROP_THRESHOLD = Math.min(rect.width, rect.height) * 0.15;
       let minWeightedDistance = Infinity;
       let bestPlaceholder = null;
 
@@ -942,19 +942,13 @@
         const dy = screenY - e.clientY;
         const screenDistance = Math.sqrt(dx * dx + dy * dy);
 
-        // Z-DEPTH SORTING: Weeg Z-depth mee (hoe verder weg, hoe zwaarder)
-        // screenPos.z is tussen -1 (dichtbij) en 1 (ver weg)
-        const zDepth = (screenPos.z + 1) / 2; // Normaliseer naar 0-1
-        const weightedDistance =
-          screenDistance + zDepth * Z_DEPTH_WEIGHT * Math.min(rect.width, rect.height);
-
         debugLog(
-          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - screenDist: ${Math.round(screenDistance)}px, weightedDist: ${Math.round(weightedDistance)}px, z: ${screenPos.z.toFixed(3)}, zDepth: ${zDepth.toFixed(3)}`,
+          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - afstand: ${Math.round(screenDistance)}px, z: ${screenPos.z.toFixed(3)}`,
         );
 
-        // Alleen hoeken binnen threshold overwogen, gebruik weighted distance
-        if (screenDistance < DROP_THRESHOLD && weightedDistance < minWeightedDistance) {
-          minWeightedDistance = weightedDistance;
+        // Kies de DICHTSTBIJZIJNDE hoek in screen space (puur 2D afstand, geen z-weging)
+        if (screenDistance < DROP_THRESHOLD && screenDistance < minWeightedDistance) {
+          minWeightedDistance = screenDistance;
           bestPlaceholder = p;
         }
       });
@@ -962,7 +956,7 @@
       if (bestPlaceholder && minWeightedDistance < Infinity) {
         closestPlaceholder = bestPlaceholder;
         debugLog(
-          `✅ Dichtstbijzijnde hoek binnen threshold: ${closestPlaceholder.mesh.userData.cornerIndex} (weighted afstand: ${Math.round(minWeightedDistance)}px, threshold: ${Math.round(DROP_THRESHOLD)}px)`,
+          `✅ Dichtstbijzijnde hoek binnen threshold: ${closestPlaceholder.mesh.userData.cornerIndex} (afstand: ${Math.round(minWeightedDistance)}px, threshold: ${Math.round(DROP_THRESHOLD)}px)`,
         );
       } else {
         debugLog(
