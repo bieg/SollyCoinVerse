@@ -11,7 +11,7 @@
   // ============================================================
   // 🔧 CONFIGURATIE
   // ============================================================
-  const DEBUG = false; // Zet op true voor uitgebreide console logs
+  const DEBUG = true; // Zet op true voor uitgebreide console logs
   const Z_DEPTH_WEIGHT = 0.3; // Gewicht voor Z-depth in afstand berekening (0-1)
 
   let scene, camera, renderer, controls;
@@ -833,62 +833,6 @@
       e.preventDefault();
     }
     e.dataTransfer.dropEffect = 'move';
-
-    // VISUAL FEEDBACK: Highlight dichtstbijzijnde hoek tijdens drag
-    if (draggedBlock && draggedShapeType) {
-      const rect = renderer.domElement.getBoundingClientRect();
-      const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-      const mouse = new THREE.Vector2(mouseX, mouseY);
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(mouse, camera);
-      raycaster.params.Mesh.threshold = 300;
-
-      // Bereken relatief threshold
-      const DROP_THRESHOLD = Math.min(rect.width, rect.height) * 0.15; // 15% van scherm
-      let minWeightedDistance = Infinity;
-      let closestPlaceholder = null;
-
-      placeholders.forEach((p) => {
-        if (p.filled) return;
-
-        const worldPos = new THREE.Vector3();
-        p.mesh.getWorldPosition(worldPos);
-        const screenPos = worldPos.clone();
-        screenPos.project(camera);
-
-        const isInViewport =
-          screenPos.x >= -1 && screenPos.x <= 1 && screenPos.y >= -1 && screenPos.y <= 1;
-        if (!isInViewport) return;
-
-        const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
-        const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
-
-        const dx = screenX - e.clientX;
-        const dy = screenY - e.clientY;
-        const screenDistance = Math.sqrt(dx * dx + dy * dy);
-
-        // Z-DEPTH SORTING: Weeg Z-depth mee (hoe verder weg, hoe zwaarder)
-        // screenPos.z is tussen -1 (dichtbij) en 1 (ver weg)
-        const zDepth = (screenPos.z + 1) / 2; // Normaliseer naar 0-1
-        const weightedDistance =
-          screenDistance + zDepth * Z_DEPTH_WEIGHT * Math.min(rect.width, rect.height);
-
-        if (weightedDistance < minWeightedDistance && screenDistance < DROP_THRESHOLD) {
-          minWeightedDistance = weightedDistance;
-          closestPlaceholder = p;
-        }
-      });
-
-      // Highlight de dichtstbijzijnde hoek
-      if (closestPlaceholder && closestPlaceholder !== highlightedPlaceholder) {
-        highlightPlaceholder(closestPlaceholder);
-      } else if (!closestPlaceholder) {
-        resetPlaceholderHighlights();
-      }
-    }
-
     return false;
   }
 
