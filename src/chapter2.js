@@ -11,7 +11,7 @@
   // ============================================================
   // 🔧 CONFIGURATIE
   // ============================================================
-  const DEBUG = true; // Zet op true voor uitgebreide console logs
+  const DEBUG = false; // Zet op true voor uitgebreide console logs
   const Z_DEPTH_WEIGHT = 0.3; // Gewicht voor Z-depth in afstand berekening (0-1)
 
   let scene, camera, renderer, controls;
