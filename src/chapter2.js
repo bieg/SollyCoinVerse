@@ -539,35 +539,24 @@
       { x: -half, y: -half, z: -half }, // 7: Links beneden achter
     ];
 
-    // ZICHTBARE HOTSPOTS op elke hoek van de kubus
+    // SIMPELE PLACEHOLDERS - alleen voor tracking, niet voor raycasting
     points.forEach((p, i) => {
-      // Grote drop-zones voor accurate raycasting - je moet echt op de hoek mikken
-      const placeholderSphere = new THREE.SphereGeometry(400, 16, 16); // 400 radius voor goede raycasting detectie
+      // Kleine onzichtbare placeholder alleen voor tracking
+      const placeholderSphere = new THREE.SphereGeometry(50, 8, 8); // Klein, alleen voor tracking
       const placeholderMaterial = new THREE.MeshBasicMaterial({
-        color: 0x8a2be2, // Paars, matching kubus
+        color: 0x8a2be2,
         transparent: true,
-        opacity: 0.2, // Semi-transparant voor zichtbaarheid
+        opacity: 0, // ONZICHTBAAR
         side: THREE.DoubleSide,
       });
       const placeholderMesh = new THREE.Mesh(placeholderSphere, placeholderMaterial);
       placeholderMesh.position.set(p.x, p.y, p.z);
       placeholderMesh.userData.cornerIndex = i;
       placeholderMesh.userData.isPlaceholder = true;
-      placeholderMesh.userData.isHotspot = true; // Markeer als hotspot voor drag & drop
-      placeholderMesh.visible = true; // EXPLICIET zichtbaar maken voor raycasting
-      placeholderMesh.raycast = THREE.Mesh.prototype.raycast; // Zorg dat raycast werkt
+      placeholderMesh.visible = true;
       cubeGroup.add(placeholderMesh);
       placeholders.push({ mesh: placeholderMesh, filled: false });
-      debugLog(`📍 Hotspot ${i} geplaatst op hoek:`, p);
-
-      // DEBUG: Kleine zichtbare marker op exacte hoekpunt
-      const debugMarker = new THREE.Mesh(
-        new THREE.SphereGeometry(30, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0xff00ff }), // Magenta
-      );
-      debugMarker.position.set(p.x, p.y, p.z);
-      cubeGroup.add(debugMarker);
-      debugLog(`🔍 Debug marker ${i}: world(${p.x}, ${p.y}, ${p.z})`);
+      debugLog(`📍 Placeholder ${i} op hoek:`, p);
     });
 
     // PERFECT gecentreerd op oorsprong (BoxGeometry is al gecentreerd)
@@ -855,86 +844,60 @@
     e.preventDefault();
 
     if (!draggedBlock || !draggedShapeType) {
-      console.log('❌ Geen gedraggd block');
       return false;
     }
 
-    // Drop coordinaten
     const dropX = e.clientX;
     const dropY = e.clientY;
 
-    console.log(`🎯 DROP at: (${dropX}, ${dropY})`);
+    // SIMPEL: Bereken 2D afstand naar alle hoeken
+    const SNAP_THRESHOLD = 150; // Max afstand voor snap
+    const candidates = [];
 
-    const SNAP_THRESHOLD = 200;
+    cornerScreenPositions.forEach((corner) => {
+      if (corner.placeholder.filled) return;
 
-    // EERST: Probeer raycasting om VISUEEL dichtstbijzijnde hoek te vinden
-    // Dit kiest automatisch de VOORSTE hoek bij overlap
-    const rect = renderer.domElement.getBoundingClientRect();
-    const mouse = new THREE.Vector2();
-    mouse.x = ((dropX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((dropY - rect.top) / rect.height) * 2 + 1;
+      const dx = corner.x - dropX;
+      const dy = corner.y - dropY;
+      const distance2D = Math.sqrt(dx * dx + dy * dy);
 
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, camera);
-    raycaster.params.Points.threshold = 500; // Grote threshold voor placeholders
-
-    // Raycast alleen naar placeholders
-    const placeholderMeshes = placeholders
-      .filter((p) => !p.filled)
-      .map((p) => p.mesh);
-    const intersects = raycaster.intersectObjects(placeholderMeshes, false);
-
-    let closestCorner = null;
-    let minDistance = Infinity;
-
-    if (intersects.length > 0) {
-      // Raycasting vond een hit - gebruik de DICHTSTBIJZIJNDE (eerste in array = voorste bij overlap)
-      const hit = intersects[0];
-      const cornerIndex = hit.object.userData.cornerIndex;
-      closestCorner = cornerScreenPositions.find((c) => c.cornerIndex === cornerIndex);
-      
-      // Bereken 2D afstand voor threshold check
-      if (closestCorner) {
-        const dx = closestCorner.x - dropX;
-        const dy = closestCorner.y - dropY;
-        minDistance = Math.sqrt(dx * dx + dy * dy);
+      if (distance2D <= SNAP_THRESHOLD) {
+        candidates.push({
+          corner,
+          distance2D,
+        });
       }
+    });
 
-      console.log(
-        `🎯 RAYCAST hit hoek ${cornerIndex} (3D afstand: ${hit.distance.toFixed(2)}, 2D afstand: ${Math.round(minDistance)}px)`,
-      );
-    } else {
-      // Geen raycast hit - fallback naar 2D afstand met Z-prioriteit
-      console.log('⚠️ Geen raycast hit, gebruik 2D fallback');
-      const Z_BONUS_FACTOR = 200; // Verhoogd voor sterkere voorkeur voorste hoeken
+    if (candidates.length === 0) {
+      console.log(`❌ Geen hoek binnen ${SNAP_THRESHOLD}px`);
+      return false;
+    }
 
-      cornerScreenPositions.forEach((corner) => {
-        if (corner.placeholder.filled) return;
+    // Sorteer op afstand
+    candidates.sort((a, b) => a.distance2D - b.distance2D);
 
-        const dx = corner.x - dropX;
-        const dy = corner.y - dropY;
-        const distance2D = Math.sqrt(dx * dx + dy * dy);
+    // Als de top 2 kandidaten dichtbij elkaar zijn (< 30px verschil),
+    // kies degene met HOOGSTE Z (voorste hoek)
+    let closestCorner = candidates[0].corner;
+    let minDistance = candidates[0].distance2D;
 
-        if (distance2D > SNAP_THRESHOLD) return;
+    if (candidates.length > 1) {
+      const topDistance = candidates[0].distance2D;
+      const secondDistance = candidates[1].distance2D;
 
-        // Score waarbij voorste hoeken (hogere Z) altijd winnen
-        const score = distance2D - corner.z * Z_BONUS_FACTOR;
-
-        console.log(
-          `📏 Hoek ${corner.cornerIndex}: 2D=${Math.round(distance2D)}px, Z=${corner.z.toFixed(3)}, score=${Math.round(score)}`,
+      if (secondDistance - topDistance < 30) {
+        // Twee hoeken dichtbij elkaar - kies voorste (hogere Z)
+        const topCandidates = candidates.filter(
+          (c) => c.distance2D - topDistance < 30,
         );
-
-        if (score < minDistance) {
-          minDistance = score;
-          closestCorner = corner;
-        }
-      });
-      // Converteer score terug naar echte afstand voor threshold check
-      minDistance = closestCorner
-        ? Math.sqrt(
-            Math.pow(closestCorner.x - dropX, 2) + Math.pow(closestCorner.y - dropY, 2),
-          )
-        : Infinity;
+        topCandidates.sort((a, b) => b.corner.z - a.corner.z); // Sorteer op Z (hoogste eerst)
+        closestCorner = topCandidates[0].corner;
+        minDistance = topCandidates[0].distance2D;
+        console.log(
+          `🎯 ${topCandidates.length} overlappende hoeken - kies voorste (hoek ${closestCorner.cornerIndex}, Z=${closestCorner.z.toFixed(3)})`,
+        );
+      }
     }
 
     if (closestCorner && minDistance < SNAP_THRESHOLD) {
