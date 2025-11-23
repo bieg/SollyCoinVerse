@@ -379,9 +379,12 @@
     createShapeChoicesHolder(); // ✅ HTML holder onder instructiepanel
 
     // Herbereken drop zones na alles is geladen
+    console.log('⏳ Wacht op renderer/camera voor drop zones...');
     setTimeout(() => {
+      console.log('🚀 Roep createCornerDropZones aan...');
+      console.log('Renderer:', !!renderer, 'Camera:', !!camera, 'Placeholders:', placeholders.length);
       createCornerDropZones();
-    }, 200);
+    }, 500);
 
     // Pointer events - UITGESCHAKELD (niet meer nodig met button overlay systeem)
     // canvas.addEventListener('pointerdown', onPointerDown, { capture: true });
@@ -622,18 +625,18 @@
       dropZone.className = 'corner-drop-zone';
       dropZone.dataset.cornerIndex = i;
       dropZone.style.cssText = `
-        position: fixed;
-        left: ${screenX - 30}px;
-        top: ${screenY - 30}px;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: ${p.filled ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 255, 0, 0.4)'};
-        border: 3px ${p.filled ? 'solid' : 'dashed'} ${p.filled ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 255, 0, 0.8)'};
-        pointer-events: ${p.filled ? 'none' : 'auto'};
-        z-index: 10000;
-        cursor: ${p.filled ? 'not-allowed' : 'grab'};
-        box-shadow: 0 0 10px ${p.filled ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 255, 0, 0.5)'};
+        position: fixed !important;
+        left: ${screenX - 30}px !important;
+        top: ${screenY - 30}px !important;
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 50% !important;
+        background: ${p.filled ? 'rgba(255, 0, 0, 0.6)' : 'rgba(0, 255, 0, 0.6)'} !important;
+        border: 4px ${p.filled ? 'solid' : 'dashed'} ${p.filled ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 255, 0, 1)'} !important;
+        pointer-events: ${p.filled ? 'none' : 'auto'} !important;
+        z-index: 99999 !important;
+        cursor: ${p.filled ? 'not-allowed' : 'grab'} !important;
+        box-shadow: 0 0 20px ${p.filled ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)'} !important;
       `;
 
       // Drop event listener
