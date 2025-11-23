@@ -850,16 +850,45 @@
     const dropX = e.clientX;
     const dropY = e.clientY;
 
+    // HERBERKEN screen posities NU (niet gebruiken van init)
+    const rect = renderer.domElement.getBoundingClientRect();
+    const screenPositions = [];
+
+    placeholders.forEach((p, i) => {
+      if (p.filled) return;
+
+      const worldPos = new THREE.Vector3();
+      p.mesh.getWorldPosition(worldPos);
+
+      // Project naar screen space
+      const screenPos = worldPos.clone();
+      screenPos.project(camera);
+
+      // Converteer naar pixel coordinaten
+      const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
+      const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
+
+      screenPositions.push({
+        x: screenX,
+        y: screenY,
+        z: screenPos.z,
+        placeholder: p,
+        cornerIndex: i,
+      });
+    });
+
     // SIMPEL: Bereken 2D afstand naar alle hoeken
     const SNAP_THRESHOLD = 150; // Max afstand voor snap
     const candidates = [];
 
-    cornerScreenPositions.forEach((corner) => {
-      if (corner.placeholder.filled) return;
-
+    screenPositions.forEach((corner) => {
       const dx = corner.x - dropX;
       const dy = corner.y - dropY;
       const distance2D = Math.sqrt(dx * dx + dy * dy);
+
+      console.log(
+        `📏 Hoek ${corner.cornerIndex}: screen(${Math.round(corner.x)}, ${Math.round(corner.y)}), drop(${dropX}, ${dropY}), afstand ${Math.round(distance2D)}px, Z: ${corner.z.toFixed(3)}`,
+      );
 
       if (distance2D <= SNAP_THRESHOLD) {
         candidates.push({
