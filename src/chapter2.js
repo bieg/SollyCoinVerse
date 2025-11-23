@@ -865,10 +865,9 @@
 
     console.log(`🎯 DROP at: (${dropX}, ${dropY})`);
 
-    // SIMPEL: Bereken 2D afstand naar alle hoeken
-    // Maar bij overlappende hoeken (voor/achter), kies de voorste (hogere Z)
-    let closestCorner = null;
-    let minDistance = Infinity;
+    // BETER: Verzamel eerst alle hoeken binnen threshold, dan kies de voorste
+    const SNAP_THRESHOLD = 200;
+    const candidates = [];
 
     cornerScreenPositions.forEach((corner) => {
       if (corner.placeholder.filled) return; // Skip gevulde hoeken
@@ -881,21 +880,42 @@
         `📏 Hoek ${corner.cornerIndex}: afstand ${Math.round(distance)}px, Z: ${corner.z.toFixed(3)}`,
       );
 
-      // Kies deze hoek als:
-      // 1. Hij dichter is (kleinere afstand)
-      // 2. OF: gelijke afstand (verschil < 20px) maar dichter bij camera (hogere Z)
-      const isBetterDistance = distance < minDistance;
-      const isSameDistanceButCloser =
-        Math.abs(distance - minDistance) < 20 && corner.z > (closestCorner?.z || -Infinity);
-
-      if (isBetterDistance || isSameDistanceButCloser) {
-        minDistance = distance;
-        closestCorner = corner;
+      // Verzamel alle hoeken binnen threshold
+      if (distance < SNAP_THRESHOLD) {
+        candidates.push({
+          corner,
+          distance,
+        });
       }
     });
 
-    // Threshold: max 200px afstand
-    const SNAP_THRESHOLD = 200;
+    // Sorteer op afstand (dichtstbij eerst)
+    candidates.sort((a, b) => a.distance - b.distance);
+
+    let closestCorner = null;
+    let minDistance = Infinity;
+
+    if (candidates.length > 0) {
+      // Als er meerdere kandidaten zijn die dichtbij elkaar zijn (< 50px verschil),
+      // kies degene met de HOOGSTE Z (voorste hoek)
+      const topCandidates = candidates.filter(
+        (c) => Math.abs(c.distance - candidates[0].distance) < 50,
+      );
+
+      if (topCandidates.length > 1) {
+        // Meerdere hoeken op ongeveer dezelfde plek: kies de voorste (hogere Z)
+        topCandidates.sort((a, b) => b.corner.z - a.corner.z); // Sorteer op Z (hoogste eerst)
+        closestCorner = topCandidates[0].corner;
+        minDistance = topCandidates[0].distance;
+        console.log(
+          `🎯 ${topCandidates.length} overlappende hoeken gevonden - kies voorste (Z: ${closestCorner.z.toFixed(3)})`,
+        );
+      } else {
+        // Geen overlap: gebruik gewoon de dichtstbijzijnde
+        closestCorner = candidates[0].corner;
+        minDistance = candidates[0].distance;
+      }
+    }
 
     if (closestCorner && minDistance < SNAP_THRESHOLD) {
       console.log(
