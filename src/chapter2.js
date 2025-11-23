@@ -878,7 +878,7 @@
     });
 
     // SIMPEL: Bereken 2D afstand naar alle hoeken
-    const SNAP_THRESHOLD = 150; // Max afstand voor snap
+    const SNAP_THRESHOLD = 500; // Max afstand voor snap (verhoogd omdat afstanden groter zijn)
     const candidates = [];
 
     screenPositions.forEach((corner) => {
@@ -1053,6 +1053,35 @@
     // Markeer placeholder als gevuld
     placeholder.filled = true;
     placeholder.mesh.visible = false;
+
+    // Voeg DISABLED indicator toe (rode slot cirkel)
+    const disabledIndicator = new THREE.Mesh(
+      new THREE.RingGeometry(40, 60, 16),
+      new THREE.MeshBasicMaterial({
+        color: 0xff0000, // Rood
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide,
+      }),
+    );
+    disabledIndicator.position.copy(localPos);
+    disabledIndicator.userData.isDisabledIndicator = true;
+    disabledIndicator.userData.cornerIndex = placeholder.mesh.userData.cornerIndex;
+    cubeGroup.add(disabledIndicator);
+
+    // Voeg slot icoon toe (X of slot symbool)
+    const slotGeometry = new THREE.RingGeometry(25, 35, 8);
+    const slotMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      transparent: true,
+      opacity: 1.0,
+      side: THREE.DoubleSide,
+    });
+    const slotIcon = new THREE.Mesh(slotGeometry, slotMaterial);
+    slotIcon.position.copy(localPos);
+    slotIcon.position.z += 5; // Iets naar voren
+    slotIcon.userData.isSlotIcon = true;
+    cubeGroup.add(slotIcon);
 
     // Forceer een render update
     if (renderer && scene && camera) {
