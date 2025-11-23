@@ -608,7 +608,7 @@
     }
 
     const rect = renderer.domElement.getBoundingClientRect();
-    console.log(`🎯 Maak drop zones aan voor ${placeholders.length} hoeken`);
+    console.log(`🎯 [V2] Maak drop zones aan voor ${placeholders.length} hoeken (gebruik EXACTE kubus hoeken)`);
 
     // Gebruik de WIREFRAME kubus hoeken DIRECT (niet placeholder posities)
     // Dit zorgt ervoor dat drop zones op de EXACTE visuele hoeken staan
@@ -624,6 +624,9 @@
       { x: half, y: -half, z: -half }, // 6: Rechts beneden achter
       { x: -half, y: -half, z: -half }, // 7: Links beneden achter
     ];
+
+    // Update matrixWorld eerst zodat rotatie correct is
+    cubeGroup.updateMatrixWorld(true);
 
     placeholders.forEach((p, i) => {
       // Gebruik de EXACTE hoek positie van de kubus (niet placeholder)
@@ -695,7 +698,7 @@
 
       document.body.appendChild(dropZone);
       console.log(
-        `✅ Drop zone ${i} aangemaakt op (${Math.round(screenX)}, ${Math.round(screenY)}), filled: ${p.filled}`,
+        `✅ [V2] Drop zone ${i} aangemaakt op screen(${Math.round(screenX)}, ${Math.round(screenY)}), world(${Math.round(worldPos.x)}, ${Math.round(worldPos.y)}, ${Math.round(worldPos.z)}), filled: ${p.filled}`,
       );
     });
 
