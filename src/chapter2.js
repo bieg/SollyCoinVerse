@@ -602,17 +602,36 @@
     oldZones.forEach((el) => el.remove());
     console.log(`🗑️ Verwijderd ${oldZones.length} oude drop zones`);
 
-    if (!renderer || !camera) {
-      console.log('❌ Geen renderer of camera - drop zones niet aangemaakt');
+    if (!renderer || !camera || !cubeGroup) {
+      console.log('❌ Geen renderer, camera of cubeGroup - drop zones niet aangemaakt');
       return;
     }
 
     const rect = renderer.domElement.getBoundingClientRect();
     console.log(`🎯 Maak drop zones aan voor ${placeholders.length} hoeken`);
 
+    // Gebruik de WIREFRAME kubus hoeken DIRECT (niet placeholder posities)
+    // Dit zorgt ervoor dat drop zones op de EXACTE visuele hoeken staan
+    const size = 2500;
+    const half = size / 2;
+    const cornerPoints = [
+      { x: -half, y: half, z: half }, // 0: Links boven voor
+      { x: half, y: half, z: half }, // 1: Rechts boven voor
+      { x: half, y: -half, z: half }, // 2: Rechts beneden voor
+      { x: -half, y: -half, z: half }, // 3: Links beneden voor
+      { x: -half, y: half, z: -half }, // 4: Links boven achter
+      { x: half, y: half, z: -half }, // 5: Rechts boven achter
+      { x: half, y: -half, z: -half }, // 6: Rechts beneden achter
+      { x: -half, y: -half, z: -half }, // 7: Links beneden achter
+    ];
+
     placeholders.forEach((p, i) => {
-      const worldPos = new THREE.Vector3();
-      p.mesh.getWorldPosition(worldPos);
+      // Gebruik de EXACTE hoek positie van de kubus (niet placeholder)
+      const localPos = new THREE.Vector3(cornerPoints[i].x, cornerPoints[i].y, cornerPoints[i].z);
+      
+      // Transform naar world space MET rotatie
+      const worldPos = localPos.clone();
+      worldPos.applyMatrix4(cubeGroup.matrixWorld);
 
       const screenPos = worldPos.clone();
       screenPos.project(camera);
