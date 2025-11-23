@@ -375,8 +375,13 @@
     canvas.style.cursor = 'default';
 
     createBrutalistUI();
-    createCube();
+    createCube(); // Dit maakt ook drop zones aan
     createShapeChoicesHolder(); // ✅ HTML holder onder instructiepanel
+
+    // Herbereken drop zones na alles is geladen
+    setTimeout(() => {
+      createCornerDropZones();
+    }, 200);
 
     // Pointer events - UITGESCHAKELD (niet meer nodig met button overlay systeem)
     // canvas.addEventListener('pointerdown', onPointerDown, { capture: true });
@@ -581,8 +586,91 @@
 
     scene.add(cubeGroup);
 
-    // Bereken screen posities van alle hoeken (1x, kubus is statisch)
-    calculateCornerScreenPositions();
+    // Maak HTML drop zones op exacte hoek posities
+    createCornerDropZones();
+  }
+
+  // ============================================================
+  // 🎯 HTML DROP ZONES OP EXACTE HOEK POSITIES
+  // ============================================================
+  function createCornerDropZones() {
+    // Verwijder oude drop zones
+    document.querySelectorAll('.corner-drop-zone').forEach((el) => el.remove());
+
+    if (!renderer || !camera) return;
+
+    const rect = renderer.domElement.getBoundingClientRect();
+
+    placeholders.forEach((p, i) => {
+      const worldPos = new THREE.Vector3();
+      p.mesh.getWorldPosition(worldPos);
+
+      const screenPos = worldPos.clone();
+      screenPos.project(camera);
+
+      const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
+      const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
+
+      // Maak HTML drop zone op exacte positie
+      const dropZone = document.createElement('div');
+      dropZone.className = 'corner-drop-zone';
+      dropZone.dataset.cornerIndex = i;
+      dropZone.style.cssText = `
+        position: fixed;
+        left: ${screenX - 30}px;
+        top: ${screenY - 30}px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: ${p.filled ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.2)'};
+        border: 2px ${p.filled ? 'solid' : 'dashed'} ${p.filled ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.5)'};
+        pointer-events: ${p.filled ? 'none' : 'auto'};
+        z-index: 1000;
+        cursor: ${p.filled ? 'not-allowed' : 'grab'};
+      `;
+
+      // Drop event listener
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (!p.filled) {
+          dropZone.style.background = 'rgba(0, 255, 0, 0.3)';
+        }
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        if (!p.filled) {
+          dropZone.style.background = 'rgba(255, 0, 0, 0.1)';
+        }
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (p.filled) {
+          console.log(`⛔ Hoek ${i} is al gevuld!`);
+          return;
+        }
+
+        const shapeType = e.dataTransfer.getData('text/plain') || draggedShapeType;
+        if (shapeType) {
+          console.log(`✅ Drop op hoek ${i}, plaats shape: ${shapeType}`);
+          placeShapeOnCorner(p, shapeType);
+          updateProgressCounter();
+
+          // Verwijder block
+          if (draggedBlock) {
+            draggedBlock.remove();
+          }
+        }
+        dropZone.style.background = 'rgba(255, 0, 0, 0.1)';
+      });
+
+      document.body.appendChild(dropZone);
+    });
+
+    // Update drop zones bij resize
+    window.addEventListener('resize', () => {
+      setTimeout(createCornerDropZones, 100);
+    });
   }
 
   // ============================================================
@@ -720,12 +808,6 @@
 
     document.body.appendChild(holder);
 
-    // Canvas drop zone listeners
-    setTimeout(() => {
-      const canvas = renderer.domElement;
-      canvas.addEventListener('dragover', handleDragOver);
-      canvas.addEventListener('drop', handleDrop);
-    }, 100);
     debugLog(`✅ Shape choices holder created with 8 blocks (shape: ${userShape})`);
   }
 
@@ -817,6 +899,7 @@
 
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', e.target.innerHTML);
+    e.dataTransfer.setData('text/plain', draggedShapeType); // Voor drop zones
 
     console.log(`🎯 START DRAG: ${draggedShapeType}`);
   }
@@ -1052,6 +1135,17 @@
     disabledRing.userData.isDisabledIndicator = true;
     disabledRing.userData.cornerIndex = placeholder.mesh.userData.cornerIndex;
     cubeGroup.add(disabledRing);
+
+    // Update drop zone (maak disabled)
+    const dropZone = document.querySelector(
+      `.corner-drop-zone[data-corner-index="${placeholder.mesh.userData.cornerIndex}"]`,
+    );
+    if (dropZone) {
+      dropZone.style.pointerEvents = 'none';
+      dropZone.style.cursor = 'not-allowed';
+      dropZone.style.background = 'rgba(255, 0, 0, 0.3)';
+      dropZone.style.border = '2px solid rgba(255, 0, 0, 0.8)';
+    }
 
     console.log(`🔒 Hoek ${placeholder.mesh.userData.cornerIndex} is nu DISABLED (op slot)`);
 
