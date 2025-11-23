@@ -620,11 +620,14 @@
       cornerScreenPositions[i] = {
         x: screenX,
         y: screenY,
+        z: screenPos.z, // Z-depth: -1 (ver) tot 1 (dichtbij camera)
         placeholder: p,
         cornerIndex: i,
       };
 
-      debugLog(`📍 Hoek ${i} screen positie: (${Math.round(screenX)}, ${Math.round(screenY)})`);
+      debugLog(
+        `📍 Hoek ${i} screen: (${Math.round(screenX)}, ${Math.round(screenY)}) Z: ${screenPos.z.toFixed(3)}`,
+      );
     });
   }
 
@@ -863,6 +866,7 @@
     console.log(`🎯 DROP at: (${dropX}, ${dropY})`);
 
     // SIMPEL: Bereken 2D afstand naar alle hoeken
+    // Maar bij overlappende hoeken (voor/achter), kies de voorste (hogere Z)
     let closestCorner = null;
     let minDistance = Infinity;
 
@@ -873,9 +877,18 @@
       const dy = corner.y - dropY;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      console.log(`📏 Hoek ${corner.cornerIndex}: afstand ${Math.round(distance)}px`);
+      console.log(
+        `📏 Hoek ${corner.cornerIndex}: afstand ${Math.round(distance)}px, Z: ${corner.z.toFixed(3)}`,
+      );
 
-      if (distance < minDistance) {
+      // Kies deze hoek als:
+      // 1. Hij dichter is (kleinere afstand)
+      // 2. OF: gelijke afstand (verschil < 20px) maar dichter bij camera (hogere Z)
+      const isBetterDistance = distance < minDistance;
+      const isSameDistanceButCloser =
+        Math.abs(distance - minDistance) < 20 && corner.z > (closestCorner?.z || -Infinity);
+
+      if (isBetterDistance || isSameDistanceButCloser) {
         minDistance = distance;
         closestCorner = corner;
       }
