@@ -877,12 +877,19 @@
     let minDistance = Infinity;
 
     allCorners.forEach((corner) => {
-      // SKIP gevulde hoeken
-      if (corner.filled) return;
+      // SKIP gevulde hoeken (DISABLED)
+      if (corner.filled) {
+        console.log(`⛔ Hoek ${corner.cornerIndex} is DISABLED - overslaan`);
+        return;
+      }
 
       const dx = corner.x - dropX;
       const dy = corner.y - dropY;
       const distance = Math.sqrt(dx * dx + dy * dy);
+
+      console.log(
+        `📏 Hoek ${corner.cornerIndex}: screen(${Math.round(corner.x)}, ${Math.round(corner.y)}), drop(${dropX}, ${dropY}), afstand ${Math.round(distance)}px`,
+      );
 
       if (distance < minDistance) {
         minDistance = distance;
@@ -893,9 +900,13 @@
     // Threshold: 500px
     const SNAP_THRESHOLD = 500;
 
+    console.log(
+      `🎯 Dichtstbijzijnde hoek: ${closestCorner ? closestCorner.cornerIndex : 'GEEN'}, afstand: ${Math.round(minDistance)}px, threshold: ${SNAP_THRESHOLD}px`,
+    );
+
     if (closestCorner && minDistance < SNAP_THRESHOLD) {
       console.log(
-        `✅ SNAP naar hoek ${closestCorner.cornerIndex} (afstand: ${Math.round(minDistance)}px)`,
+        `✅ SNAP naar hoek ${closestCorner.cornerIndex} (afstand: ${Math.round(minDistance)}px < ${SNAP_THRESHOLD}px)`,
       );
 
       // Plaats shape op hoek
