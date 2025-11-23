@@ -865,46 +865,77 @@
 
     console.log(`🎯 DROP at: (${dropX}, ${dropY})`);
 
-    // GEWOGEN SCORE: Z-depth telt ALTIJD mee, niet alleen als tiebreaker
-    // score = 2D_distance - (Z_depth * bonus_factor)
-    // Hoe hoger Z (dichter bij camera), hoe lager de score = VOORSTE hoek wint altijd
     const SNAP_THRESHOLD = 200;
-    const Z_BONUS_FACTOR = 100; // Hoeveel pixels bonus voor voorste hoeken
-    let bestCorner = null;
-    let bestScore = Infinity;
 
-    cornerScreenPositions.forEach((corner) => {
-      if (corner.placeholder.filled) return; // Skip gevulde hoeken
+    // EERST: Probeer raycasting om VISUEEL dichtstbijzijnde hoek te vinden
+    // Dit kiest automatisch de VOORSTE hoek bij overlap
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2();
+    mouse.x = ((dropX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((dropY - rect.top) / rect.height) * 2 + 1;
 
-      const dx = corner.x - dropX;
-      const dy = corner.y - dropY;
-      const distance2D = Math.sqrt(dx * dx + dy * dy);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    raycaster.params.Points.threshold = 500; // Grote threshold voor placeholders
 
-      // Skip hoeken die te ver zijn
-      if (distance2D > SNAP_THRESHOLD) return;
+    // Raycast alleen naar placeholders
+    const placeholderMeshes = placeholders
+      .filter((p) => !p.filled)
+      .map((p) => p.mesh);
+    const intersects = raycaster.intersectObjects(placeholderMeshes, false);
 
-      // GEWOGEN SCORE: distance - (Z * bonus)
-      // Z is tussen -1 (ver) en 1 (dichtbij camera)
-      // Voorste hoek (Z=0.8) krijgt ~80px bonus, achterste (Z=-0.2) krijgt ~-20px bonus
-      const score = distance2D - corner.z * Z_BONUS_FACTOR;
+    let closestCorner = null;
+    let minDistance = Infinity;
+
+    if (intersects.length > 0) {
+      // Raycasting vond een hit - gebruik de DICHTSTBIJZIJNDE (eerste in array = voorste bij overlap)
+      const hit = intersects[0];
+      const cornerIndex = hit.object.userData.cornerIndex;
+      closestCorner = cornerScreenPositions.find((c) => c.cornerIndex === cornerIndex);
+      
+      // Bereken 2D afstand voor threshold check
+      if (closestCorner) {
+        const dx = closestCorner.x - dropX;
+        const dy = closestCorner.y - dropY;
+        minDistance = Math.sqrt(dx * dx + dy * dy);
+      }
 
       console.log(
-        `📏 Hoek ${corner.cornerIndex}: 2D=${Math.round(distance2D)}px, Z=${corner.z.toFixed(3)}, score=${Math.round(score)}`,
+        `🎯 RAYCAST hit hoek ${cornerIndex} (3D afstand: ${hit.distance.toFixed(2)}, 2D afstand: ${Math.round(minDistance)}px)`,
       );
+    } else {
+      // Geen raycast hit - fallback naar 2D afstand met Z-prioriteit
+      console.log('⚠️ Geen raycast hit, gebruik 2D fallback');
+      const Z_BONUS_FACTOR = 200; // Verhoogd voor sterkere voorkeur voorste hoeken
 
-      // Kies hoek met laagste score (beste match)
-      if (score < bestScore) {
-        bestScore = score;
-        bestCorner = corner;
-      }
-    });
+      cornerScreenPositions.forEach((corner) => {
+        if (corner.placeholder.filled) return;
 
-    const closestCorner = bestCorner;
-    const minDistance = bestCorner
-      ? Math.sqrt(
-          Math.pow(bestCorner.x - dropX, 2) + Math.pow(bestCorner.y - dropY, 2),
-        )
-      : Infinity;
+        const dx = corner.x - dropX;
+        const dy = corner.y - dropY;
+        const distance2D = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance2D > SNAP_THRESHOLD) return;
+
+        // Score waarbij voorste hoeken (hogere Z) altijd winnen
+        const score = distance2D - corner.z * Z_BONUS_FACTOR;
+
+        console.log(
+          `📏 Hoek ${corner.cornerIndex}: 2D=${Math.round(distance2D)}px, Z=${corner.z.toFixed(3)}, score=${Math.round(score)}`,
+        );
+
+        if (score < minDistance) {
+          minDistance = score;
+          closestCorner = corner;
+        }
+      });
+      // Converteer score terug naar echte afstand voor threshold check
+      minDistance = closestCorner
+        ? Math.sqrt(
+            Math.pow(closestCorner.x - dropX, 2) + Math.pow(closestCorner.y - dropY, 2),
+          )
+        : Infinity;
+    }
 
     if (closestCorner && minDistance < SNAP_THRESHOLD) {
       console.log(
