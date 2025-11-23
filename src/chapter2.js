@@ -19,11 +19,9 @@
     placeholders = [],
     dragShapes = [];
   let holderFrame = null;
-  let isDragging = false,
-    dragged = null,
-    offset = new THREE.Vector3();
+  let selectedShape = null; // Geselecteerde shape type voor placement
+  let cornerButtons = []; // HTML overlay buttons op hoeken
   let loadingScene, loadingCamera;
-  let highlightedPlaceholder = null; // Voor visual feedback tijdens drag
 
   function showLoadingScreen(callback) {
     // Maak statisch 2D loading screen - exact zoals screenshot
@@ -379,10 +377,10 @@
     createCube();
     createShapeChoicesHolder(); // ✅ HTML holder onder instructiepanel
 
-    // Pointer events - alleen voor hoofdstuk 2
-    canvas.addEventListener('pointerdown', onPointerDown, { capture: true });
-    canvas.addEventListener('pointermove', onPointerMove, { capture: true });
-    canvas.addEventListener('pointerup', onPointerUp, { capture: true });
+    // Pointer events - UITGESCHAKELD (niet meer nodig met button overlay systeem)
+    // canvas.addEventListener('pointerdown', onPointerDown, { capture: true });
+    // canvas.addEventListener('pointermove', onPointerMove, { capture: true });
+    // canvas.addEventListener('pointerup', onPointerUp, { capture: true });
 
     // Blokkeer muiswiel-zoom/scroll in canvas (2D fixed view)
     renderer.domElement.addEventListener(
@@ -648,7 +646,6 @@
     for (let i = 0; i < 8; i++) {
       const block = document.createElement('div');
       block.className = 'shape-choice-block';
-      block.draggable = true;
       block.dataset.shapeType = userShape;
       block.dataset.blockIndex = i;
       block.style.cssText = `
@@ -660,7 +657,7 @@
         background: rgba(0, 255, 0, 0.2);
         border: 0.075px solid #00ff00;
         border-radius: 4px;
-        cursor: grab;
+        cursor: pointer;
         transition: all 0.2s ease;
       `;
 
@@ -670,6 +667,13 @@
       shapeElement.style.pointerEvents = 'none';
 
       block.appendChild(shapeElement);
+
+      // Click to select (nieuwe aanpak - geen drag & drop!)
+      block.addEventListener('click', () => {
+        if (!block.dataset.placed) {
+          selectShapeBlock(block, userShape);
+        }
+      });
 
       // Hover effect
       block.addEventListener('mouseenter', () => {
@@ -685,19 +689,8 @@
         }
       });
 
-      // Drag & Drop event listeners
-      block.addEventListener('dragstart', handleDragStart);
-      block.addEventListener('dragend', handleDragEnd);
-
       holder.appendChild(block);
     }
-
-    // Add drop zone listeners to canvas
-    setTimeout(() => {
-      const canvas = renderer.domElement;
-      canvas.addEventListener('dragover', handleDragOver);
-      canvas.addEventListener('drop', handleDrop);
-    }, 100);
 
     document.body.appendChild(holder);
     debugLog(`✅ Shape choices holder created with 8 blocks (shape: ${userShape})`);
@@ -774,249 +767,151 @@
     }
   }
 
-  // Reset alle placeholder highlights
-  function resetPlaceholderHighlights() {
-    placeholders.forEach((p) => {
-      if (!p.filled) {
-        p.mesh.material.opacity = 0.5;
-        p.mesh.material.color.setHex(0x8a2be2); // Terug naar paars
-      }
-    });
-    highlightedPlaceholder = null;
-  }
-
-  // Highlight een specifieke placeholder
-  function highlightPlaceholder(placeholder) {
-    if (!placeholder || placeholder.filled) return;
-
-    // Reset alle andere
-    resetPlaceholderHighlights();
-
-    // Highlight deze
-    placeholder.mesh.material.opacity = 0.9;
-    placeholder.mesh.material.color.setHex(0x00ff00); // Groen
-    highlightedPlaceholder = placeholder;
-  }
-
   // ============================================================
   // ⭐ DRAG & DROP SYSTEEM - HTML BLOKJES NAAR KUBUS
   // ============================================================
 
-  let draggedBlock = null;
-  let draggedShapeType = null;
+  // ============================================================
+  // ⭐ NIEUWE AANPAK: CLICK-TO-SELECT + CORNER BUTTONS
+  // ============================================================
 
-  function handleDragStart(e) {
-    draggedBlock = e.target;
-    draggedShapeType = e.target.dataset.shapeType;
+  // Selecteer een shape block (klik op groen blokje)
+  function selectShapeBlock(block, shapeType) {
+    // Deselect vorige
+    const allBlocks = document.querySelectorAll('.shape-choice-block');
+    allBlocks.forEach((b) => {
+      b.style.border = '0.075px solid #00ff00';
+      b.style.boxShadow = 'none';
+    });
 
-    e.target.style.opacity = '0.6';
-    e.target.style.cursor = 'grabbing';
-    e.target.style.transform = 'scale(1.2)';
+    // Selecteer deze
+    selectedShape = shapeType;
+    block.style.border = '2px solid #00ff00';
+    block.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.8)';
+    block.dataset.selectedBlock = 'true';
 
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', e.target.innerHTML);
+    debugLog(`🎯 Shape geselecteerd: ${shapeType}`);
 
-    const dragImage = e.target.cloneNode(true);
-    dragImage.style.opacity = '0.8';
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 14, 14);
-    setTimeout(() => dragImage.remove(), 0);
-
-    debugLog(`🎯 START DRAG: ${draggedShapeType}`);
+    // Toon corner buttons
+    showCornerButtons();
   }
 
-  function handleDragEnd(e) {
-    // Reset visual feedback
-    resetPlaceholderHighlights();
+  // Maak clickable overlay buttons op hoeken
+  function showCornerButtons() {
+    // Verwijder oude buttons
+    hideCornerButtons();
 
-    if (draggedBlock && draggedBlock.parentElement) {
-      draggedBlock.style.opacity = '1';
-      draggedBlock.style.cursor = 'grab';
-      draggedBlock.style.transform = 'scale(1)';
-    }
-    debugLog('🎯 EINDE DRAG');
-  }
-
-  function handleDragOver(e) {
-    if (e.preventDefault) {
-      e.preventDefault();
-    }
-    e.dataTransfer.dropEffect = 'move';
-    return false;
-  }
-
-  function handleDrop(e) {
-    if (e.stopPropagation) {
-      e.stopPropagation();
-    }
-    e.preventDefault();
-
-    // Reset visual feedback
-    resetPlaceholderHighlights();
-
-    if (!draggedBlock || !draggedShapeType) {
-      debugLog('❌ Geen gedraggd block');
-      return false;
-    }
-
-    debugLog(`🎯 DROP at pixels: (${e.clientX}, ${e.clientY})`);
+    if (!renderer || !camera) return;
 
     const rect = renderer.domElement.getBoundingClientRect();
-    const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-    const mouse = new THREE.Vector2(mouseX, mouseY);
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, camera);
+    placeholders.forEach((p) => {
+      if (p.filled) return; // Skip gevulde hoeken
 
-    // Hoge threshold voor goede detectie van grote placeholders
-    raycaster.params.Mesh.threshold = 800;
+      // Bereken screen positie
+      const worldPos = new THREE.Vector3();
+      p.mesh.getWorldPosition(worldPos);
 
-    // Zoek recursief in de cubeGroup (inclusief alle children)
-    const intersects = raycaster.intersectObjects([cubeGroup], true);
+      const screenPos = worldPos.clone();
+      screenPos.project(camera);
 
-    debugLog(`🔍 Raycaster vond ${intersects.length} object hits (inclusief cubeGroup children)`);
+      // Check of binnen viewport
+      const isInViewport =
+        screenPos.x >= -1 && screenPos.x <= 1 && screenPos.y >= -1 && screenPos.y <= 1;
 
-    // DEBUG: Log alle gevonden objecten
-    if (DEBUG && intersects.length > 0) {
-      intersects.forEach((hit, i) => {
-        const obj = hit.object;
-        debugLog(
-          `  Hit ${i}: ${obj.type} - name: ${obj.name || 'unnamed'}, userData:`,
-          obj.userData,
-          `distance: ${hit.distance.toFixed(1)}`,
-        );
+      if (!isInViewport) return;
+
+      // Converteer naar pixel coordinaten
+      const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
+      const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
+
+      // Maak button
+      const button = document.createElement('button');
+      button.className = 'corner-button';
+      button.dataset.cornerIndex = p.mesh.userData.cornerIndex;
+      button.style.cssText = `
+        position: fixed;
+        left: ${screenX - 25}px;
+        top: ${screenY - 25}px;
+        width: 50px;
+        height: 50px;
+        background: radial-gradient(circle, rgba(0,255,0,0.3), rgba(0,255,0,0.1));
+        border: 2px solid #00ff00;
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 10000;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.6), inset 0 0 20px rgba(0, 255, 0, 0.3);
+        animation: pulse 1.5s ease-in-out infinite;
+      `;
+
+      // Hover effect
+      button.addEventListener('mouseenter', () => {
+        button.style.transform = 'scale(1.3)';
+        button.style.boxShadow = '0 0 30px rgba(0, 255, 0, 1), inset 0 0 30px rgba(0, 255, 0, 0.5)';
+        // Highlight 3D placeholder
+        p.mesh.material.opacity = 0.8;
+        p.mesh.material.color.setHex(0x00ff00);
       });
-    }
 
-    let closestPlaceholder = null;
+      button.addEventListener('mouseleave', () => {
+        button.style.transform = 'scale(1)';
+        button.style.boxShadow =
+          '0 0 20px rgba(0, 255, 0, 0.6), inset 0 0 20px rgba(0, 255, 0, 0.3)';
+        // Reset 3D placeholder
+        p.mesh.material.opacity = 0.2;
+        p.mesh.material.color.setHex(0x8a2be2);
+      });
 
-    // EERST: Probeer directe raycast hit op placeholder
-    if (intersects.length > 0) {
-      for (const intersect of intersects) {
-        const obj = intersect.object;
-
-        if (obj.userData && obj.userData.isPlaceholder) {
-          const placeholder = placeholders.find((p) => p.mesh === obj);
-
-          if (placeholder && !placeholder.filled) {
-            closestPlaceholder = placeholder;
-            debugLog(
-              `✅ DIRECT HIT op hoek ${placeholder.mesh.userData.cornerIndex} (distance: ${intersect.distance.toFixed(1)})`,
-            );
-            break;
-          } else if (placeholder && placeholder.filled) {
-            debugLog(`⚠️ Hoek ${placeholder.mesh.userData.cornerIndex} is al gevuld`);
-          }
-        }
-      }
-    }
-
-    // FALLBACK: Gebruik screen space distance met Z-DEPTH SORTING en relatief THRESHOLD
-    if (!closestPlaceholder) {
-      debugLog('⚠️ Geen directe hit, gebruik screen space distance met threshold en Z-depth');
-
-      // STRIKTE THRESHOLD: je moet dicht bij de hoek droppen (15% van scherm)
-      const DROP_THRESHOLD = Math.min(rect.width, rect.height) * 0.15;
-      let minWeightedDistance = Infinity;
-      let bestPlaceholder = null;
-
-      placeholders.forEach((p) => {
-        if (p.filled) return;
-
-        // Bereken world positie van hoek
-        const worldPos = new THREE.Vector3();
-        p.mesh.getWorldPosition(worldPos);
-
-        // Projecteer naar screen space
-        const screenPos = worldPos.clone();
-        screenPos.project(camera);
-
-        // Check of hoek binnen viewport is (tussen -1 en 1 in x en y)
-        const isInViewport =
-          screenPos.x >= -1 && screenPos.x <= 1 && screenPos.y >= -1 && screenPos.y <= 1;
-
-        if (!isInViewport) {
-          debugLog(
-            `👁️ Hoek ${p.mesh.userData.cornerIndex} is buiten viewport (x: ${screenPos.x.toFixed(3)}, y: ${screenPos.y.toFixed(3)})`,
-          );
-          return; // Skip hoeken buiten het scherm
-        }
-
-        // Bereken screen space afstand in pixels
-        const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
-        const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
-
-        const dx = screenX - e.clientX;
-        const dy = screenY - e.clientY;
-        const screenDistance = Math.sqrt(dx * dx + dy * dy);
-
-        debugLog(
-          `📏 Hoek ${p.mesh.userData.cornerIndex}: screen(${Math.round(screenX)}, ${Math.round(screenY)}) - afstand: ${Math.round(screenDistance)}px, z: ${screenPos.z.toFixed(3)}`,
-        );
-
-        // Kies de DICHTSTBIJZIJNDE hoek in screen space (puur 2D afstand, geen z-weging)
-        if (screenDistance < DROP_THRESHOLD && screenDistance < minWeightedDistance) {
-          minWeightedDistance = screenDistance;
-          bestPlaceholder = p;
+      // Click handler
+      button.addEventListener('click', () => {
+        if (selectedShape) {
+          placeShapeOnCorner(p, selectedShape);
+          removeSelectedBlock();
+          hideCornerButtons();
         }
       });
 
-      if (bestPlaceholder && minWeightedDistance < Infinity) {
-        closestPlaceholder = bestPlaceholder;
-        debugLog(
-          `✅ Dichtstbijzijnde hoek binnen threshold: ${closestPlaceholder.mesh.userData.cornerIndex} (afstand: ${Math.round(minWeightedDistance)}px, threshold: ${Math.round(DROP_THRESHOLD)}px)`,
-        );
-      } else {
-        debugLog(
-          `❌ Geen hoek binnen threshold gevonden! Threshold: ${Math.round(DROP_THRESHOLD)}px`,
-        );
-      }
+      document.body.appendChild(button);
+      cornerButtons.push(button);
+    });
+
+    // Voeg pulse animatie toe (eenmalig)
+    if (!document.getElementById('corner-button-style')) {
+      const style = document.createElement('style');
+      style.id = 'corner-button-style';
+      style.textContent = `
+        @keyframes pulse {
+          0%, 100% { opacity: 0.8; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.1); }
+        }
+      `;
+      document.head.appendChild(style);
     }
 
-    if (closestPlaceholder) {
-      debugLog(`✅ SNAP naar hoek ${closestPlaceholder.mesh.userData.cornerIndex}`);
+    debugLog(`✨ ${cornerButtons.length} corner buttons getoond`);
+  }
 
-      closestPlaceholder.mesh.visible = true;
-      closestPlaceholder.mesh.material.opacity = 1.0;
-      closestPlaceholder.mesh.material.color.setHex(0x00ff00);
+  // Verwijder corner buttons
+  function hideCornerButtons() {
+    cornerButtons.forEach((btn) => btn.remove());
+    cornerButtons = [];
+  }
+
+  // Verwijder geselecteerd blokje
+  function removeSelectedBlock() {
+    const selectedBlock = document.querySelector('[data-selected-block="true"]');
+    if (selectedBlock) {
+      selectedBlock.style.transition = 'all 0.3s ease';
+      selectedBlock.style.transform = 'scale(0)';
+      selectedBlock.style.opacity = '0';
 
       setTimeout(() => {
-        if (closestPlaceholder) {
-          placeShapeOnCorner(closestPlaceholder, draggedShapeType);
-
-          if (draggedBlock) {
-            draggedBlock.style.transition = 'all 0.3s ease';
-            draggedBlock.style.transform = 'scale(0)';
-            draggedBlock.style.opacity = '0';
-
-            setTimeout(() => {
-              if (draggedBlock && draggedBlock.parentElement) {
-                draggedBlock.remove();
-                debugLog('🗑️ Shape choice verwijderd uit lijstje');
-              }
-            }, 300);
-          }
-
-          debugLog(
-            `✅ SUCCES! Shape geplaatst op hoek ${closestPlaceholder.mesh.userData.cornerIndex}!`,
-          );
-        }
-      }, 100);
-
-      draggedBlock = null;
-      draggedShapeType = null;
-      return false;
-    } else {
-      debugLog(`❌ Geen beschikbare hoek gevonden`);
-      if (draggedBlock) {
-        draggedBlock.style.opacity = '1';
-      }
-      draggedBlock = null;
-      draggedShapeType = null;
+        selectedBlock.remove();
+        debugLog('🗑️ Shape choice verwijderd uit lijstje');
+      }, 300);
     }
-
-    return false;
+    selectedShape = null;
   }
 
   function createGeometry(shapeType) {
@@ -1270,48 +1165,37 @@
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
+  // OUDE 3D DRAG FUNCTIES - UITGESCHAKELD (niet meer nodig met button overlay systeem)
+  // Deze functies zijn nu disabled omdat we een nieuw click-to-place systeem gebruiken
+  /*
   function onPointerDown(e) {
     e.preventDefault();
     updateMouse(e);
     raycaster.setFromCamera(mouse, camera);
-
-    // Raycaster met recursive: true om door groepen heen te kijken
     const intersects = raycaster.intersectObjects(scene.children, true);
-
-    // Filter op draggable objecten (maar NIET locked shapes)
     const draggableHits = intersects.filter(
       (hit) =>
         hit.object &&
         hit.object.userData &&
         (hit.object.userData.isDraggable || hit.object.userData.isPlacedBlock) &&
-        !hit.object.userData.positionLocked, // Skip locked shapes
+        !hit.object.userData.positionLocked,
     );
-
-    console.log(`🎯 Draggable hits: ${draggableHits.length}`);
-
+    console.log(\`🎯 Draggable hits: \${draggableHits.length}\`);
     if (draggableHits.length > 0) {
-      // Neem het eerste draggable object
       const hit = draggableHits[0];
-
       if (hit && hit.object) {
         dragged = hit.object;
         const pt = hit.point;
-
-        // Bereken offset correct (wereldpositie gebruiken)
         const worldPos = new THREE.Vector3();
         dragged.getWorldPosition(worldPos);
         offset.copy(worldPos).sub(pt);
-        isDragging = true;
-
-        // Visuele feedback tijdens drag
-        dragged.position.z = 100;
+      isDragging = true;
+      dragged.position.z = 100;
         if (dragged.material) {
-          dragged.material.opacity = 0.6;
+      dragged.material.opacity = 0.6;
         }
-        dragged.scale.multiplyScalar(1.1); // Maak iets groter tijdens drag
-
-        // Cursor aanpassen
-        renderer.domElement.style.cursor = 'grabbing';
+        dragged.scale.multiplyScalar(1.1);
+      renderer.domElement.style.cursor = 'grabbing';
         console.log('🖱️ Drag gestart:', dragged.userData, 'op positie:', dragged.position);
       } else {
         console.log('⚠️ Hit object heeft geen draggable userData:', hit.object);
@@ -1325,136 +1209,39 @@
     e.preventDefault();
     updateMouse(e);
     raycaster.setFromCamera(mouse, camera);
-
-    // Projecteer muispositie op Z=100 vlak (waar dragged object is)
     const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), -100);
     const intersect = new THREE.Vector3();
     raycaster.ray.intersectPlane(planeZ, intersect);
-
     if (intersect) {
-      // Gebruik lokale positie (niet wereldpositie) omdat object in groep kan zitten
       dragged.position.set(intersect.x + offset.x, intersect.y + offset.y, 100);
       console.log('🖱️ Drag beweging:', dragged.position);
     }
   }
   function onPointerUp() {
     if (isDragging && dragged) {
-      // Reset visuele feedback
       dragged.position.z = 1;
       dragged.material.opacity = 0.8;
       dragged.scale.divideScalar(1.1);
       renderer.domElement.style.cursor = 'default';
-
-      // Check of we een geplaatst blokje wegslepen (terug naar holder)
-      // Maar alleen als het NIET locked is
       if (dragged.userData && dragged.userData.isPlacedBlock && !dragged.userData.positionLocked) {
-        // Wegslepen van kubus - verwijder het blokje en maak placeholder weer beschikbaar
         const cornerIndex = dragged.userData.cornerIndex;
         placeholders[cornerIndex].filled = false;
         scene.remove(dragged);
         checkCompletion();
       } else {
-        // Normale drag van holder naar kubus
-        let hit = null;
-
-        // ============================================================
-        // ⭐ RAYCASTING - Detecteer welke paarse bol je ECHT raakt!
-        // ============================================================
-        // In plaats van "dichtstbijzijnde hoek" berekenen (wat vaak fout gaat),
-        // kijken we met raycasting welke 3D object onder de muis zit.
-        // Dit is de ENIGE correcte manier om dit te doen in 3D!
-        // ============================================================
-
-        // Update raycaster met huidige muis positie
-        raycaster.setFromCamera(mouse, camera);
-
-        // Doe raycasting om ALLE objecten onder de muis te vinden
-        const intersects = raycaster.intersectObjects(scene.children, true);
-
-        // Zoek de EERSTE placeholder (paarse bol) die geraakt wordt
-        for (const intersect of intersects) {
-          const obj = intersect.object;
-
-          // Check of dit een placeholder is EN niet gevuld
-          if (obj.userData && obj.userData.isPlaceholder) {
-            const placeholder = placeholders.find((p) => p.mesh === obj);
-            if (placeholder && !placeholder.filled) {
-              hit = placeholder;
-              break; // Stop zodra we de eerste (dichtste) hebben
-            }
-          }
-        }
-
-        // FALLBACK: Als raycaster niks vond, zoek dichtstbijzijnde hoek
-        if (!hit) {
-          let minDist = Infinity;
-          const snapThreshold = 200;
-
-          placeholders.forEach((p) => {
-            if (p.filled) return;
-            const worldPos = new THREE.Vector3();
-            p.mesh.getWorldPosition(worldPos);
-
-            const dx = worldPos.x - dragged.position.x;
-            const dy = worldPos.y - dragged.position.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < snapThreshold && dist < minDist) {
-              minDist = dist;
-              hit = p;
-            }
-          });
-        }
-
-        if (hit) {
-          // Snap naar kubus hoek met animatie
-          const worldPos = new THREE.Vector3();
-          hit.mesh.getWorldPosition(worldPos);
-
-          // Maak nieuwe mesh met juiste geometry en kleur voor op kubus
-          const shapeType = dragged.userData.shape || 'kubus';
-          const geometry = createGeometry(shapeType);
-          const material = new THREE.MeshBasicMaterial({
-            color: dragged.material.color,
-            transparent: true,
-            opacity: 1.0,
-            side: THREE.DoubleSide,
-          });
-
-          const placedShape = new THREE.Mesh(geometry, material);
-          placedShape.position.copy(worldPos);
-          placedShape.position.z = 0;
-          placedShape.userData.isPlacedBlock = true;
-          placedShape.userData.cornerIndex = hit.mesh.userData.cornerIndex;
-          placedShape.userData.shape = shapeType;
-
-          // Visuele feedback bij plaatsing
-          placedShape.scale.multiplyScalar(1.2);
-          scene.add(placedShape);
-
-          // Kleine "pop" animatie
-          setTimeout(() => {
-            placedShape.scale.divideScalar(1.2);
-          }, 150);
-
-          hit.filled = true;
-          dragged.visible = false;
-          checkCompletion();
-        } else {
-          // Niet op een hoekpunt - spring terug naar originele positie
-          dragged.visible = true;
-        }
+        // ... rest of drag logic
       }
     }
     isDragging = false;
     dragged = null;
   }
-
   function updateMouse(e) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
   }
+  */
+  // EINDE OUDE 3D DRAG FUNCTIES
 
   function showCompletionMessage() {
     const msg = document.createElement('div');
