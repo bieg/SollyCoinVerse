@@ -838,10 +838,8 @@
   }
 
   function handleDrop(e) {
-    if (e.stopPropagation) {
-      e.stopPropagation();
-    }
     e.preventDefault();
+    e.stopPropagation();
 
     if (!draggedBlock || !draggedShapeType) {
       return false;
@@ -850,115 +848,90 @@
     const dropX = e.clientX;
     const dropY = e.clientY;
 
-    // HERBERKEN screen posities NU (niet gebruiken van init)
+    // Bereken screen posities van ALLE hoeken (inclusief gevulde)
     const rect = renderer.domElement.getBoundingClientRect();
-    const screenPositions = [];
+    const allCorners = [];
 
     placeholders.forEach((p, i) => {
-      if (p.filled) return;
-
       const worldPos = new THREE.Vector3();
       p.mesh.getWorldPosition(worldPos);
 
-      // Project naar screen space
       const screenPos = worldPos.clone();
       screenPos.project(camera);
 
-      // Converteer naar pixel coordinaten
       const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
       const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
 
-      screenPositions.push({
+      allCorners.push({
         x: screenX,
         y: screenY,
         z: screenPos.z,
         placeholder: p,
         cornerIndex: i,
+        filled: p.filled,
       });
     });
 
-    // SIMPEL: Bereken 2D afstand naar alle hoeken
-    const SNAP_THRESHOLD = 500; // Max afstand voor snap (verhoogd omdat afstanden groter zijn)
-    const candidates = [];
+    // Vind dichtstbijzijnde hoek
+    let closestCorner = null;
+    let minDistance = Infinity;
 
-    screenPositions.forEach((corner) => {
+    allCorners.forEach((corner) => {
+      // SKIP gevulde hoeken
+      if (corner.filled) return;
+
       const dx = corner.x - dropX;
       const dy = corner.y - dropY;
-      const distance2D = Math.sqrt(dx * dx + dy * dy);
+      const distance = Math.sqrt(dx * dx + dy * dy);
 
-      console.log(
-        `📏 Hoek ${corner.cornerIndex}: screen(${Math.round(corner.x)}, ${Math.round(corner.y)}), drop(${dropX}, ${dropY}), afstand ${Math.round(distance2D)}px, Z: ${corner.z.toFixed(3)}`,
-      );
-
-      if (distance2D <= SNAP_THRESHOLD) {
-        candidates.push({
-          corner,
-          distance2D,
-        });
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestCorner = corner;
       }
     });
 
-    if (candidates.length === 0) {
-      console.log(`❌ Geen hoek binnen ${SNAP_THRESHOLD}px`);
-      return false;
-    }
-
-    // Sorteer op afstand
-    candidates.sort((a, b) => a.distance2D - b.distance2D);
-
-    // Als de top 2 kandidaten dichtbij elkaar zijn (< 30px verschil),
-    // kies degene met HOOGSTE Z (voorste hoek)
-    let closestCorner = candidates[0].corner;
-    let minDistance = candidates[0].distance2D;
-
-    if (candidates.length > 1) {
-      const topDistance = candidates[0].distance2D;
-      const secondDistance = candidates[1].distance2D;
-
-      if (secondDistance - topDistance < 30) {
-        // Twee hoeken dichtbij elkaar - kies voorste (hogere Z)
-        const topCandidates = candidates.filter(
-          (c) => c.distance2D - topDistance < 30,
-        );
-        topCandidates.sort((a, b) => b.corner.z - a.corner.z); // Sorteer op Z (hoogste eerst)
-        closestCorner = topCandidates[0].corner;
-        minDistance = topCandidates[0].distance2D;
-        console.log(
-          `🎯 ${topCandidates.length} overlappende hoeken - kies voorste (hoek ${closestCorner.cornerIndex}, Z=${closestCorner.z.toFixed(3)})`,
-        );
-      }
-    }
+    // Threshold: 500px
+    const SNAP_THRESHOLD = 500;
 
     if (closestCorner && minDistance < SNAP_THRESHOLD) {
       console.log(
         `✅ SNAP naar hoek ${closestCorner.cornerIndex} (afstand: ${Math.round(minDistance)}px)`,
       );
 
-      // Plaats shape
+      // Plaats shape op hoek
       placeShapeOnCorner(closestCorner.placeholder, draggedShapeType);
 
-      // Verwijder block uit lijst
+      // Markeer block als geplaatst en verwijder
       if (draggedBlock) {
-        draggedBlock.style.transition = 'all 0.3s ease';
-        draggedBlock.style.transform = 'scale(0)';
-        draggedBlock.style.opacity = '0';
+        draggedBlock.dataset.placed = 'true';
+        draggedBlock.style.opacity = '0.3';
+        draggedBlock.style.pointerEvents = 'none';
+        draggedBlock.draggable = false;
 
         setTimeout(() => {
           if (draggedBlock && draggedBlock.parentElement) {
             draggedBlock.remove();
-            console.log('🗑️ Shape choice verwijderd');
           }
         }, 300);
       }
+
+      // Update counter
+      updateProgressCounter();
     } else {
-      console.log(
-        `❌ Te ver van dichtstbijzijnde hoek (${Math.round(minDistance)}px > ${SNAP_THRESHOLD}px)`,
-      );
+      console.log(`❌ Te ver (${Math.round(minDistance)}px > ${SNAP_THRESHOLD}px)`);
     }
 
     draggedBlock = null;
     draggedShapeType = null;
     return false;
+  }
+
+  function updateProgressCounter() {
+    const filledCount = placeholders.filter((p) => p.filled).length;
+    const counter = document.getElementById('wireframe-counter');
+    if (counter) {
+      counter.innerHTML = `<strong>Geplaatst:</strong><br><span style="font-weight: normal">Blokjes [${filledCount}/8]</span>`;
+    }
   }
 
   function createGeometry(shapeType) {
@@ -1050,38 +1023,26 @@
       debugLog(`⚠️ WAARSCHUWING: Shape staat ${distance.toFixed(1)} units van placeholder af!`);
     }
 
-    // Markeer placeholder als gevuld
+    // Markeer placeholder als GEVULD (DISABLED)
     placeholder.filled = true;
     placeholder.mesh.visible = false;
 
-    // Voeg DISABLED indicator toe (rode slot cirkel)
-    const disabledIndicator = new THREE.Mesh(
-      new THREE.RingGeometry(40, 60, 16),
+    // Voeg ROODE DISABLED indicator toe (zichtbaar slot)
+    const disabledRing = new THREE.Mesh(
+      new THREE.RingGeometry(50, 70, 16),
       new THREE.MeshBasicMaterial({
         color: 0xff0000, // Rood
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.9,
         side: THREE.DoubleSide,
       }),
     );
-    disabledIndicator.position.copy(localPos);
-    disabledIndicator.userData.isDisabledIndicator = true;
-    disabledIndicator.userData.cornerIndex = placeholder.mesh.userData.cornerIndex;
-    cubeGroup.add(disabledIndicator);
+    disabledRing.position.copy(localPos);
+    disabledRing.userData.isDisabledIndicator = true;
+    disabledRing.userData.cornerIndex = placeholder.mesh.userData.cornerIndex;
+    cubeGroup.add(disabledRing);
 
-    // Voeg slot icoon toe (X of slot symbool)
-    const slotGeometry = new THREE.RingGeometry(25, 35, 8);
-    const slotMaterial = new THREE.MeshBasicMaterial({
-      color: 0xff0000,
-      transparent: true,
-      opacity: 1.0,
-      side: THREE.DoubleSide,
-    });
-    const slotIcon = new THREE.Mesh(slotGeometry, slotMaterial);
-    slotIcon.position.copy(localPos);
-    slotIcon.position.z += 5; // Iets naar voren
-    slotIcon.userData.isSlotIcon = true;
-    cubeGroup.add(slotIcon);
+    console.log(`🔒 Hoek ${placeholder.mesh.userData.cornerIndex} is nu DISABLED (op slot)`);
 
     // Forceer een render update
     if (renderer && scene && camera) {
@@ -1099,17 +1060,14 @@
   }
 
   function checkCompletion() {
-    const allFilled = placeholders.every((p) => p.filled);
+    const filledCount = placeholders.filter((p) => p.filled).length;
+    updateProgressCounter();
 
-    if (allFilled) {
-      console.log('🎉 ALLE 8 HOEKEN GEVULD! PUZZEL COMPLEET!'); // Success message blijft zichtbaar
-
+    if (filledCount === 8) {
+      console.log('🎉 ALLE 8 HOEKEN GEVULD! PUZZEL COMPLEET!');
       setTimeout(() => {
         alert('🎉 Gefeliciteerd! Je hebt de kubus voltooid!');
       }, 500);
-    } else {
-      const filledCount = placeholders.filter((p) => p.filled).length;
-      debugLog(`📊 Progress: ${filledCount}/8 hoeken gevuld`);
     }
   }
 
