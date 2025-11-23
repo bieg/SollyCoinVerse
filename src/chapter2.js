@@ -560,6 +560,15 @@
       cubeGroup.add(placeholderMesh);
       placeholders.push({ mesh: placeholderMesh, filled: false });
       debugLog(`📍 Hotspot ${i} geplaatst op hoek:`, p);
+
+      // DEBUG: Kleine zichtbare marker op exacte hoekpunt
+      const debugMarker = new THREE.Mesh(
+        new THREE.SphereGeometry(30, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xff00ff }), // Magenta
+      );
+      debugMarker.position.set(p.x, p.y, p.z);
+      cubeGroup.add(debugMarker);
+      debugLog(`🔍 Debug marker ${i}: world(${p.x}, ${p.y}, ${p.z})`);
     });
 
     // PERFECT gecentreerd op oorsprong (BoxGeometry is al gecentreerd)
