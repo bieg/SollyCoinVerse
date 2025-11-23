@@ -628,19 +628,48 @@
     // Update matrixWorld eerst zodat rotatie correct is
     cubeGroup.updateMatrixWorld(true);
 
-    placeholders.forEach((p, i) => {
-      // Gebruik de EXACTE hoek positie van de kubus (niet placeholder)
+    // Bereken eerst alle screen posities en Z-depths
+    const cornerScreenData = placeholders.map((p, i) => {
       const localPos = new THREE.Vector3(cornerPoints[i].x, cornerPoints[i].y, cornerPoints[i].z);
-      
-      // Transform naar world space MET rotatie
       const worldPos = localPos.clone();
       worldPos.applyMatrix4(cubeGroup.matrixWorld);
-
       const screenPos = worldPos.clone();
       screenPos.project(camera);
+      
+      return {
+        placeholder: p,
+        cornerIndex: i,
+        screenX: (screenPos.x * 0.5 + 0.5) * rect.width + rect.left,
+        screenY: (screenPos.y * -0.5 + 0.5) * rect.height + rect.top,
+        screenZ: screenPos.z, // Z-depth: -1 (ver) tot 1 (dichtbij)
+        worldPos: worldPos,
+      };
+    });
 
-      const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
-      const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
+    // Filter overlappende hoeken: als 2 hoeken binnen 50px van elkaar zijn,
+    // gebruik alleen de VOORSTE (hogere Z)
+    const filteredCorners = [];
+    cornerScreenData.forEach((corner) => {
+      const overlapping = filteredCorners.find((existing) => {
+        const dx = existing.screenX - corner.screenX;
+        const dy = existing.screenY - corner.screenY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance < 50; // Binnen 50px = overlappend
+      });
+
+      if (!overlapping) {
+        filteredCorners.push(corner);
+      } else if (corner.screenZ > overlapping.screenZ) {
+        // Deze hoek is voorste - vervang de achterste
+        const index = filteredCorners.indexOf(overlapping);
+        filteredCorners[index] = corner;
+      }
+    });
+
+    console.log(`🎯 [V3] ${filteredCorners.length} unieke hoeken (na overlap filtering)`);
+
+    filteredCorners.forEach((cornerData) => {
+      const { placeholder: p, cornerIndex: i, screenX, screenY, screenZ } = cornerData;
 
       // Maak HTML drop zone op exacte positie
       const dropZone = document.createElement('div');
@@ -698,7 +727,7 @@
 
       document.body.appendChild(dropZone);
       console.log(
-        `✅ [V2] Drop zone ${i} aangemaakt op screen(${Math.round(screenX)}, ${Math.round(screenY)}), world(${Math.round(worldPos.x)}, ${Math.round(worldPos.y)}, ${Math.round(worldPos.z)}), filled: ${p.filled}`,
+        `✅ [V3] Drop zone ${i} aangemaakt op screen(${Math.round(screenX)}, ${Math.round(screenY)}), Z: ${screenZ.toFixed(3)}, filled: ${p.filled}`,
       );
     });
 
