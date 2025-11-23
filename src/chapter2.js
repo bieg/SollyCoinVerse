@@ -19,8 +19,9 @@
     placeholders = [],
     dragShapes = [];
   let holderFrame = null;
-  let selectedShape = null; // Geselecteerde shape type voor placement
-  let cornerButtons = []; // HTML overlay buttons op hoeken
+  let draggedBlock = null;
+  let draggedShapeType = null;
+  let cornerScreenPositions = []; // 2D screen coordinaten van elke hoek (wordt 1x berekend)
   let loadingScene, loadingCamera;
 
   function showLoadingScreen(callback) {
@@ -590,6 +591,41 @@
     // ============================================================
 
     scene.add(cubeGroup);
+
+    // Bereken screen posities van alle hoeken (1x, kubus is statisch)
+    calculateCornerScreenPositions();
+  }
+
+  // ============================================================
+  // 📐 BEREKEN 2D SCREEN POSITIES VAN KUBUS HOEKEN
+  // ============================================================
+  function calculateCornerScreenPositions() {
+    if (!renderer || !camera) return;
+
+    const rect = renderer.domElement.getBoundingClientRect();
+    cornerScreenPositions = [];
+
+    placeholders.forEach((p, i) => {
+      const worldPos = new THREE.Vector3();
+      p.mesh.getWorldPosition(worldPos);
+
+      // Project naar screen space
+      const screenPos = worldPos.clone();
+      screenPos.project(camera);
+
+      // Converteer naar pixel coordinaten
+      const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
+      const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
+
+      cornerScreenPositions[i] = {
+        x: screenX,
+        y: screenY,
+        placeholder: p,
+        cornerIndex: i,
+      };
+
+      debugLog(`📍 Hoek ${i} screen positie: (${Math.round(screenX)}, ${Math.round(screenY)})`);
+    });
   }
 
   // ============================================================
@@ -646,6 +682,7 @@
     for (let i = 0; i < 8; i++) {
       const block = document.createElement('div');
       block.className = 'shape-choice-block';
+      block.draggable = true;
       block.dataset.shapeType = userShape;
       block.dataset.blockIndex = i;
       block.style.cssText = `
@@ -657,7 +694,7 @@
         background: rgba(0, 255, 0, 0.2);
         border: 0.075px solid #00ff00;
         border-radius: 4px;
-        cursor: pointer;
+        cursor: grab;
         transition: all 0.2s ease;
       `;
 
@@ -668,12 +705,9 @@
 
       block.appendChild(shapeElement);
 
-      // Click to select (nieuwe aanpak - geen drag & drop!)
-      block.addEventListener('click', () => {
-        if (!block.dataset.placed) {
-          selectShapeBlock(block, userShape);
-        }
-      });
+      // Drag & Drop event listeners
+      block.addEventListener('dragstart', handleDragStart);
+      block.addEventListener('dragend', handleDragEnd);
 
       // Hover effect
       block.addEventListener('mouseenter', () => {
@@ -693,6 +727,13 @@
     }
 
     document.body.appendChild(holder);
+
+    // Canvas drop zone listeners
+    setTimeout(() => {
+      const canvas = renderer.domElement;
+      canvas.addEventListener('dragover', handleDragOver);
+      canvas.addEventListener('drop', handleDrop);
+    }, 100);
     debugLog(`✅ Shape choices holder created with 8 blocks (shape: ${userShape})`);
   }
 
@@ -772,146 +813,107 @@
   // ============================================================
 
   // ============================================================
-  // ⭐ NIEUWE AANPAK: CLICK-TO-SELECT + CORNER BUTTONS
+  // ⭐ SIMPELE 2D DRAG & DROP - DE KUBUS IS PLAT EN STATISCH
   // ============================================================
 
-  // Selecteer een shape block (klik op groen blokje)
-  function selectShapeBlock(block, shapeType) {
-    // Deselect vorige
-    const allBlocks = document.querySelectorAll('.shape-choice-block');
-    allBlocks.forEach((b) => {
-      b.style.border = '0.075px solid #00ff00';
-      b.style.boxShadow = 'none';
-    });
+  function handleDragStart(e) {
+    draggedBlock = e.target;
+    draggedShapeType = e.target.dataset.shapeType;
 
-    // Selecteer deze
-    selectedShape = shapeType;
-    block.style.border = '2px solid #00ff00';
-    block.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.8)';
-    block.dataset.selectedBlock = 'true';
+    e.target.style.opacity = '0.5';
+    e.target.style.cursor = 'grabbing';
 
-    debugLog(`🎯 Shape geselecteerd: ${shapeType}`);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.innerHTML);
 
-    // Toon corner buttons
-    showCornerButtons();
+    console.log(`🎯 START DRAG: ${draggedShapeType}`);
   }
 
-  // Maak clickable overlay buttons op hoeken
-  function showCornerButtons() {
-    // Verwijder oude buttons
-    hideCornerButtons();
+  function handleDragEnd(e) {
+    if (draggedBlock) {
+      draggedBlock.style.opacity = '1';
+      draggedBlock.style.cursor = 'grab';
+    }
+    console.log('🎯 EINDE DRAG');
+  }
 
-    if (!renderer || !camera) return;
+  function handleDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+  }
 
-    const rect = renderer.domElement.getBoundingClientRect();
+  function handleDrop(e) {
+    if (e.stopPropagation) {
+      e.stopPropagation();
+    }
+    e.preventDefault();
 
-    placeholders.forEach((p) => {
-      if (p.filled) return; // Skip gevulde hoeken
-
-      // Bereken screen positie
-      const worldPos = new THREE.Vector3();
-      p.mesh.getWorldPosition(worldPos);
-
-      const screenPos = worldPos.clone();
-      screenPos.project(camera);
-
-      // Check of binnen viewport
-      const isInViewport =
-        screenPos.x >= -1 && screenPos.x <= 1 && screenPos.y >= -1 && screenPos.y <= 1;
-
-      if (!isInViewport) return;
-
-      // Converteer naar pixel coordinaten
-      const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
-      const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
-
-      // Maak button
-      const button = document.createElement('button');
-      button.className = 'corner-button';
-      button.dataset.cornerIndex = p.mesh.userData.cornerIndex;
-      button.style.cssText = `
-        position: fixed;
-        left: ${screenX - 25}px;
-        top: ${screenY - 25}px;
-        width: 50px;
-        height: 50px;
-        background: radial-gradient(circle, rgba(0,255,0,0.3), rgba(0,255,0,0.1));
-        border: 2px solid #00ff00;
-        border-radius: 50%;
-        cursor: pointer;
-        z-index: 10000;
-        transition: all 0.3s ease;
-        box-shadow: 0 0 20px rgba(0, 255, 0, 0.6), inset 0 0 20px rgba(0, 255, 0, 0.3);
-        animation: pulse 1.5s ease-in-out infinite;
-      `;
-
-      // Hover effect
-      button.addEventListener('mouseenter', () => {
-        button.style.transform = 'scale(1.3)';
-        button.style.boxShadow = '0 0 30px rgba(0, 255, 0, 1), inset 0 0 30px rgba(0, 255, 0, 0.5)';
-        // Highlight 3D placeholder
-        p.mesh.material.opacity = 0.8;
-        p.mesh.material.color.setHex(0x00ff00);
-      });
-
-      button.addEventListener('mouseleave', () => {
-        button.style.transform = 'scale(1)';
-        button.style.boxShadow =
-          '0 0 20px rgba(0, 255, 0, 0.6), inset 0 0 20px rgba(0, 255, 0, 0.3)';
-        // Reset 3D placeholder
-        p.mesh.material.opacity = 0.2;
-        p.mesh.material.color.setHex(0x8a2be2);
-      });
-
-      // Click handler
-      button.addEventListener('click', () => {
-        if (selectedShape) {
-          placeShapeOnCorner(p, selectedShape);
-          removeSelectedBlock();
-          hideCornerButtons();
-        }
-      });
-
-      document.body.appendChild(button);
-      cornerButtons.push(button);
-    });
-
-    // Voeg pulse animatie toe (eenmalig)
-    if (!document.getElementById('corner-button-style')) {
-      const style = document.createElement('style');
-      style.id = 'corner-button-style';
-      style.textContent = `
-        @keyframes pulse {
-          0%, 100% { opacity: 0.8; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.1); }
-        }
-      `;
-      document.head.appendChild(style);
+    if (!draggedBlock || !draggedShapeType) {
+      console.log('❌ Geen gedraggd block');
+      return false;
     }
 
-    debugLog(`✨ ${cornerButtons.length} corner buttons getoond`);
-  }
+    // Drop coordinaten
+    const dropX = e.clientX;
+    const dropY = e.clientY;
 
-  // Verwijder corner buttons
-  function hideCornerButtons() {
-    cornerButtons.forEach((btn) => btn.remove());
-    cornerButtons = [];
-  }
+    console.log(`🎯 DROP at: (${dropX}, ${dropY})`);
 
-  // Verwijder geselecteerd blokje
-  function removeSelectedBlock() {
-    const selectedBlock = document.querySelector('[data-selected-block="true"]');
-    if (selectedBlock) {
-      selectedBlock.style.transition = 'all 0.3s ease';
-      selectedBlock.style.transform = 'scale(0)';
-      selectedBlock.style.opacity = '0';
+    // SIMPEL: Bereken 2D afstand naar alle hoeken
+    let closestCorner = null;
+    let minDistance = Infinity;
 
-      setTimeout(() => {
-        selectedBlock.remove();
-        debugLog('🗑️ Shape choice verwijderd uit lijstje');
-      }, 300);
+    cornerScreenPositions.forEach((corner) => {
+      if (corner.placeholder.filled) return; // Skip gevulde hoeken
+
+      const dx = corner.x - dropX;
+      const dy = corner.y - dropY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      console.log(`📏 Hoek ${corner.cornerIndex}: afstand ${Math.round(distance)}px`);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestCorner = corner;
+      }
+    });
+
+    // Threshold: max 200px afstand
+    const SNAP_THRESHOLD = 200;
+
+    if (closestCorner && minDistance < SNAP_THRESHOLD) {
+      console.log(
+        `✅ SNAP naar hoek ${closestCorner.cornerIndex} (afstand: ${Math.round(minDistance)}px)`,
+      );
+
+      // Plaats shape
+      placeShapeOnCorner(closestCorner.placeholder, draggedShapeType);
+
+      // Verwijder block uit lijst
+      if (draggedBlock) {
+        draggedBlock.style.transition = 'all 0.3s ease';
+        draggedBlock.style.transform = 'scale(0)';
+        draggedBlock.style.opacity = '0';
+
+        setTimeout(() => {
+          if (draggedBlock && draggedBlock.parentElement) {
+            draggedBlock.remove();
+            console.log('🗑️ Shape choice verwijderd');
+          }
+        }, 300);
+      }
+    } else {
+      console.log(
+        `❌ Te ver van dichtstbijzijnde hoek (${Math.round(minDistance)}px > ${SNAP_THRESHOLD}px)`,
+      );
     }
-    selectedShape = null;
+
+    draggedBlock = null;
+    draggedShapeType = null;
+    return false;
   }
 
   function createGeometry(shapeType) {
