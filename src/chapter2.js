@@ -595,11 +595,17 @@
   // ============================================================
   function createCornerDropZones() {
     // Verwijder oude drop zones
-    document.querySelectorAll('.corner-drop-zone').forEach((el) => el.remove());
+    const oldZones = document.querySelectorAll('.corner-drop-zone');
+    oldZones.forEach((el) => el.remove());
+    console.log(`🗑️ Verwijderd ${oldZones.length} oude drop zones`);
 
-    if (!renderer || !camera) return;
+    if (!renderer || !camera) {
+      console.log('❌ Geen renderer of camera - drop zones niet aangemaakt');
+      return;
+    }
 
     const rect = renderer.domElement.getBoundingClientRect();
+    console.log(`🎯 Maak drop zones aan voor ${placeholders.length} hoeken`);
 
     placeholders.forEach((p, i) => {
       const worldPos = new THREE.Vector3();
@@ -622,11 +628,12 @@
         width: 60px;
         height: 60px;
         border-radius: 50%;
-        background: ${p.filled ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.2)'};
-        border: 2px ${p.filled ? 'solid' : 'dashed'} ${p.filled ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.5)'};
+        background: ${p.filled ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 255, 0, 0.4)'};
+        border: 3px ${p.filled ? 'solid' : 'dashed'} ${p.filled ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 255, 0, 0.8)'};
         pointer-events: ${p.filled ? 'none' : 'auto'};
-        z-index: 1000;
+        z-index: 10000;
         cursor: ${p.filled ? 'not-allowed' : 'grab'};
+        box-shadow: 0 0 10px ${p.filled ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 255, 0, 0.5)'};
       `;
 
       // Drop event listener
@@ -665,7 +672,12 @@
       });
 
       document.body.appendChild(dropZone);
+      console.log(
+        `✅ Drop zone ${i} aangemaakt op (${Math.round(screenX)}, ${Math.round(screenY)}), filled: ${p.filled}`,
+      );
     });
+
+    console.log(`✅ Totaal ${placeholders.length} drop zones aangemaakt`);
 
     // Update drop zones bij resize
     window.addEventListener('resize', () => {
@@ -921,102 +933,10 @@
   }
 
   function handleDrop(e) {
+    // OUDE FUNCTIE - NIET MEER GEBRUIKT
+    // Drop zones gebruiken nu HTML drop zones, niet canvas drop
+    console.log('⚠️ OUDE handleDrop aangeroepen - gebruik HTML drop zones in plaats daarvan!');
     e.preventDefault();
-    e.stopPropagation();
-
-    if (!draggedBlock || !draggedShapeType) {
-      return false;
-    }
-
-    const dropX = e.clientX;
-    const dropY = e.clientY;
-
-    // Bereken screen posities van ALLE hoeken (inclusief gevulde)
-    const rect = renderer.domElement.getBoundingClientRect();
-    const allCorners = [];
-
-    placeholders.forEach((p, i) => {
-      const worldPos = new THREE.Vector3();
-      p.mesh.getWorldPosition(worldPos);
-
-      const screenPos = worldPos.clone();
-      screenPos.project(camera);
-
-      const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
-      const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
-
-      allCorners.push({
-        x: screenX,
-        y: screenY,
-        z: screenPos.z,
-        placeholder: p,
-        cornerIndex: i,
-        filled: p.filled,
-      });
-    });
-
-    // Vind dichtstbijzijnde hoek
-    let closestCorner = null;
-    let minDistance = Infinity;
-
-    allCorners.forEach((corner) => {
-      // SKIP gevulde hoeken (DISABLED)
-      if (corner.filled) {
-        console.log(`⛔ Hoek ${corner.cornerIndex} is DISABLED - overslaan`);
-        return;
-      }
-
-      const dx = corner.x - dropX;
-      const dy = corner.y - dropY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      console.log(
-        `📏 Hoek ${corner.cornerIndex}: screen(${Math.round(corner.x)}, ${Math.round(corner.y)}), drop(${dropX}, ${dropY}), afstand ${Math.round(distance)}px`,
-      );
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestCorner = corner;
-      }
-    });
-
-    // Threshold: 500px
-    const SNAP_THRESHOLD = 500;
-
-    console.log(
-      `🎯 Dichtstbijzijnde hoek: ${closestCorner ? closestCorner.cornerIndex : 'GEEN'}, afstand: ${Math.round(minDistance)}px, threshold: ${SNAP_THRESHOLD}px`,
-    );
-
-    if (closestCorner && minDistance < SNAP_THRESHOLD) {
-      console.log(
-        `✅ SNAP naar hoek ${closestCorner.cornerIndex} (afstand: ${Math.round(minDistance)}px < ${SNAP_THRESHOLD}px)`,
-      );
-
-      // Plaats shape op hoek
-      placeShapeOnCorner(closestCorner.placeholder, draggedShapeType);
-
-      // Markeer block als geplaatst en verwijder
-      if (draggedBlock) {
-        draggedBlock.dataset.placed = 'true';
-        draggedBlock.style.opacity = '0.3';
-        draggedBlock.style.pointerEvents = 'none';
-        draggedBlock.draggable = false;
-
-        setTimeout(() => {
-          if (draggedBlock && draggedBlock.parentElement) {
-            draggedBlock.remove();
-          }
-        }, 300);
-      }
-
-      // Update counter
-      updateProgressCounter();
-    } else {
-      console.log(`❌ Te ver (${Math.round(minDistance)}px > ${SNAP_THRESHOLD}px)`);
-    }
-
-    draggedBlock = null;
-    draggedShapeType = null;
     return false;
   }
 
