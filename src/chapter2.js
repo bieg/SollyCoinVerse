@@ -651,7 +651,7 @@
   }
 
   function createCornerDropZones() {
-    console.log('🎯 [V7] Initialiseer 3D Sprite Drop Zones');
+    console.log('🎯 [V8] Initialiseer 3D Sprite Drop Zones (100px radius)');
 
     // Verwijder oude HTML zones en fallbacks voor zekerheid
     document.querySelectorAll('.corner-drop-zone').forEach((el) => el.remove());
@@ -704,8 +704,8 @@
       const mouseY = e.clientY;
 
       let closestSprite = null;
-      // Ruime hit radius (60px) - komt overeen met visuele grootte
-      let minDistance = 60;
+      // Ruime hit radius (100px) - was 60px
+      let minDistance = 100;
 
       // Zorg dat camera matrices up-to-date zijn
       if (camera) {
@@ -772,7 +772,24 @@
           createCornerDropZones();
         }
       } else {
-        console.log('❌ [V7] Drop gemist of op gevulde hoek');
+        console.log(`❌ [V8] Drop gemist. Muis: ${e.clientX},${e.clientY}`);
+        // Debug de dichtstbijzijnde sprite
+        let minD = 10000;
+        let nearest = null;
+        const rect = canvas.getBoundingClientRect();
+        dropZoneSprites.forEach((s, i) => {
+          const p = s.position.clone().project(camera);
+          const x = (p.x * 0.5 + 0.5) * rect.width + rect.left;
+          const y = -(p.y * 0.5 - 0.5) * rect.height + rect.top;
+          const d = Math.sqrt((x - e.clientX) ** 2 + (y - e.clientY) ** 2);
+          if (d < minD) {
+            minD = d;
+            nearest = i;
+          }
+        });
+        console.log(
+          `   Dichtstbijzijnde sprite: #${nearest} op ${Math.round(minD)}px afstand (limit: 100px)`,
+        );
       }
     };
   }
