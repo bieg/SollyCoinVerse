@@ -423,11 +423,13 @@
     dropZones.forEach((el) => el.remove());
     const fallback = document.getElementById('chapter2-drop-fallback');
     if (fallback) {
-      fallback.removeEventListener('drop', handleFallbackDrop);
-      fallback.removeEventListener('dragover', handleFallbackDragOver);
       fallback.remove();
     }
     window.chapter2CornerData = null;
+
+    // Reset 3D drop zones
+    dropZoneSprites = [];
+    window.canvasDragEventsInitialized = false;
   }
 
   function createBrutalistUI() {
@@ -607,291 +609,153 @@
 
     scene.add(cubeGroup);
 
-    // Maak HTML drop zones op exacte hoek posities
-    // Timeout voor stabiliteit van matrices
-    setTimeout(createCornerDropZones, 100);
-    setTimeout(createCornerDropZones, 500);
+    // Initialiseer 3D Drop System (Sprites)
+    createCornerDropZones();
   }
 
   // ============================================================
-  // 🎯 HTML DROP ZONES OP EXACTE HOEK POSITIES
+  // 🎯 3D DROP ZONES (SPRITES) - GEEN HTML MEER [V6]
   // ============================================================
+  // We gebruiken Three.js Sprites die altijd correct meeschalen met de kubus
+  // Hierdoor is de positie altijd 100% accuraat, ongeacht camera/resize
+  // ============================================================
+
+  let dropZoneSprites = [];
+
+  function createDropZoneTexture(filled) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    const color = filled ? '#ff0000' : '#00ff00';
+
+    // Cirkel (dashed of solid)
+    ctx.beginPath();
+    ctx.arc(64, 64, 50, 0, Math.PI * 2);
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = color;
+    if (!filled) ctx.setLineDash([15, 10]);
+    ctx.stroke();
+
+    // Fill (subtiel)
+    ctx.fillStyle = filled ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.2)';
+    ctx.fill();
+
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(64, 64, 10, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    return new THREE.CanvasTexture(canvas);
+  }
+
   function createCornerDropZones() {
-    // Verwijder oude drop zones
-    const oldZones = document.querySelectorAll('.corner-drop-zone');
-    oldZones.forEach((el) => el.remove());
-    console.log(`🗑️ Verwijderd ${oldZones.length} oude drop zones`);
+    console.log('🎯 [V6] Initialiseer 3D Sprite Drop Zones');
 
-    if (!renderer || !camera || !cubeGroup) {
-      console.log('❌ Geen renderer, camera of cubeGroup - drop zones niet aangemaakt');
-      return;
-    }
+    // Verwijder oude HTML zones en fallbacks voor zekerheid
+    document.querySelectorAll('.corner-drop-zone').forEach((el) => el.remove());
+    const fallback = document.getElementById('chapter2-drop-fallback');
+    if (fallback) fallback.remove();
 
-    const rect = renderer.domElement.getBoundingClientRect();
-    console.log(
-      `🎯 [V5] Maak drop zones aan voor ${placeholders.length} hoeken (gebruik EXACTE kubus hoeken)`,
-    );
+    // Verwijder oude sprites
+    dropZoneSprites.forEach((s) => {
+      if (s.parent) s.parent.remove(s);
+      if (s.material.map) s.material.map.dispose();
+      s.material.dispose();
+    });
+    dropZoneSprites = [];
 
-    // Gebruik de WIREFRAME kubus hoeken DIRECT (niet placeholder posities)
-    // Dit zorgt ervoor dat drop zones op de EXACTE visuele hoeken staan
-    const size = 2500;
-    const half = size / 2;
-    const cornerPoints = [
-      { x: -half, y: half, z: half }, // 0: Links boven voor
-      { x: half, y: half, z: half }, // 1: Rechts boven voor
-      { x: half, y: -half, z: half }, // 2: Rechts beneden voor
-      { x: -half, y: -half, z: half }, // 3: Links beneden voor
-      { x: -half, y: half, z: -half }, // 4: Links boven achter
-      { x: half, y: half, z: -half }, // 5: Rechts boven achter
-      { x: half, y: -half, z: -half }, // 6: Rechts beneden achter
-      { x: -half, y: -half, z: -half }, // 7: Links beneden achter
-    ];
+    if (!renderer || !camera || !cubeGroup) return;
 
-    // Update matrixWorld eerst zodat rotatie correct is
-    cubeGroup.updateMatrixWorld(true);
+    // Maak nieuwe sprites op placeholders
+    placeholders.forEach((p, i) => {
+      const tex = createDropZoneTexture(p.filled);
+      const material = new THREE.SpriteMaterial({
+        map: tex,
+        transparent: true,
+        depthTest: false, // Altijd zichtbaar bovenop wireframe
+        depthWrite: false,
+      });
+      const sprite = new THREE.Sprite(material);
+      // Schaal sprite (in 3D units) - size 2500, dus sprite ~350
+      sprite.scale.set(350, 350, 1);
+      sprite.position.copy(p.mesh.position);
+      sprite.userData = { isDropZone: true, cornerIndex: i, placeholder: p };
 
-    // FORCEER camera update voor correcte projectie - CRUCIAAL
-    if (camera) {
-      camera.updateMatrixWorld(true);
-      camera.updateProjectionMatrix();
-    }
-
-    // Bereken eerst alle screen posities en Z-depths
-    const cornerScreenData = placeholders.map((p, i) => {
-      const localPos = new THREE.Vector3(cornerPoints[i].x, cornerPoints[i].y, cornerPoints[i].z);
-      const worldPos = localPos.clone();
-      worldPos.applyMatrix4(cubeGroup.matrixWorld);
-      const screenPos = worldPos.clone();
-      screenPos.project(camera);
-
-      return {
-        placeholder: p,
-        cornerIndex: i,
-        screenX: (screenPos.x * 0.5 + 0.5) * rect.width + rect.left,
-        screenY: (screenPos.y * -0.5 + 0.5) * rect.height + rect.top,
-        screenZ: screenPos.z, // Z-depth: -1 (ver) tot 1 (dichtbij)
-        worldPos: worldPos,
-      };
+      cubeGroup.add(sprite);
+      dropZoneSprites.push(sprite);
     });
 
-    // Sorteer op Z-depth (voorste eerst) voor betere hit detection
-    cornerScreenData.sort((a, b) => b.screenZ - a.screenZ);
+    // Setup Drag & Drop events op Canvas (als nog niet gedaan)
+    if (!window.canvasDragEventsInitialized) {
+      setupCanvasDragEvents();
+      window.canvasDragEventsInitialized = true;
+    }
+  }
 
-    console.log(`🎯 [V5] ${cornerScreenData.length} hoeken berekend (gesorteerd op Z-depth)`);
+  function setupCanvasDragEvents() {
+    const canvas = renderer.domElement;
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
 
-    // Store corner data globally voor fallback drop detection
-    window.chapter2CornerData = cornerScreenData;
+    // Helper om sprite te vinden onder muis
+    function getIntersectedSprite(e) {
+      const rect = canvas.getBoundingClientRect();
+      // Correcte mapping van muis naar NDC (-1 tot 1)
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-    cornerScreenData.forEach((cornerData) => {
-      const { placeholder: p, cornerIndex: i, screenX, screenY, screenZ } = cornerData;
+      raycaster.setFromCamera(mouse, camera);
 
-      // Maak HTML drop zone op exacte positie
-      // Zichtbare maar subtiele indicatoren op de kubushoeken
-      // Hit area is groot (100x100px) maar visuele indicator is klein (30px)
-      const dropZone = document.createElement('div');
-      dropZone.className = 'corner-drop-zone';
-      dropZone.dataset.cornerIndex = i;
-      dropZone.dataset.screenZ = screenZ.toFixed(3);
-      const hitAreaSize = 100; // Grote hit area voor makkelijk droppen
-      const visualSize = 30; // Kleine visuele indicator
-      const hitAreaOffset = hitAreaSize / 2;
-      const visualOffset = visualSize / 2;
-      dropZone.style.cssText = `
-        position: fixed !important;
-        left: ${screenX - hitAreaOffset}px !important;
-        top: ${screenY - hitAreaOffset}px !important;
-        width: ${hitAreaSize}px !important;
-        height: ${hitAreaSize}px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        pointer-events: ${p.filled ? 'none' : 'auto'} !important;
-        z-index: ${99999 - i} !important;
-        cursor: ${p.filled ? 'not-allowed' : 'grab'} !important;
-      `;
+      // Raycast alleen tegen onze drop sprites
+      const intersects = raycaster.intersectObjects(dropZoneSprites);
 
-      // Maak kleine visuele indicator in het midden
-      const indicator = document.createElement('div');
-      indicator.style.cssText = `
-        width: ${visualSize}px !important;
-        height: ${visualSize}px !important;
-        border-radius: 50% !important;
-        background: ${p.filled ? 'rgba(255, 0, 0, 0.4)' : 'rgba(0, 255, 0, 0.3)'} !important;
-        border: 2px ${p.filled ? 'solid' : 'dashed'} ${p.filled ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.6)'} !important;
-        box-shadow: 0 0 8px ${p.filled ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 255, 0, 0.4)'} !important;
-        transition: all 0.2s ease !important;
-        pointer-events: none !important;
-      `;
-      dropZone.appendChild(indicator);
+      // Sorteer op afstand (dichtstbijzijnde eerst)
+      if (intersects.length > 0) {
+        return intersects[0].object;
+      }
+      return null;
+    }
 
-      // Drop event listener met visuele feedback
-      dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        if (!p.filled && indicator) {
-          indicator.style.background = 'rgba(0, 255, 0, 0.6)';
-          indicator.style.transform = 'scale(1.2)';
-          indicator.style.boxShadow = '0 0 12px rgba(0, 255, 0, 0.8)';
+    canvas.ondragover = (e) => {
+      e.preventDefault();
+      const sprite = getIntersectedSprite(e);
+
+      // Reset alle sprites visueel (behalve filled status)
+      dropZoneSprites.forEach((s) => {
+        if (!s.userData.placeholder.filled) {
+          // Normale grootte
+          s.scale.set(350, 350, 1);
         }
       });
 
-      dropZone.addEventListener('dragleave', () => {
-        if (!p.filled && indicator) {
-          indicator.style.background = 'rgba(0, 255, 0, 0.3)';
-          indicator.style.transform = 'scale(1)';
-          indicator.style.boxShadow = '0 0 8px rgba(0, 255, 0, 0.4)';
-        }
-      });
+      if (sprite && !sprite.userData.placeholder.filled) {
+        // Highlight (groter)
+        sprite.scale.set(450, 450, 1);
+      }
+    };
 
-      dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation(); // Voorkom dat fallback drop wordt getriggerd
-        if (p.filled) {
-          console.log(`⛔ [V5] Hoek ${i} is al gevuld!`);
-          return;
-        }
+    canvas.ondrop = (e) => {
+      e.preventDefault();
+      const sprite = getIntersectedSprite(e);
 
+      if (sprite && !sprite.userData.placeholder.filled) {
         const shapeType = e.dataTransfer.getData('text/plain') || draggedShapeType;
         if (shapeType) {
-          console.log(`✅ [V5] Drop op hoek ${i}, plaats shape: ${shapeType}`);
-          placeShapeOnCorner(p, shapeType);
+          console.log(`✅ [V6] 3D Drop op hoek ${sprite.userData.cornerIndex}`);
+          placeShapeOnCorner(sprite.userData.placeholder, shapeType);
           updateProgressCounter();
 
-          // Verwijder block
-          if (draggedBlock) {
-            draggedBlock.remove();
-          }
+          if (draggedBlock) draggedBlock.remove();
 
-          // Reset indicator visueel
-          if (indicator) {
-            indicator.style.background = 'rgba(255, 0, 0, 0.4)';
-            indicator.style.border = '2px solid rgba(255, 0, 0, 0.8)';
-            indicator.style.transform = 'scale(1)';
-          }
-
-          // Update drop zones na plaatsing
-          setTimeout(() => {
-            createCornerDropZones();
-          }, 100);
+          // Update sprites (texture verandert naar rood)
+          createCornerDropZones();
         }
-      });
-
-      document.body.appendChild(dropZone);
-      console.log(
-        `✅ [V5] Drop zone ${i} aangemaakt op screen(${Math.round(screenX)}, ${Math.round(screenY)}), Z: ${screenZ.toFixed(3)}, filled: ${p.filled}`,
-      );
-    });
-
-    console.log(`✅ [V5] Totaal ${cornerScreenData.length} drop zones aangemaakt`);
-
-    // Fallback: als je dropt buiten een drop zone, vind de dichtstbijzijnde hoek
-    // Verwijder oude fallback listener eerst
-    const oldFallback = document.getElementById('chapter2-drop-fallback');
-    if (oldFallback) {
-      oldFallback.removeEventListener('drop', handleFallbackDrop);
-      oldFallback.removeEventListener('dragover', handleFallbackDragOver);
-      oldFallback.remove();
-    }
-
-    // Maak fallback container die het hele scherm bedekt (achter drop zones)
-    const fallbackContainer = document.createElement('div');
-    fallbackContainer.id = 'chapter2-drop-fallback';
-    fallbackContainer.style.cssText = `
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      z-index: 99900 !important; /* Lager dan drop zones */
-      pointer-events: none !important; /* Laat drop zones door */
-    `;
-
-    // Alleen pointer-events tijdens drag
-    fallbackContainer.addEventListener('dragover', handleFallbackDragOver);
-    fallbackContainer.addEventListener('drop', handleFallbackDrop);
-
-    document.body.appendChild(fallbackContainer);
-
-    // Update drop zones bij resize
-    window.addEventListener('resize', () => {
-      setTimeout(createCornerDropZones, 100);
-    });
-  }
-
-  // Fallback drop handler: vind dichtstbijzijnde hoek
-  function handleFallbackDragOver(e) {
-    // Alleen actief maken als er geen drop zone onder de cursor is
-    const dropZones = document.elementsFromPoint(e.clientX, e.clientY);
-    const hasDropZone = dropZones.some((el) => el.classList.contains('corner-drop-zone'));
-
-    if (!hasDropZone && draggedShapeType) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      // Maak fallback container actief
-      const fallback = document.getElementById('chapter2-drop-fallback');
-      if (fallback) {
-        fallback.style.pointerEvents = 'auto';
+      } else {
+        console.log('❌ [V6] Drop gemist of op gevulde hoek');
       }
-    }
-  }
-
-  function handleFallbackDrop(e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const fallback = document.getElementById('chapter2-drop-fallback');
-    if (fallback) {
-      fallback.style.pointerEvents = 'none';
-    }
-
-    if (!window.chapter2CornerData || window.chapter2CornerData.length === 0) {
-      console.log('❌ [V5] Geen corner data beschikbaar voor fallback drop');
-      return;
-    }
-
-    const dropX = e.clientX;
-    const dropY = e.clientY;
-
-    // Vind dichtstbijzijnde BESCHIKBARE hoek (niet gevuld, voorste eerst)
-    let closestCorner = null;
-    let minDistance = Infinity;
-
-    window.chapter2CornerData.forEach((cornerData) => {
-      if (cornerData.placeholder.filled) return; // Skip gevulde hoeken
-
-      const dx = cornerData.screenX - dropX;
-      const dy = cornerData.screenY - dropY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      // Geef bonus aan voorste hoeken (hogere Z = voorste)
-      const zBonus = cornerData.screenZ * 50; // Voorste hoeken krijgen 50px bonus
-      const adjustedDistance = distance - zBonus;
-
-      if (adjustedDistance < minDistance) {
-        minDistance = adjustedDistance;
-        closestCorner = cornerData;
-      }
-    });
-
-    if (closestCorner) {
-      const shapeType = e.dataTransfer.getData('text/plain') || draggedShapeType;
-      if (shapeType) {
-        console.log(
-          `✅ [V5] Fallback drop: dichtstbijzijnde hoek ${closestCorner.cornerIndex} (afstand: ${minDistance.toFixed(1)}px, Z: ${closestCorner.screenZ.toFixed(3)})`,
-        );
-        placeShapeOnCorner(closestCorner.placeholder, shapeType);
-        updateProgressCounter();
-
-        // Verwijder block
-        if (draggedBlock) {
-          draggedBlock.remove();
-        }
-
-        // Update drop zones
-        createCornerDropZones();
-      }
-    } else {
-      console.log('❌ [V5] Geen beschikbare hoek gevonden voor fallback drop');
-    }
+    };
   }
 
   // ============================================================
