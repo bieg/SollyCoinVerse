@@ -678,37 +678,60 @@
       const { placeholder: p, cornerIndex: i, screenX, screenY, screenZ } = cornerData;
 
       // Maak HTML drop zone op exacte positie
-      // Grotere drop zones (100x100px) zodat ze elkaar overlappen
-      // Bij overlap wint de VOORSTE (hogere z-index = lagere index in gesorteerde array)
+      // Zichtbare maar subtiele indicatoren op de kubushoeken
+      // Hit area is groot (100x100px) maar visuele indicator is klein (30px)
       const dropZone = document.createElement('div');
       dropZone.className = 'corner-drop-zone';
       dropZone.dataset.cornerIndex = i;
       dropZone.dataset.screenZ = screenZ.toFixed(3);
-      const zoneSize = 100;
-      const zoneOffset = zoneSize / 2;
+      const hitAreaSize = 100; // Grote hit area voor makkelijk droppen
+      const visualSize = 30; // Kleine visuele indicator
+      const hitAreaOffset = hitAreaSize / 2;
+      const visualOffset = visualSize / 2;
       dropZone.style.cssText = `
         position: fixed !important;
-        left: ${screenX - zoneOffset}px !important;
-        top: ${screenY - zoneOffset}px !important;
-        width: ${zoneSize}px !important;
-        height: ${zoneSize}px !important;
-        border-radius: 50% !important;
-        background: transparent !important;
-        border: none !important;
+        left: ${screenX - hitAreaOffset}px !important;
+        top: ${screenY - hitAreaOffset}px !important;
+        width: ${hitAreaSize}px !important;
+        height: ${hitAreaSize}px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         pointer-events: ${p.filled ? 'none' : 'auto'} !important;
-        z-index: ${99999 - i} !important; /* Voorste hoeken krijgen hogere z-index */
+        z-index: ${99999 - i} !important;
         cursor: ${p.filled ? 'not-allowed' : 'grab'} !important;
-        box-shadow: none !important;
       `;
 
-      // Drop event listener
+      // Maak kleine visuele indicator in het midden
+      const indicator = document.createElement('div');
+      indicator.style.cssText = `
+        width: ${visualSize}px !important;
+        height: ${visualSize}px !important;
+        border-radius: 50% !important;
+        background: ${p.filled ? 'rgba(255, 0, 0, 0.4)' : 'rgba(0, 255, 0, 0.3)'} !important;
+        border: 2px ${p.filled ? 'solid' : 'dashed'} ${p.filled ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.6)'} !important;
+        box-shadow: 0 0 8px ${p.filled ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 255, 0, 0.4)'} !important;
+        transition: all 0.2s ease !important;
+        pointer-events: none !important;
+      `;
+      dropZone.appendChild(indicator);
+
+      // Drop event listener met visuele feedback
       dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
-        // Geen visuele feedback - drop zones blijven onzichtbaar
+        if (!p.filled && indicator) {
+          indicator.style.background = 'rgba(0, 255, 0, 0.6)';
+          indicator.style.transform = 'scale(1.2)';
+          indicator.style.boxShadow = '0 0 12px rgba(0, 255, 0, 0.8)';
+        }
       });
 
       dropZone.addEventListener('dragleave', () => {
-        // Geen visuele feedback - drop zones blijven onzichtbaar
+        if (!p.filled && indicator) {
+          indicator.style.background = 'rgba(0, 255, 0, 0.3)';
+          indicator.style.transform = 'scale(1)';
+          indicator.style.boxShadow = '0 0 8px rgba(0, 255, 0, 0.4)';
+        }
       });
 
       dropZone.addEventListener('drop', (e) => {
@@ -728,6 +751,13 @@
           // Verwijder block
           if (draggedBlock) {
             draggedBlock.remove();
+          }
+
+          // Reset indicator visueel
+          if (indicator) {
+            indicator.style.background = 'rgba(255, 0, 0, 0.4)';
+            indicator.style.border = '2px solid rgba(255, 0, 0, 0.8)';
+            indicator.style.transform = 'scale(1)';
           }
 
           // Update drop zones na plaatsing
