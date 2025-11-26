@@ -608,7 +608,9 @@
     scene.add(cubeGroup);
 
     // Maak HTML drop zones op exacte hoek posities
-    createCornerDropZones();
+    // Timeout voor stabiliteit van matrices
+    setTimeout(createCornerDropZones, 100);
+    setTimeout(createCornerDropZones, 500);
   }
 
   // ============================================================
@@ -627,7 +629,7 @@
 
     const rect = renderer.domElement.getBoundingClientRect();
     console.log(
-      `🎯 [V4] Maak drop zones aan voor ${placeholders.length} hoeken (gebruik EXACTE kubus hoeken)`,
+      `🎯 [V5] Maak drop zones aan voor ${placeholders.length} hoeken (gebruik EXACTE kubus hoeken)`,
     );
 
     // Gebruik de WIREFRAME kubus hoeken DIRECT (niet placeholder posities)
@@ -647,6 +649,12 @@
 
     // Update matrixWorld eerst zodat rotatie correct is
     cubeGroup.updateMatrixWorld(true);
+
+    // FORCEER camera update voor correcte projectie - CRUCIAAL
+    if (camera) {
+      camera.updateMatrixWorld(true);
+      camera.updateProjectionMatrix();
+    }
 
     // Bereken eerst alle screen posities en Z-depths
     const cornerScreenData = placeholders.map((p, i) => {
@@ -669,7 +677,7 @@
     // Sorteer op Z-depth (voorste eerst) voor betere hit detection
     cornerScreenData.sort((a, b) => b.screenZ - a.screenZ);
 
-    console.log(`🎯 [V4] ${cornerScreenData.length} hoeken berekend (gesorteerd op Z-depth)`);
+    console.log(`🎯 [V5] ${cornerScreenData.length} hoeken berekend (gesorteerd op Z-depth)`);
 
     // Store corner data globally voor fallback drop detection
     window.chapter2CornerData = cornerScreenData;
@@ -738,13 +746,13 @@
         e.preventDefault();
         e.stopPropagation(); // Voorkom dat fallback drop wordt getriggerd
         if (p.filled) {
-          console.log(`⛔ [V4] Hoek ${i} is al gevuld!`);
+          console.log(`⛔ [V5] Hoek ${i} is al gevuld!`);
           return;
         }
 
         const shapeType = e.dataTransfer.getData('text/plain') || draggedShapeType;
         if (shapeType) {
-          console.log(`✅ [V4] Drop op hoek ${i}, plaats shape: ${shapeType}`);
+          console.log(`✅ [V5] Drop op hoek ${i}, plaats shape: ${shapeType}`);
           placeShapeOnCorner(p, shapeType);
           updateProgressCounter();
 
@@ -769,11 +777,11 @@
 
       document.body.appendChild(dropZone);
       console.log(
-        `✅ [V4] Drop zone ${i} aangemaakt op screen(${Math.round(screenX)}, ${Math.round(screenY)}), Z: ${screenZ.toFixed(3)}, filled: ${p.filled}`,
+        `✅ [V5] Drop zone ${i} aangemaakt op screen(${Math.round(screenX)}, ${Math.round(screenY)}), Z: ${screenZ.toFixed(3)}, filled: ${p.filled}`,
       );
     });
 
-    console.log(`✅ [V4] Totaal ${cornerScreenData.length} drop zones aangemaakt`);
+    console.log(`✅ [V5] Totaal ${cornerScreenData.length} drop zones aangemaakt`);
 
     // Fallback: als je dropt buiten een drop zone, vind de dichtstbijzijnde hoek
     // Verwijder oude fallback listener eerst
@@ -836,7 +844,7 @@
     }
 
     if (!window.chapter2CornerData || window.chapter2CornerData.length === 0) {
-      console.log('❌ [V4] Geen corner data beschikbaar voor fallback drop');
+      console.log('❌ [V5] Geen corner data beschikbaar voor fallback drop');
       return;
     }
 
@@ -868,7 +876,7 @@
       const shapeType = e.dataTransfer.getData('text/plain') || draggedShapeType;
       if (shapeType) {
         console.log(
-          `✅ [V4] Fallback drop: dichtstbijzijnde hoek ${closestCorner.cornerIndex} (afstand: ${minDistance.toFixed(1)}px, Z: ${closestCorner.screenZ.toFixed(3)})`,
+          `✅ [V5] Fallback drop: dichtstbijzijnde hoek ${closestCorner.cornerIndex} (afstand: ${minDistance.toFixed(1)}px, Z: ${closestCorner.screenZ.toFixed(3)})`,
         );
         placeShapeOnCorner(closestCorner.placeholder, shapeType);
         updateProgressCounter();
@@ -882,7 +890,7 @@
         createCornerDropZones();
       }
     } else {
-      console.log('❌ [V4] Geen beschikbare hoek gevonden voor fallback drop');
+      console.log('❌ [V5] Geen beschikbare hoek gevonden voor fallback drop');
     }
   }
 
