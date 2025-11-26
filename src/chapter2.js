@@ -410,6 +410,17 @@
     [...scene.children].forEach((o) => {
       if (!keep.has(o)) scene.remove(o);
     });
+
+    // Verwijder drop zones en fallback container
+    const dropZones = document.querySelectorAll('.corner-drop-zone');
+    dropZones.forEach((el) => el.remove());
+    const fallback = document.getElementById('chapter2-drop-fallback');
+    if (fallback) {
+      fallback.removeEventListener('drop', handleFallbackDrop);
+      fallback.removeEventListener('dragover', handleFallbackDragOver);
+      fallback.remove();
+    }
+    window.chapter2CornerData = null;
   }
 
   function createBrutalistUI() {
@@ -646,48 +657,39 @@
       };
     });
 
-    // Filter overlappende hoeken: als 2 hoeken binnen 50px van elkaar zijn,
-    // gebruik alleen de VOORSTE (hogere Z)
-    const filteredCorners = [];
-    cornerScreenData.forEach((corner) => {
-      const overlapping = filteredCorners.find((existing) => {
-        const dx = existing.screenX - corner.screenX;
-        const dy = existing.screenY - corner.screenY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        return distance < 50; // Binnen 50px = overlappend
-      });
+    // Sorteer op Z-depth (voorste eerst) voor betere hit detection
+    cornerScreenData.sort((a, b) => b.screenZ - a.screenZ);
 
-      if (!overlapping) {
-        filteredCorners.push(corner);
-      } else if (corner.screenZ > overlapping.screenZ) {
-        // Deze hoek is voorste - vervang de achterste
-        const index = filteredCorners.indexOf(overlapping);
-        filteredCorners[index] = corner;
-      }
-    });
+    console.log(`🎯 [V4] ${cornerScreenData.length} hoeken berekend (gesorteerd op Z-depth)`);
 
-    console.log(`🎯 [V3] ${filteredCorners.length} unieke hoeken (na overlap filtering)`);
+    // Store corner data globally voor fallback drop detection
+    window.chapter2CornerData = cornerScreenData;
 
-    filteredCorners.forEach((cornerData) => {
+    cornerScreenData.forEach((cornerData) => {
       const { placeholder: p, cornerIndex: i, screenX, screenY, screenZ } = cornerData;
 
       // Maak HTML drop zone op exacte positie
+      // Grotere drop zones (100x100px) zodat ze elkaar overlappen
+      // Bij overlap wint de VOORSTE (hogere z-index = lagere index in gesorteerde array)
       const dropZone = document.createElement('div');
       dropZone.className = 'corner-drop-zone';
       dropZone.dataset.cornerIndex = i;
+      dropZone.dataset.screenZ = screenZ.toFixed(3);
+      const zoneSize = 100;
+      const zoneOffset = zoneSize / 2;
       dropZone.style.cssText = `
         position: fixed !important;
-        left: ${screenX - 30}px !important;
-        top: ${screenY - 30}px !important;
-        width: 60px !important;
-        height: 60px !important;
+        left: ${screenX - zoneOffset}px !important;
+        top: ${screenY - zoneOffset}px !important;
+        width: ${zoneSize}px !important;
+        height: ${zoneSize}px !important;
         border-radius: 50% !important;
-        background: ${p.filled ? 'rgba(255, 0, 0, 0.6)' : 'rgba(0, 255, 0, 0.6)'} !important;
-        border: 4px ${p.filled ? 'solid' : 'dashed'} ${p.filled ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 255, 0, 1)'} !important;
+        background: ${p.filled ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'} !important;
+        border: 3px ${p.filled ? 'solid' : 'dashed'} ${p.filled ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)'} !important;
         pointer-events: ${p.filled ? 'none' : 'auto'} !important;
-        z-index: 99999 !important;
+        z-index: ${99999 - i} !important; /* Voorste hoeken krijgen hogere z-index */
         cursor: ${p.filled ? 'not-allowed' : 'grab'} !important;
-        box-shadow: 0 0 20px ${p.filled ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)'} !important;
+        box-shadow: 0 0 15px ${p.filled ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 255, 0, 0.5)'} !important;
       `;
 
       // Drop event listener
@@ -706,14 +708,15 @@
 
       dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
+        e.stopPropagation(); // Voorkom dat fallback drop wordt getriggerd
         if (p.filled) {
-          console.log(`⛔ Hoek ${i} is al gevuld!`);
+          console.log(`⛔ [V4] Hoek ${i} is al gevuld!`);
           return;
         }
 
         const shapeType = e.dataTransfer.getData('text/plain') || draggedShapeType;
         if (shapeType) {
-          console.log(`✅ Drop op hoek ${i}, plaats shape: ${shapeType}`);
+          console.log(`✅ [V4] Drop op hoek ${i}, plaats shape: ${shapeType}`);
           placeShapeOnCorner(p, shapeType);
           updateProgressCounter();
 
@@ -721,22 +724,131 @@
           if (draggedBlock) {
             draggedBlock.remove();
           }
+
+          // Update drop zones na plaatsing
+          setTimeout(() => {
+            createCornerDropZones();
+          }, 100);
         }
-        dropZone.style.background = 'rgba(255, 0, 0, 0.1)';
       });
 
       document.body.appendChild(dropZone);
       console.log(
-        `✅ [V3] Drop zone ${i} aangemaakt op screen(${Math.round(screenX)}, ${Math.round(screenY)}), Z: ${screenZ.toFixed(3)}, filled: ${p.filled}`,
+        `✅ [V4] Drop zone ${i} aangemaakt op screen(${Math.round(screenX)}, ${Math.round(screenY)}), Z: ${screenZ.toFixed(3)}, filled: ${p.filled}`,
       );
     });
 
-    console.log(`✅ Totaal ${placeholders.length} drop zones aangemaakt`);
+    console.log(`✅ [V4] Totaal ${cornerScreenData.length} drop zones aangemaakt`);
+
+    // Fallback: als je dropt buiten een drop zone, vind de dichtstbijzijnde hoek
+    // Verwijder oude fallback listener eerst
+    const oldFallback = document.getElementById('chapter2-drop-fallback');
+    if (oldFallback) {
+      oldFallback.removeEventListener('drop', handleFallbackDrop);
+      oldFallback.removeEventListener('dragover', handleFallbackDragOver);
+      oldFallback.remove();
+    }
+
+    // Maak fallback container die het hele scherm bedekt (achter drop zones)
+    const fallbackContainer = document.createElement('div');
+    fallbackContainer.id = 'chapter2-drop-fallback';
+    fallbackContainer.style.cssText = `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 99900 !important; /* Lager dan drop zones */
+      pointer-events: none !important; /* Laat drop zones door */
+    `;
+
+    // Alleen pointer-events tijdens drag
+    fallbackContainer.addEventListener('dragover', handleFallbackDragOver);
+    fallbackContainer.addEventListener('drop', handleFallbackDrop);
+
+    document.body.appendChild(fallbackContainer);
 
     // Update drop zones bij resize
     window.addEventListener('resize', () => {
       setTimeout(createCornerDropZones, 100);
     });
+  }
+
+  // Fallback drop handler: vind dichtstbijzijnde hoek
+  function handleFallbackDragOver(e) {
+    // Alleen actief maken als er geen drop zone onder de cursor is
+    const dropZones = document.elementsFromPoint(e.clientX, e.clientY);
+    const hasDropZone = dropZones.some((el) => el.classList.contains('corner-drop-zone'));
+    
+    if (!hasDropZone && draggedShapeType) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      // Maak fallback container actief
+      const fallback = document.getElementById('chapter2-drop-fallback');
+      if (fallback) {
+        fallback.style.pointerEvents = 'auto';
+      }
+    }
+  }
+
+  function handleFallbackDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const fallback = document.getElementById('chapter2-drop-fallback');
+    if (fallback) {
+      fallback.style.pointerEvents = 'none';
+    }
+
+    if (!window.chapter2CornerData || window.chapter2CornerData.length === 0) {
+      console.log('❌ [V4] Geen corner data beschikbaar voor fallback drop');
+      return;
+    }
+
+    const dropX = e.clientX;
+    const dropY = e.clientY;
+
+    // Vind dichtstbijzijnde BESCHIKBARE hoek (niet gevuld, voorste eerst)
+    let closestCorner = null;
+    let minDistance = Infinity;
+
+    window.chapter2CornerData.forEach((cornerData) => {
+      if (cornerData.placeholder.filled) return; // Skip gevulde hoeken
+
+      const dx = cornerData.screenX - dropX;
+      const dy = cornerData.screenY - dropY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // Geef bonus aan voorste hoeken (hogere Z = voorste)
+      const zBonus = cornerData.screenZ * 50; // Voorste hoeken krijgen 50px bonus
+      const adjustedDistance = distance - zBonus;
+
+      if (adjustedDistance < minDistance) {
+        minDistance = adjustedDistance;
+        closestCorner = cornerData;
+      }
+    });
+
+    if (closestCorner) {
+      const shapeType = e.dataTransfer.getData('text/plain') || draggedShapeType;
+      if (shapeType) {
+        console.log(
+          `✅ [V4] Fallback drop: dichtstbijzijnde hoek ${closestCorner.cornerIndex} (afstand: ${minDistance.toFixed(1)}px, Z: ${closestCorner.screenZ.toFixed(3)})`,
+        );
+        placeShapeOnCorner(closestCorner.placeholder, shapeType);
+        updateProgressCounter();
+
+        // Verwijder block
+        if (draggedBlock) {
+          draggedBlock.remove();
+        }
+
+        // Update drop zones
+        createCornerDropZones();
+      }
+    } else {
+      console.log('❌ [V4] Geen beschikbare hoek gevonden voor fallback drop');
+    }
   }
 
   // ============================================================
