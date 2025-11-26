@@ -382,7 +382,14 @@
     console.log('⏳ Wacht op renderer/camera voor drop zones...');
     setTimeout(() => {
       console.log('🚀 Roep createCornerDropZones aan...');
-      console.log('Renderer:', !!renderer, 'Camera:', !!camera, 'Placeholders:', placeholders.length);
+      console.log(
+        'Renderer:',
+        !!renderer,
+        'Camera:',
+        !!camera,
+        'Placeholders:',
+        placeholders.length,
+      );
       createCornerDropZones();
     }, 500);
 
@@ -619,7 +626,9 @@
     }
 
     const rect = renderer.domElement.getBoundingClientRect();
-    console.log(`🎯 [V2] Maak drop zones aan voor ${placeholders.length} hoeken (gebruik EXACTE kubus hoeken)`);
+    console.log(
+      `🎯 [V4] Maak drop zones aan voor ${placeholders.length} hoeken (gebruik EXACTE kubus hoeken)`,
+    );
 
     // Gebruik de WIREFRAME kubus hoeken DIRECT (niet placeholder posities)
     // Dit zorgt ervoor dat drop zones op de EXACTE visuele hoeken staan
@@ -646,7 +655,7 @@
       worldPos.applyMatrix4(cubeGroup.matrixWorld);
       const screenPos = worldPos.clone();
       screenPos.project(camera);
-      
+
       return {
         placeholder: p,
         cornerIndex: i,
@@ -779,7 +788,7 @@
     // Alleen actief maken als er geen drop zone onder de cursor is
     const dropZones = document.elementsFromPoint(e.clientX, e.clientY);
     const hasDropZone = dropZones.some((el) => el.classList.contains('corner-drop-zone'));
-    
+
     if (!hasDropZone && draggedShapeType) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
