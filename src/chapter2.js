@@ -693,26 +693,22 @@
         width: ${zoneSize}px !important;
         height: ${zoneSize}px !important;
         border-radius: 50% !important;
-        background: ${p.filled ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'} !important;
-        border: 3px ${p.filled ? 'solid' : 'dashed'} ${p.filled ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)'} !important;
+        background: transparent !important;
+        border: none !important;
         pointer-events: ${p.filled ? 'none' : 'auto'} !important;
         z-index: ${99999 - i} !important; /* Voorste hoeken krijgen hogere z-index */
         cursor: ${p.filled ? 'not-allowed' : 'grab'} !important;
-        box-shadow: 0 0 15px ${p.filled ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 255, 0, 0.5)'} !important;
+        box-shadow: none !important;
       `;
 
       // Drop event listener
       dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
-        if (!p.filled) {
-          dropZone.style.background = 'rgba(0, 255, 0, 0.3)';
-        }
+        // Geen visuele feedback - drop zones blijven onzichtbaar
       });
 
       dropZone.addEventListener('dragleave', () => {
-        if (!p.filled) {
-          dropZone.style.background = 'rgba(255, 0, 0, 0.1)';
-        }
+        // Geen visuele feedback - drop zones blijven onzichtbaar
       });
 
       dropZone.addEventListener('drop', (e) => {
