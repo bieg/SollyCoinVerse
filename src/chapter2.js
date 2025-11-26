@@ -614,7 +614,7 @@
   }
 
   // ============================================================
-  // 🎯 3D DROP ZONES (SPRITES) - GEEN HTML MEER [V6]
+  // 🎯 3D DROP ZONES (SPRITES) - GEEN HTML MEER [V7]
   // ============================================================
   // We gebruiken Three.js Sprites die altijd correct meeschalen met de kubus
   // Hierdoor is de positie altijd 100% accuraat, ongeacht camera/resize
@@ -651,7 +651,7 @@
   }
 
   function createCornerDropZones() {
-    console.log('🎯 [V6] Initialiseer 3D Sprite Drop Zones');
+    console.log('🎯 [V7] Initialiseer 3D Sprite Drop Zones');
 
     // Verwijder oude HTML zones en fallbacks voor zekerheid
     document.querySelectorAll('.corner-drop-zone').forEach((el) => el.remove());
@@ -696,26 +696,45 @@
 
   function setupCanvasDragEvents() {
     const canvas = renderer.domElement;
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
 
-    // Helper om sprite te vinden onder muis
+    // Helper om sprite te vinden onder muis via 2D afstand (robuuster dan raycasting)
     function getIntersectedSprite(e) {
       const rect = canvas.getBoundingClientRect();
-      // Correcte mapping van muis naar NDC (-1 tot 1)
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
 
-      raycaster.setFromCamera(mouse, camera);
+      let closestSprite = null;
+      // Ruime hit radius (60px) - komt overeen met visuele grootte
+      let minDistance = 60;
 
-      // Raycast alleen tegen onze drop sprites
-      const intersects = raycaster.intersectObjects(dropZoneSprites);
-
-      // Sorteer op afstand (dichtstbijzijnde eerst)
-      if (intersects.length > 0) {
-        return intersects[0].object;
+      // Zorg dat camera matrices up-to-date zijn
+      if (camera) {
+        camera.updateMatrixWorld();
+        camera.updateProjectionMatrix();
       }
-      return null;
+
+      dropZoneSprites.forEach((sprite) => {
+        // Projecteer 3D positie naar 2D schermcoördinaten
+        // Dit gebruikt dezelfde projectie als de renderer, dus klopt altijd met wat je ziet
+        const screenPos = sprite.position.clone();
+        screenPos.project(camera);
+
+        // Convert NDC (-1 tot 1) naar pixels relative aan viewport
+        const x = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
+        const y = -(screenPos.y * 0.5 - 0.5) * rect.height + rect.top;
+
+        // Bereken 2D afstand
+        const dx = x - mouseX;
+        const dy = y - mouseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestSprite = sprite;
+        }
+      });
+
+      return closestSprite;
     }
 
     canvas.ondragover = (e) => {
@@ -743,7 +762,7 @@
       if (sprite && !sprite.userData.placeholder.filled) {
         const shapeType = e.dataTransfer.getData('text/plain') || draggedShapeType;
         if (shapeType) {
-          console.log(`✅ [V6] 3D Drop op hoek ${sprite.userData.cornerIndex}`);
+          console.log(`✅ [V7] 3D Drop op hoek ${sprite.userData.cornerIndex}`);
           placeShapeOnCorner(sprite.userData.placeholder, shapeType);
           updateProgressCounter();
 
@@ -753,7 +772,7 @@
           createCornerDropZones();
         }
       } else {
-        console.log('❌ [V6] Drop gemist of op gevulde hoek');
+        console.log('❌ [V7] Drop gemist of op gevulde hoek');
       }
     };
   }
