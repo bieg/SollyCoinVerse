@@ -324,17 +324,16 @@ class ContractManager {
       if (!this.currentAccount) {
         throw new Error('No account specified');
       }
-      
+
       this.debugLog(`🔓 Unlocking chapter ${chapterNumber} with ${price} SollyCoins...`);
-      
-      const result = await this.contracts.sollyCoin.methods.unlockChapter(
-        chapterNumber,
-        price
-      ).send({
-        from: this.currentAccount,
-        gas: 200000
-      });
-      
+
+      const result = await this.contracts.sollyCoin.methods
+        .unlockChapter(chapterNumber, price)
+        .send({
+          from: this.currentAccount,
+          gas: 200000,
+        });
+
       this.debugLog('✅ Chapter unlocked successfully:', result.transactionHash);
       return result;
     } catch (error) {
@@ -349,17 +348,18 @@ class ContractManager {
       if (!this.currentAccount) {
         throw new Error('No account specified');
       }
-      
-      this.debugLog(`🚀 Buying progress: skip ${levelsToSkip} levels at ${pricePerLevel} SOLLY each...`);
-      
-      const result = await this.contracts.sollyCoin.methods.buyProgress(
-        levelsToSkip,
-        pricePerLevel
-      ).send({
-        from: this.currentAccount,
-        gas: 200000
-      });
-      
+
+      this.debugLog(
+        `🚀 Buying progress: skip ${levelsToSkip} levels at ${pricePerLevel} SOLLY each...`,
+      );
+
+      const result = await this.contracts.sollyCoin.methods
+        .buyProgress(levelsToSkip, pricePerLevel)
+        .send({
+          from: this.currentAccount,
+          gas: 200000,
+        });
+
       this.debugLog('✅ Progress purchased successfully:', result.transactionHash);
       return result;
     } catch (error) {

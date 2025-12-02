@@ -1,27 +1,22 @@
 #!/bin/bash
 
 # SollyCoin Server Starter
-# ALTIJD EN ALLEEN POORT 5500 GEBRUIKEN
+# ALTIJD EN ALLEEN POORT 5555 GEBRUIKEN
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 echo "🚀 SollyCoin Server Starter"
+echo "🌐 URL: http://127.0.0.1:5555"
+echo "❗ Gebruik GEEN Live Server; deze Node server serveert statics + Socket.IO op poort 5555"
 
-# Laad .env indien aanwezig
-if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
-fi
+# Kill ALLE processen op poort 5555 (inclusief andere servers)
+echo "🧹 Cleanup oude processen op poort 5555..."
+lsof -ti:5555 | xargs kill -9 2>/dev/null || true
 
-PORT=${PORT:-5500}
-HOST=${HOST:-127.0.0.1}
+# Wacht even voor cleanup
+sleep 1
 
-echo "📡 Poort: $PORT"
-echo "🌐 URL: http://$HOST:$PORT"
-
-# Kill bestaande processen op poort 5500
-echo "🧹 Cleanup oude processen..."
-lsof -ti:$PORT | xargs kill -9 2>/dev/null || true
-
-# Start server op poort 5500
-echo "🔥 Start server op poort 5500..."
-python3 -m http.server $PORT
-
-echo "✅ Server gestart op http://$HOST:$PORT" 
+# Start Node/Express server op poort 5555 (statisch + Socket.IO)
+echo "🔥 Start Node/Express server op poort 5555..."
+node server.js

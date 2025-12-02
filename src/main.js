@@ -1031,7 +1031,7 @@ document.addEventListener('keydown', (e) => {
       console.warn('⚠️ initChapter2 niet beschikbaar');
     }
   }
-  
+
   // Ctrl+3 (Windows/Linux) of Cmd+3 (Mac) - Chapter 3
   if ((e.ctrlKey || e.metaKey) && e.key === '3') {
     e.preventDefault();

@@ -9,6 +9,19 @@ html, body {
     font-family: 'Open Sans', Arial, sans-serif !important;
 }
 
+/* Verwijder driehoek cursor indicators in Chapter 2 */
+.html-drop-zone,
+.html-drop-zone::before,
+.html-drop-zone::after {
+    cursor: none !important;
+}
+
+.html-drop-zone::before,
+.html-drop-zone::after {
+    content: none !important;
+    display: none !important;
+}
+
 /* Three.js Canvas Styling */
 canvas {
     /* position: absolute !important; */

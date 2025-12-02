@@ -17,7 +17,7 @@ class ChapterManager {
     this.achievements = new Map();
     this.storyProgress = 0;
     this.DEBUG = window.DEBUG || false;
-    
+
     // Initialize immediately
     this.initialize();
   }
@@ -32,11 +32,11 @@ class ChapterManager {
   initialize() {
     try {
       this.debugLog('📚 Initializing ChapterManager...');
-      
+
       this.loadProgress();
       this.setupChapters();
       this.setupAchievements();
-      
+
       this.debugLog('✅ ChapterManager initialized successfully');
       return true;
     } catch (error) {
@@ -55,8 +55,8 @@ class ChapterManager {
         requiredKaboom: 0,
         rewards: {
           sollyCoin: 100,
-          experience: 50
-        }
+          experience: 50,
+        },
       },
       2: {
         name: 'De Ontdekking',
@@ -65,8 +65,8 @@ class ChapterManager {
         requiredKaboom: 20,
         rewards: {
           sollyCoin: 200,
-          experience: 100
-        }
+          experience: 100,
+        },
       },
       3: {
         name: 'De Uitdaging',
@@ -75,8 +75,8 @@ class ChapterManager {
         requiredKaboom: 50,
         rewards: {
           sollyCoin: 300,
-          experience: 150
-        }
+          experience: 150,
+        },
       },
       4: {
         name: 'De Meester',
@@ -85,9 +85,9 @@ class ChapterManager {
         requiredKaboom: 100,
         rewards: {
           sollyCoin: 500,
-          experience: 250
-        }
-      }
+          experience: 250,
+        },
+      },
     };
   }
 
@@ -99,36 +99,36 @@ class ChapterManager {
         name: 'Eerste Kaboom',
         description: 'Behaal je eerste kaboom',
         icon: '💥',
-        reward: { sollyCoin: 50 }
+        reward: { sollyCoin: 50 },
       },
       tenKabooms: {
         id: 'tenKabooms',
         name: 'Kaboom Meester',
         description: 'Behaal 10 kabooms',
         icon: '💥💥',
-        reward: { sollyCoin: 100 }
+        reward: { sollyCoin: 100 },
       },
       firstChapter: {
         id: 'firstChapter',
         name: 'Hoofdstuk Voltooid',
         description: 'Voltooi je eerste hoofdstuk',
         icon: '📚',
-        reward: { sollyCoin: 200 }
+        reward: { sollyCoin: 200 },
       },
       shapeCollector: {
         id: 'shapeCollector',
         name: 'Vormen Verzamelaar',
         description: 'Probeer alle beschikbare vormen',
         icon: '🔷',
-        reward: { sollyCoin: 150 }
+        reward: { sollyCoin: 150 },
       },
       speedRunner: {
         id: 'speedRunner',
         name: 'Snelheidsduivel',
         description: 'Voltooi een level in minder dan 30 seconden',
         icon: '⚡',
-        reward: { sollyCoin: 75 }
-      }
+        reward: { sollyCoin: 75 },
+      },
     };
   }
 
@@ -164,8 +164,8 @@ class ChapterManager {
       requiredKaboom: levelNumber * 5,
       rewards: {
         sollyCoin: levelNumber * 10,
-        experience: levelNumber * 5
-      }
+        experience: levelNumber * 5,
+      },
     };
   }
 
@@ -184,13 +184,13 @@ class ChapterManager {
     if (!this.unlockedChapters.has(chapterNumber)) {
       this.unlockedChapters.add(chapterNumber);
       this.debugLog(`🔓 Chapter ${chapterNumber} unlocked`);
-      
+
       // Trigger event
       this.triggerEvent('chapterUnlocked', {
         chapter: chapterNumber,
-        info: this.getChapterInfo(chapterNumber)
+        info: this.getChapterInfo(chapterNumber),
       });
-      
+
       this.saveProgress();
     }
   }
@@ -200,13 +200,13 @@ class ChapterManager {
     if (!this.unlockedLevels.has(levelNumber)) {
       this.unlockedLevels.add(levelNumber);
       this.debugLog(`🔓 Level ${levelNumber} unlocked`);
-      
+
       // Trigger event
       this.triggerEvent('levelUnlocked', {
         level: levelNumber,
-        info: this.getLevelInfo(levelNumber)
+        info: this.getLevelInfo(levelNumber),
       });
-      
+
       this.saveProgress();
     }
   }
@@ -214,21 +214,21 @@ class ChapterManager {
   // Complete level
   completeLevel(levelNumber, score = 0) {
     this.debugLog(`✅ Level ${levelNumber} completed with score ${score}`);
-    
+
     // Unlock next level
     const nextLevel = levelNumber + 1;
     this.unlockLevel(nextLevel);
-    
+
     // Check for chapter completion
     this.checkChapterCompletion();
-    
+
     // Trigger event
     this.triggerEvent('levelCompleted', {
       level: levelNumber,
       score: score,
-      nextLevel: nextLevel
+      nextLevel: nextLevel,
     });
-    
+
     this.saveProgress();
   }
 
@@ -238,13 +238,11 @@ class ChapterManager {
       this.debugLog('⚠️ Chapters not initialized yet, skipping completion check');
       return;
     }
-    
-    Object.keys(this.chapters).forEach(chapterNumber => {
+
+    Object.keys(this.chapters).forEach((chapterNumber) => {
       const chapter = this.chapters[chapterNumber];
-      const allLevelsUnlocked = chapter.levels.every(level => 
-        this.unlockedLevels.has(level)
-      );
-      
+      const allLevelsUnlocked = chapter.levels.every((level) => this.unlockedLevels.has(level));
+
       if (allLevelsUnlocked && !this.unlockedChapters.has(parseInt(chapterNumber))) {
         this.unlockChapter(parseInt(chapterNumber));
       }
@@ -256,26 +254,26 @@ class ChapterManager {
     if (this.achievements.has(achievementId)) {
       return; // Already awarded
     }
-    
+
     const achievement = this.achievementDefinitions[achievementId];
     if (!achievement) {
       this.debugLog(`❌ Achievement ${achievementId} not found`);
       return;
     }
-    
+
     this.achievements.set(achievementId, {
       ...achievement,
-      awardedAt: Date.now()
+      awardedAt: Date.now(),
     });
-    
+
     this.debugLog(`🏆 Achievement awarded: ${achievement.name}`);
-    
+
     // Trigger event
     this.triggerEvent('achievementAwarded', {
       achievement: achievement,
-      reward: achievement.reward
+      reward: achievement.reward,
     });
-    
+
     this.saveProgress();
   }
 
@@ -285,30 +283,35 @@ class ChapterManager {
     if (gameState.kaboomCount >= 1 && !this.achievements.has('firstKaboom')) {
       this.awardAchievement('firstKaboom');
     }
-    
+
     // Ten kabooms
     if (gameState.kaboomCount >= 10 && !this.achievements.has('tenKabooms')) {
       this.awardAchievement('tenKabooms');
     }
-    
+
     // First chapter
     if (this.unlockedChapters.size >= 2 && !this.achievements.has('firstChapter')) {
       this.awardAchievement('firstChapter');
     }
-    
+
     // Shape collector (if shapes are tracked)
-    if (gameState.shapesTried && gameState.shapesTried.length >= 4 && !this.achievements.has('shapeCollector')) {
+    if (
+      gameState.shapesTried &&
+      gameState.shapesTried.length >= 4 &&
+      !this.achievements.has('shapeCollector')
+    ) {
       this.awardAchievement('shapeCollector');
     }
   }
 
   // Get progress percentage
   getProgressPercentage() {
-    const totalLevels = Object.values(this.chapters).reduce((sum, chapter) => 
-      sum + chapter.levels.length, 0
+    const totalLevels = Object.values(this.chapters).reduce(
+      (sum, chapter) => sum + chapter.levels.length,
+      0,
     );
     const completedLevels = this.unlockedLevels.size;
-    
+
     return Math.round((completedLevels / totalLevels) * 100);
   }
 
@@ -326,11 +329,11 @@ class ChapterManager {
   getAchievementProgress() {
     const total = Object.keys(this.achievementDefinitions).length;
     const unlocked = this.achievements.size;
-    
+
     return {
       unlocked: unlocked,
       total: total,
-      percentage: Math.round((unlocked / total) * 100)
+      percentage: Math.round((unlocked / total) * 100),
     };
   }
 
@@ -338,7 +341,7 @@ class ChapterManager {
   updateStoryProgress(progress) {
     this.storyProgress = Math.max(this.storyProgress, progress);
     this.debugLog(`📖 Story progress updated: ${progress}`);
-    
+
     this.saveProgress();
   }
 
@@ -366,7 +369,7 @@ class ChapterManager {
 
   triggerEvent(event, data) {
     if (this.eventListeners[event]) {
-      this.eventListeners[event].forEach(callback => {
+      this.eventListeners[event].forEach((callback) => {
         try {
           callback(data);
         } catch (error) {
@@ -386,9 +389,9 @@ class ChapterManager {
         unlockedLevels: Array.from(this.unlockedLevels),
         achievements: Array.from(this.achievements.entries()),
         storyProgress: this.storyProgress,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-      
+
       localStorage.setItem('sollycoin_chapter_progress', JSON.stringify(progress));
       this.debugLog('💾 Chapter progress saved');
     } catch (error) {
@@ -404,16 +407,16 @@ class ChapterManager {
         this.debugLog('📂 No saved chapter progress found');
         return false;
       }
-      
+
       const progress = JSON.parse(saved);
-      
+
       this.currentChapter = progress.currentChapter || 1;
       this.currentLevel = progress.currentLevel || 1;
       this.unlockedChapters = new Set(progress.unlockedChapters || [1]);
       this.unlockedLevels = new Set(progress.unlockedLevels || [1]);
       this.achievements = new Map(progress.achievements || []);
       this.storyProgress = progress.storyProgress || 0;
-      
+
       this.debugLog('📂 Chapter progress loaded');
       return true;
     } catch (error) {
@@ -425,16 +428,16 @@ class ChapterManager {
   // Reset progress
   resetProgress() {
     this.debugLog('🔄 Resetting chapter progress...');
-    
+
     this.currentChapter = 1;
     this.currentLevel = 1;
     this.unlockedChapters = new Set([1]);
     this.unlockedLevels = new Set([1]);
     this.achievements.clear();
     this.storyProgress = 0;
-    
+
     localStorage.removeItem('sollycoin_chapter_progress');
-    
+
     this.debugLog('✅ Chapter progress reset');
   }
 
@@ -447,7 +450,7 @@ class ChapterManager {
       unlockedLevels: Array.from(this.unlockedLevels),
       achievements: this.getAchievementProgress(),
       storyProgress: this.storyProgress,
-      totalProgress: this.getProgressPercentage()
+      totalProgress: this.getProgressPercentage(),
     };
   }
 
@@ -466,4 +469,4 @@ window.ChapterManager = ChapterManager;
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = ChapterManager;
 }
-/* eslint-enable no-undef */ 
+/* eslint-enable no-undef */

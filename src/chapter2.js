@@ -2,159 +2,37 @@
 /* eslint-env browser */
 /* global THREE */
 // src/chapter2.js
-// Hoofdstuk 2 – Brutalist cube puzzle
+// Hoofdstuk 2 – Isometrische kubus illusie met 8 dropzones
 
 (function () {
-  const CHAPTER2 = {};
   window.initChapter2 = initChapter2;
 
   // ============================================================
   // 🔧 CONFIGURATIE
   // ============================================================
-  const DEBUG = false; // Zet op true voor uitgebreide console logs
-  const Z_DEPTH_WEIGHT = 0.3; // Gewicht voor Z-depth in afstand berekening (0-1)
-
-  let scene, camera, renderer, controls;
-  let cubeGroup,
-    placeholders = [],
-    dragShapes = [];
-  let holderFrame = null;
+  let scene, renderer;
+  let placedCount = 0;
   let draggedBlock = null;
   let draggedShapeType = null;
-  let cornerScreenPositions = []; // 2D screen coordinaten van elke hoek (wordt 1x berekend)
-  let loadingScene, loadingCamera;
-
-  function showLoadingScreen(callback) {
-    // Maak statisch 2D loading screen - exact zoals screenshot
-    loadingScene = new THREE.Scene();
-    loadingScene.background = new THREE.Color(0x000000);
-
-    const aspect = window.innerWidth / window.innerHeight;
-    const halfH = 600;
-    const halfW = halfH * aspect;
-    loadingCamera = new THREE.OrthographicCamera(-halfW, halfW, halfH, -halfH, 0.1, 3000);
-    loadingCamera.position.set(0, 0, 1000);
-    loadingCamera.lookAt(0, 0, 0);
-
-    // Twee wireframe kubussen (boven en onder) - STATISCH 2D
-    const cubeSize = 280;
-    const boxGeo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-    const edges = new THREE.EdgesGeometry(boxGeo);
-    const lineMat = new THREE.LineBasicMaterial({ color: 0x5b3fa3, linewidth: 2 });
-
-    // Bovenste kubus - vaste rotatie voor perspectief
-    const topCube = new THREE.LineSegments(edges.clone(), lineMat.clone());
-    topCube.position.set(0, 180, 0);
-    topCube.rotation.y = 0.4;
-    topCube.rotation.x = 0.25;
-    loadingScene.add(topCube);
-
-    // Onderste kubus - vaste rotatie
-    const bottomCube = new THREE.LineSegments(edges.clone(), lineMat.clone());
-    bottomCube.position.set(0, -180, 0);
-    bottomCube.rotation.y = 0.4;
-    bottomCube.rotation.x = 0.25;
-    loadingScene.add(bottomCube);
-
-    // Gele bollen op hoekpunten
-    const sphereGeo = new THREE.SphereGeometry(12, 16, 16);
-    const yellowMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
-    const corners = [
-      [-1, -1, -1],
-      [1, -1, -1],
-      [-1, 1, -1],
-      [1, 1, -1],
-      [-1, -1, 1],
-      [1, -1, 1],
-      [-1, 1, 1],
-      [1, 1, 1],
-    ];
-
-    [topCube, bottomCube].forEach((cube) => {
-      corners.forEach((c) => {
-        const sphere = new THREE.Mesh(sphereGeo, yellowMat.clone());
-        sphere.position.set((c[0] * cubeSize) / 2, (c[1] * cubeSize) / 2, (c[2] * cubeSize) / 2);
-        cube.add(sphere);
-      });
-    });
-
-    // Paars rechthoekig vlak in het midden (horizontaal)
-    const planeGeo = new THREE.PlaneGeometry(260, 35);
-    const planeMat = new THREE.MeshBasicMaterial({ color: 0x7b3fa3, side: THREE.DoubleSide });
-    const plane = new THREE.Mesh(planeGeo, planeMat);
-    plane.position.set(0, 0, 0);
-    loadingScene.add(plane);
-
-    // Groene driehoeken links boven (2 kolommen x 3 rijen = 6 stuks)
-    const triangleGeo = new THREE.ConeGeometry(25, 45, 3);
-    const greenMat = new THREE.MeshBasicMaterial({ color: 0x00ffaa });
-    const holderX = -halfW + 140;
-    const holderY = halfH - 220;
-
-    for (let row = 0; row < 3; row++) {
-      for (let col = 0; col < 2; col++) {
-        const triangle = new THREE.Mesh(triangleGeo, greenMat.clone());
-        triangle.position.set(holderX + col * 55, holderY - row * 55, 0);
-        triangle.rotation.z = Math.PI; // Driehoek wijst naar beneden
-        loadingScene.add(triangle);
-      }
-    }
-
-    // Witte rechthoekige rand om driehoeken
-    const frameGeo = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(holderX - 40, holderY + 35, 0),
-      new THREE.Vector3(holderX + 95, holderY + 35, 0),
-      new THREE.Vector3(holderX + 95, holderY - 165, 0),
-      new THREE.Vector3(holderX - 40, holderY - 165, 0),
-      new THREE.Vector3(holderX - 40, holderY + 35, 0),
-    ]);
-    const frameLine = new THREE.Line(
-      frameGeo,
-      new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 }),
-    );
-    loadingScene.add(frameLine);
-
-    // Tekst "Hoofdstuk 2" gecentreerd
-    const loadingText = document.createElement('div');
-    loadingText.id = 'loading-text';
-    loadingText.style.cssText = `
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      font-family: 'Open Sans', sans-serif; font-size: 36px; font-weight: bold;
-      color: white; z-index: 15000; text-align: center;
-    `;
-    loadingText.innerHTML = 'Hoofdstuk 2';
-    document.body.appendChild(loadingText);
-
-    // Render STATISCH - geen animatie
-    renderer.render(loadingScene, loadingCamera);
-
-    // Wacht 3 seconden, dan verder naar het hoofdstuk
-    setTimeout(() => {
-      loadingText.remove();
-      // Scene wordt gewist in cleanupChapter1Objects
-      if (callback) callback();
-    }, 3000);
-  }
 
   function initChapter2() {
+    console.log('🎮 Chapter 2 gestart - Isometrische kubus met 8 dropzones');
+
     // Pak globals uit hoofdstuk 1
     scene = window.scene;
     renderer = window.renderer;
-    controls = window.controls;
+
     if (!scene || !renderer) {
       console.warn('Scene niet beschikbaar, wacht nog even...');
-      // Wacht even en probeer opnieuw als scene nog niet beschikbaar is
       setTimeout(() => {
         if (window.scene && window.renderer) {
-          console.log('Scene nu beschikbaar, initialiseer Chapter 2...');
           initChapter2();
         }
       }, 500);
       return;
     }
 
-    // Start Chapter 2 direct - GEEN loading screen
-    // Zet Level 2 modus (3D) aan
+    // Zet Level 2 modus aan
     window.level2Active = true;
 
     // Update chapter state in ChapterManager
@@ -163,283 +41,59 @@
       console.log('📚 Chapter 2 active in ChapterManager');
     }
 
-    // ============================================================
-    // ⭐ DEFINITIEVE CAMERA CONFIGURATIE - FOREVER BEHOUDEN ⭐
-    // ============================================================
-    // Camera setup: ORTHOGRAPHIC camera voor geometrisch perfecte isometrische kubus
-    // Orthographic camera heeft geen perspectief vervorming - perfect voor isometrisch
-    // Deze configuratie zorgt voor een geometrisch correcte kubus zonder vervorming
-    // ============================================================
-    const aspect = window.innerWidth / window.innerHeight;
-    const viewSize = 6000; // Vergroot view size voor betere zichtbaarheid van hoeken (was 4000)
-    const halfHeight = viewSize / 2;
-    const halfWidth = halfHeight * aspect;
-    camera = new THREE.OrthographicCamera(
-      -halfWidth,
-      halfWidth,
-      halfHeight,
-      -halfHeight,
-      0.1,
-      10000,
-    );
-
-    // Perfect isometrische camera positie (geen perspectief vervorming)
-    // Voor isometrisch: camera op gelijke afstand van alle assen
-    const cameraDistance = 5000;
-    camera.position.set(
-      cameraDistance * 0.577, // X: 1/√3
-      cameraDistance * 0.577, // Y: 1/√3 (symmetrisch)
-      cameraDistance * 0.577, // Z: 1/√3
-    );
-    camera.lookAt(0, 0, 0); // Kijk naar het midden waar de kubus komt
-    // ============================================================
-    window.camera = camera;
-
-    // Verwijder oude CTA-buttons
+    // Verwijder oude UI elementen
     const cta = document.getElementById('cta-buttons');
     if (cta) cta.remove();
-
-    // Verwijder Wallet button rechtsbovenin
     const walletBtn = document.getElementById('wallet-hub-btn');
-    if (walletBtn) {
-      walletBtn.style.display = 'none';
-      walletBtn.remove();
-      console.log('🗑️ Wallet button verwijderd');
-    }
-
-    // Maak camera & controls statisch
-    if (controls) {
-      controls.enabled = false;
-      controls.enableZoom = false;
-      controls.enablePan = false;
-      controls.enableRotate = false;
-    }
-    // Verwijder referentie zodat niets de camera meer kan draaien
-    window.controls = null;
-
-    // Verberg KABOOM teller uit vorig hoofdstuk
+    if (walletBtn) walletBtn.remove();
     const kaboomEl = document.getElementById('kaboom-counter');
     if (kaboomEl) kaboomEl.style.display = 'none';
 
-    // Responderen op resize (houd orthographic view consistent)
-    function onResize() {
-      const aspect = window.innerWidth / window.innerHeight;
-      const viewSize = 6000; // Match met camera setup (was 4000)
-      const halfHeight = viewSize / 2;
-      const halfWidth = halfHeight * aspect;
-      camera.left = -halfWidth;
-      camera.right = halfWidth;
-      camera.top = halfHeight;
-      camera.bottom = -halfHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+    // Disable controls
+    if (window.controls) {
+      window.controls.enabled = false;
+      window.controls = null;
     }
-    window.addEventListener('resize', () => {
-      onResize();
-      positionHolder();
-    });
 
+    // Cleanup en bouw UI
     cleanupChapter1Objects();
-
-    // VERWIJDER ALLE SOLLY OBJECTEN (witte Solly en andere Sollys)
-    const sollyObjectsToRemove = [];
-    scene.traverse((obj) => {
-      // Verwijder Solly1 (witte Solly)
-      if (obj.userData && (obj.userData.isSolly1 || obj.name === 'Solly1')) {
-        sollyObjectsToRemove.push(obj);
-      }
-      // Verwijder alle Solly objecten (mini Sollys, etc.)
-      if (obj.userData && (obj.userData.isSolly || obj.userData.type === 'solly')) {
-        sollyObjectsToRemove.push(obj);
-      }
-      // Verwijder op basis van geometrie (TetrahedronGeometry = Solly)
-      if (obj.geometry && obj.geometry.type === 'TetrahedronGeometry') {
-        if (!obj.userData.isDraggable && !obj.userData.isPlaceholder) {
-          sollyObjectsToRemove.push(obj);
-        }
-      }
-    });
-    sollyObjectsToRemove.forEach((obj) => {
-      if (obj.parent) obj.parent.remove(obj);
-      else scene.remove(obj);
-      console.log('🗑️ Solly object verwijderd:', obj.name || obj.userData);
-    });
-    console.log(`🗑️ Totaal ${sollyObjectsToRemove.length} Solly objecten verwijderd`);
-
-    // VERWIJDER ALLE STERREN uit de scene
-    const starsToRemove = [];
-    scene.traverse((obj) => {
-      // Verwijder InstancedMesh sterren (gebruikt voor performance)
-      if (obj.isInstancedMesh && obj.geometry && obj.geometry.type === 'SphereGeometry') {
-        const radius = obj.geometry.parameters?.radius || 0;
-        if (radius < 10 && obj.material && obj.material.color) {
-          const color = obj.material.color;
-          const isWhite = color.r > 0.9 && color.g > 0.9 && color.b > 0.9;
-          if (isWhite) {
-            starsToRemove.push(obj);
-          }
-        }
-      }
-      // Verwijder alle sterren met userData.isStar
-      if (obj.userData && (obj.userData.isStar || obj.userData.type === 'star')) {
-        starsToRemove.push(obj);
-      }
-      // Ook verwijderen op basis van naam
-      if (obj.name && obj.name.toLowerCase().includes('star')) {
-        starsToRemove.push(obj);
-      }
-      // Verwijder kleine witte bollen die waarschijnlijk sterren zijn
-      if (obj.geometry && obj.geometry.type === 'SphereGeometry' && !obj.isInstancedMesh) {
-        const radius = obj.geometry.parameters?.radius || 0;
-        if (radius < 10 && obj.material && obj.material.color) {
-          const color = obj.material.color;
-          const isWhite = color.r > 0.9 && color.g > 0.9 && color.b > 0.9;
-          if (
-            isWhite &&
-            !obj.userData.isDraggable &&
-            !obj.userData.isPlaceholder &&
-            !obj.userData.isHotspot
-          ) {
-            starsToRemove.push(obj);
-          }
-        }
-      }
-    });
-    starsToRemove.forEach((obj) => {
-      if (obj.parent) obj.parent.remove(obj);
-      else scene.remove(obj);
-      // Dispose geometry en material voor InstancedMesh
-      if (obj.isInstancedMesh) {
-        if (obj.geometry) obj.geometry.dispose();
-        if (obj.material) obj.material.dispose();
-      }
-      console.log('⭐ Ster verwijderd:', obj.type || obj.constructor.name);
-    });
-    console.log(`🗑️ Totaal ${starsToRemove.length} sterren verwijderd`);
-
-    // VERWIJDER ALLE GEplaatste BLOKJES EN SHAPES
-    // Verwijder geplaatste blokjes op de kubus en alle dragShapes
-    const toRemove = [];
-    scene.traverse((obj) => {
-      // Verwijder geplaatste blokjes op de kubus
-      if (obj.userData && obj.userData.isPlacedBlock) {
-        toRemove.push(obj);
-      }
-      // Verwijder ook alle draggable shapes (isDraggable)
-      if (obj.userData && obj.userData.isDraggable) {
-        toRemove.push(obj);
-      }
-    });
-    toRemove.forEach((obj) => {
-      if (obj.parent) obj.parent.remove(obj);
-      else scene.remove(obj);
-    });
-
-    // Reset dragShapes array
-    dragShapes = [];
-
-    // Verwijder ALLE groene tekst/debug elementen (behalve het UI panel)
-    const debugTexts = document.querySelectorAll(
-      '[style*="color: green"], [style*="color: rgb(0, 255"], .debug, [id*="debug"]',
-    );
-    debugTexts.forEach((el) => {
-      if (el.id !== 'chapter2-ui-panel' && !el.closest('#chapter2-ui-panel')) {
-        el.remove();
-      }
-    });
-
-    // Verwijder ALLE groene objecten uit de scene (behalve draggable shapes)
-    const greenObjectsToRemove = [];
-    scene.traverse((obj) => {
-      if (obj.material && obj.material.color && !obj.userData.isDraggable) {
-        const color = obj.material.color;
-        const isGreen = color.getHex() === 0x00ff00 || color.getHex() === 0x00ffaa;
-        if (isGreen) {
-          greenObjectsToRemove.push(obj);
-        }
-      }
-    });
-    greenObjectsToRemove.forEach((obj) => {
-      if (obj.parent) obj.parent.remove(obj);
-      else scene.remove(obj);
-      console.log('🗑️ Groen object verwijderd:', obj);
-    });
-
-    // Reset alle placeholders
-    placeholders = [];
-
-    // VERWIJDER ALLE OUDE EVENT LISTENERS VAN HOOFDSTUK 1
-    // Verwijder oude pointer listeners (zonder canvas te vervangen!)
-    const canvas = renderer.domElement;
-    // Clone de event listeners door nieuwe toe te voegen die de oude overschrijven
-    canvas.style.cursor = 'default';
-
     createBrutalistUI();
-    createCube(); // Dit maakt ook drop zones aan
-    createShapeChoicesHolder(); // ✅ HTML holder onder instructiepanel
+    createIsometricCube();
+    createShapeChoicesHolder();
 
-    // Herbereken drop zones na alles is geladen
-    console.log('⏳ Wacht op renderer/camera voor drop zones...');
-    setTimeout(() => {
-      console.log('🚀 Roep createCornerDropZones aan...');
-      console.log(
-        'Renderer:',
-        !!renderer,
-        'Camera:',
-        !!camera,
-        'Placeholders:',
-        placeholders.length,
-      );
-      createCornerDropZones();
-    }, 500);
-
-    // Pointer events - UITGESCHAKELD (niet meer nodig met button overlay systeem)
-    // canvas.addEventListener('pointerdown', onPointerDown, { capture: true });
-    // canvas.addEventListener('pointermove', onPointerMove, { capture: true });
-    // canvas.addEventListener('pointerup', onPointerUp, { capture: true });
-
-    // Blokkeer muiswiel-zoom/scroll in canvas (2D fixed view)
-    renderer.domElement.addEventListener(
-      'wheel',
-      (e) => {
-        e.preventDefault();
-      },
-      { passive: false },
-    );
+    console.log('✅ Chapter 2 volledig geïnitialiseerd');
   }
 
   function cleanupChapter1Objects() {
-    // Verwijder alle kinderen behalve camera/lights uit scene
-    const keep = new Set();
-    scene.traverse((obj) => {
-      if (obj.isCamera || obj.isLight) keep.add(obj);
-    });
-    [...scene.children].forEach((o) => {
-      if (!keep.has(o)) scene.remove(o);
-    });
+    // Verwijder alle oude HTML elementen
+    document
+      .querySelectorAll('.drop-zone, .html-drop-zone, .corner-drop-zone, .corner-dropzone')
+      .forEach((el) => el.remove());
+    document.querySelectorAll('.debug-drop-dot').forEach((el) => el.remove());
+    const oldCube = document.getElementById('isometric-cube-container');
+    if (oldCube) oldCube.remove();
+    const oldSquare = document.getElementById('flat-square-container');
+    if (oldSquare) oldSquare.remove();
 
-    // Verwijder drop zones en fallback container
-    const dropZones = document.querySelectorAll('.corner-drop-zone');
-    dropZones.forEach((el) => el.remove());
-    const fallback = document.getElementById('chapter2-drop-fallback');
-    if (fallback) {
-      fallback.remove();
+    // Verwijder alle kinderen uit scene behalve camera/lights
+    if (scene) {
+      const keep = new Set();
+      scene.traverse((obj) => {
+        if (obj.isCamera || obj.isLight) keep.add(obj);
+      });
+      [...scene.children].forEach((o) => {
+        if (!keep.has(o)) scene.remove(o);
+      });
+      scene.background = new THREE.Color(0x0a0a0a);
     }
-    window.chapter2CornerData = null;
 
-    // Reset 3D drop zones
-    dropZoneSprites = [];
-    window.canvasDragEventsInitialized = false;
+    placedCount = 0;
   }
 
   function createBrutalistUI() {
-    // Verwijder oude UI elementen (ook het chapter2 panel)
-    const oldTerm = document.getElementById('brutal-terminal');
-    if (oldTerm) oldTerm.remove();
     const oldPanel = document.getElementById('chapter2-ui-panel');
     if (oldPanel) oldPanel.remove();
 
-    // Maak één panel voor alle UI elementen
     const uiPanel = document.createElement('div');
     uiPanel.id = 'chapter2-ui-panel';
     uiPanel.style.cssText = `
@@ -458,469 +112,261 @@
       flex-direction: column;
       gap: 15px;
       border: 2px solid #9370DB;
-      width: 158px; /* 126px + 25% breder */
+      width: 180px;
     `;
 
-    // Level indicator (grotere titel)
     const levelIndicator = document.createElement('div');
-    levelIndicator.style.cssText = `
-      font-size: 20px;
-      padding-bottom: 15px;
-      font-weight: bold;
-    `;
-    levelIndicator.innerHTML = '🎯 LEVEL 2:<br>De Cubus (3D)';
+    levelIndicator.style.cssText = `font-size: 20px; padding-bottom: 10px; font-weight: bold;`;
+    levelIndicator.innerHTML = '🎯 LEVEL 2:<br>De Kubus';
 
-    // Instructions (nu tweede)
     const instructions = document.createElement('div');
-    instructions.style.cssText = `
-      font-size: 16px;
-      line-height: 1.4;
-      padding-bottom: 15px;
-    `;
+    instructions.style.cssText = `font-size: 14px; line-height: 1.4; padding-bottom: 10px;`;
     instructions.innerHTML =
-      '<strong>Doel:</strong><br><span style="font-weight: normal">Sleep de shapes naar de hoekpunten van de kubus!</span>';
+      '<strong>Doel:</strong><br><span style="font-weight: normal">Sleep de shapes naar de 8 hoeken!</span>';
 
-    // Progress counter (nu derde)
     const progressCounter = document.createElement('div');
-    progressCounter.id = 'wireframe-counter';
-    progressCounter.style.cssText = `
-      font-size: 16px;
-      line-height: 1.4;
-    `;
+    progressCounter.id = 'progress-counter';
+    progressCounter.style.cssText = `font-size: 16px; line-height: 1.4;`;
     progressCounter.innerHTML =
-      '<strong>Geplaatst:</strong><br><span style="font-weight: normal">Blokjes [0/8]</span>';
+      '<strong>Geplaatst:</strong><br><span style="font-weight: normal">Shapes [0/8]</span>';
 
-    // Voeg alle elementen toe aan het panel
     uiPanel.appendChild(levelIndicator);
     uiPanel.appendChild(instructions);
     uiPanel.appendChild(progressCounter);
-
-    // Voeg het panel toe aan de pagina
     document.body.appendChild(uiPanel);
   }
 
-  /**
-   * ✅ DEFINITIEVE KUBUS CONFIGURATIE - GOEDGEKEURD ✅
-   *
-   * Deze kubus is goedgekeurd en moet ongewijzigd blijven:
-   * - Perfect symmetrische 3D wireframe kubus
-   * - Paarse lijnen (0x8A2BE2) met linewidth 6
-   * - Isometrische rotatie: X ~35.26°, Y 40° (45° - 5°)
-   * - Alle 12 ribben zichtbaar
-   * - Gecentreerd op (0,0,0)
-   * - Geen groene blokjes
-   *
-   * ⚠️ NIET WIJZIGEN zonder expliciete toestemming ⚠️
-   */
-  function createCube() {
-    // Verwijder oude kubus volledig
-    if (cubeGroup) {
-      scene.remove(cubeGroup);
-      cubeGroup.traverse((obj) => {
-        if (obj.geometry) obj.geometry.dispose();
-        if (obj.material) {
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach((m) => m.dispose());
-          } else {
-            obj.material.dispose();
-          }
-        }
-      });
-      cubeGroup = null;
-    }
-    placeholders = [];
+  // ============================================================
+  // 🎯 ISOMETRISCHE KUBUS - PURE SVG VOOR EXACTE HOEKPUNTEN
+  // ============================================================
+  function createIsometricCube() {
+    console.log('📐 Maak isometrische kubus met 8 dropzones...');
 
-    cubeGroup = new THREE.Group();
+    const oldContainer = document.getElementById('isometric-cube-container');
+    if (oldContainer) oldContainer.remove();
 
-    // PERFECTE SYMMETRISCHE 3D KUBUS
-    const size = 2500;
+    // Container voor de hele kubus
+    const container = document.createElement('div');
+    container.id = 'isometric-cube-container';
+    container.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px;
+      height: 600px;
+      z-index: 9000;
+    `;
 
-    // Maak perfecte BoxGeometry - CENTREERD op oorsprong (default)
-    const boxGeometry = new THREE.BoxGeometry(size, size, size);
+    // ============================================================
+    // ISOMETRISCHE KUBUS - ECHTE VIERKANTE KUBUS
+    // ============================================================
+    // De visuele hoogte moet gelijk zijn aan de visuele breedte
 
-    // Maak wireframe edges - CLEAN paarse lijnen (alle 12 ribben)
-    const edgesGeometry = new THREE.EdgesGeometry(boxGeometry);
-    const edgesMaterial = new THREE.LineBasicMaterial({
-      color: 0x8a2be2, // Paars (BlueViolet)
-      linewidth: 6, // Dikke duidelijke lijnen
-      transparent: false,
-      opacity: 1.0,
-    });
-    const wireframe = new THREE.LineSegments(edgesGeometry, edgesMaterial);
-    // Wireframe niet raycastable maken (zodat alleen placeholders worden geraakt)
-    wireframe.raycast = () => {};
-    cubeGroup.add(wireframe);
+    const cx = 250; // Centrum X
+    const cy = 320; // Centrum Y (iets lager voor meer ruimte)
+    const s = 100; // Basis zijde
 
-    // Bereken PERFECTE hoekpunten voor placeholders
-    // BoxGeometry is al gecentreerd, dus hoekpunten zijn op ±size/2
-    const half = size / 2;
-    const points = [
-      // Voorvlak (z = +half) - Y+ = omhoog
-      { x: -half, y: half, z: half }, // 0: Links boven voor
-      { x: half, y: half, z: half }, // 1: Rechts boven voor
-      { x: half, y: -half, z: half }, // 2: Rechts beneden voor
-      { x: -half, y: -half, z: half }, // 3: Links beneden voor
-      // Achtervlak (z = -half)
-      { x: -half, y: half, z: -half }, // 4: Links boven achter
-      { x: half, y: half, z: -half }, // 5: Rechts boven achter
-      { x: half, y: -half, z: -half }, // 6: Rechts beneden achter
-      { x: -half, y: -half, z: -half }, // 7: Links beneden achter
+    // Isometrische projectie
+    const ax = s * 0.866; // cos(30°) * s = horizontale component (~86.6)
+    const ay = s * 0.5; // sin(30°) * s = verticale component van diepte (~50)
+    // BELANGRIJKE FIX: hoogte moet gelijk zijn aan de breedte (2*ax)
+    // Visuele breedte = 2 * ax = ~173 pixels
+    // Dus hoogte moet ook ~173 pixels zijn
+    const h = s * 1.73; // Hoogte van de kubus (sqrt(3) ≈ 1.73)
+
+    const corners = [
+      // BOVENVLAK (4 hoeken) - y offset = -h
+      { x: cx - ax, y: cy - h - ay, label: '1' }, // Links achter boven
+      { x: cx + ax, y: cy - h - ay, label: '2' }, // Rechts achter boven
+      { x: cx + ax + ax, y: cy - h, label: '3' }, // Rechts voor boven
+      { x: cx, y: cy - h, label: '4' }, // Links voor boven
+      // ONDERVLAK (4 hoeken) - y offset = 0
+      { x: cx - ax, y: cy - ay, label: '5' }, // Links achter onder
+      { x: cx + ax, y: cy - ay, label: '6' }, // Rechts achter onder
+      { x: cx + ax + ax, y: cy, label: '7' }, // Rechts voor onder
+      { x: cx, y: cy, label: '8' }, // Links voor onder
     ];
 
-    // SIMPELE PLACEHOLDERS - alleen voor tracking, niet voor raycasting
-    points.forEach((p, i) => {
-      // Kleine onzichtbare placeholder alleen voor tracking
-      const placeholderSphere = new THREE.SphereGeometry(50, 8, 8); // Klein, alleen voor tracking
-      const placeholderMaterial = new THREE.MeshBasicMaterial({
-        color: 0x8a2be2,
-        transparent: true,
-        opacity: 0, // ONZICHTBAAR
-        side: THREE.DoubleSide,
-      });
-      const placeholderMesh = new THREE.Mesh(placeholderSphere, placeholderMaterial);
-      placeholderMesh.position.set(p.x, p.y, p.z);
-      placeholderMesh.userData.cornerIndex = i;
-      placeholderMesh.userData.isPlaceholder = true;
-      placeholderMesh.visible = true;
-      cubeGroup.add(placeholderMesh);
-      placeholders.push({ mesh: placeholderMesh, filled: false });
-      debugLog(`📍 Placeholder ${i} op hoek:`, p);
+    // SVG voor de hele kubus
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '500');
+    svg.setAttribute('height', '600');
+    svg.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 1;
+    `;
+
+    // Teken de 12 ribben van de kubus
+    const edges = [
+      // Bovenvlak (4 ribben)
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 0],
+      // Ondervlak (4 ribben)
+      [4, 5],
+      [5, 6],
+      [6, 7],
+      [7, 4],
+      // Verticale ribben (4 ribben)
+      [0, 4],
+      [1, 5],
+      [2, 6],
+      [3, 7],
+    ];
+
+    edges.forEach(([from, to]) => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', corners[from].x);
+      line.setAttribute('y1', corners[from].y);
+      line.setAttribute('x2', corners[to].x);
+      line.setAttribute('y2', corners[to].y);
+      line.setAttribute('stroke', '#8A2BE2');
+      line.setAttribute('stroke-width', '4');
+      svg.appendChild(line);
     });
 
-    // PERFECT gecentreerd op oorsprong (BoxGeometry is al gecentreerd)
-    cubeGroup.position.set(0, 0, 0);
+    // Voeg subtiele fill toe voor bovenvlak
+    const topFace = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    topFace.setAttribute(
+      'points',
+      `${corners[0].x},${corners[0].y} ${corners[1].x},${corners[1].y} ${corners[2].x},${corners[2].y} ${corners[3].x},${corners[3].y}`,
+    );
+    topFace.setAttribute('fill', 'rgba(138, 43, 226, 0.1)');
+    topFace.setAttribute('stroke', 'none');
+    svg.insertBefore(topFace, svg.firstChild);
 
-    // ============================================================
-    // ⭐ DEFINITIEVE KUBUS CONFIGURATIE - FOREVER BEHOUDEN ⭐
-    // ============================================================
-    // Deze kubus configuratie is perfect en mag NIET worden aangepast!
-    // - Geometrisch correct (OrthographicCamera, geen perspectief vervorming)
-    // - Perfect isometrisch perspectief (alle 12 ribben zichtbaar)
-    // - Symmetrisch en visueel perfect
-    // ============================================================
-    // PERFECTE ISOMETRISCHE ROTATIE - GEOMETRISCH CORRECT
-    // Voor perfect isometrisch perspectief: eerst Y-rotatie (45°), dan X-rotatie (35.264°)
-    // Dit zorgt voor een geometrisch correcte kubus zonder vervorming
-    cubeGroup.rotation.order = 'YXZ'; // Rotatie volgorde: eerst Y, dan X, dan Z
-    cubeGroup.rotation.y = Math.PI / 4; // Exact 45° rond Y-as
-    cubeGroup.rotation.x = Math.atan(1 / Math.sqrt(2)); // ~35.264° rond X-as (arctan(1/√2))
-    cubeGroup.rotation.z = 0; // Geen z-rotatie
-    // ============================================================
+    container.appendChild(svg);
 
-    scene.add(cubeGroup);
+    // Dropzone posities komen direct uit de corners array
+    const dropzonePositions = corners;
 
-    // Initialiseer 3D Drop System (Sprites)
-    createCornerDropZones();
-  }
+    dropzonePositions.forEach((pos, index) => {
+      const dropzone = document.createElement('div');
+      dropzone.className = 'corner-dropzone';
+      dropzone.dataset.cornerIndex = index;
+      dropzone.dataset.filled = 'false';
+      dropzone.style.cssText = `
+        position: absolute;
+        left: ${pos.x}px;
+        top: ${pos.y}px;
+        transform: translate(-50%, -50%);
+        width: 60px;
+        height: 60px;
+        border: 3px dashed #00ff00;
+        border-radius: 50%;
+        background: rgba(0, 255, 0, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: bold;
+        color: #00ff00;
+        cursor: crosshair;
+        transition: all 0.2s ease;
+        font-family: 'Open Sans', sans-serif;
+        z-index: 100;
+      `;
+      dropzone.textContent = pos.label;
 
-  // ============================================================
-  // 🎯 3D DROP ZONES (SPRITES) - GEEN HTML MEER [V7]
-  // ============================================================
-  // We gebruiken Three.js Sprites die altijd correct meeschalen met de kubus
-  // Hierdoor is de positie altijd 100% accuraat, ongeacht camera/resize
-  // ============================================================
+      // Drag events
+      dropzone.addEventListener('dragenter', handleDragEnter);
+      dropzone.addEventListener('dragover', handleDragOver);
+      dropzone.addEventListener('dragleave', handleDragLeave);
+      dropzone.addEventListener('drop', handleDrop);
 
-  let dropZoneSprites = [];
-
-  function createDropZoneTexture(filled) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    const color = filled ? '#ff0000' : '#00ff00';
-
-    // Cirkel (dashed of solid)
-    ctx.beginPath();
-    ctx.arc(64, 64, 50, 0, Math.PI * 2);
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = color;
-    if (!filled) ctx.setLineDash([15, 10]);
-    ctx.stroke();
-
-    // Fill (subtiel)
-    ctx.fillStyle = filled ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.2)';
-    ctx.fill();
-
-    // Center dot
-    ctx.beginPath();
-    ctx.arc(64, 64, 10, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-
-    return new THREE.CanvasTexture(canvas);
-  }
-
-  function createCornerDropZones() {
-    console.log('🎯 [V8] Initialiseer 3D Sprite Drop Zones (100px radius)');
-
-    // Verwijder oude HTML zones en fallbacks voor zekerheid
-    document.querySelectorAll('.corner-drop-zone').forEach((el) => el.remove());
-    const fallback = document.getElementById('chapter2-drop-fallback');
-    if (fallback) fallback.remove();
-
-    // Verwijder oude sprites
-    dropZoneSprites.forEach((s) => {
-      if (s.parent) s.parent.remove(s);
-      if (s.material.map) s.material.map.dispose();
-      s.material.dispose();
-    });
-    dropZoneSprites = [];
-
-    if (!renderer || !camera || !cubeGroup) return;
-
-    // Maak nieuwe sprites op placeholders
-    placeholders.forEach((p, i) => {
-      const tex = createDropZoneTexture(p.filled);
-      const material = new THREE.SpriteMaterial({
-        map: tex,
-        transparent: true,
-        depthTest: false, // Altijd zichtbaar bovenop wireframe
-        depthWrite: false,
-      });
-      const sprite = new THREE.Sprite(material);
-      // Schaal sprite (in 3D units) - size 2500, dus sprite ~350
-      sprite.scale.set(350, 350, 1);
-      sprite.position.copy(p.mesh.position);
-      sprite.userData = { isDropZone: true, cornerIndex: i, placeholder: p };
-
-      cubeGroup.add(sprite);
-      dropZoneSprites.push(sprite);
+      container.appendChild(dropzone);
     });
 
-    // Setup Drag & Drop events op Canvas (als nog niet gedaan)
-    if (!window.canvasDragEventsInitialized) {
-      setupCanvasDragEvents();
-      window.canvasDragEventsInitialized = true;
-    }
-  }
-
-  function setupCanvasDragEvents() {
-    const canvas = renderer.domElement;
-
-    // Helper om sprite te vinden onder muis via 2D afstand (robuuster dan raycasting)
-    function getIntersectedSprite(e) {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX;
-      const mouseY = e.clientY;
-
-      let closestSprite = null;
-      // Ruime hit radius (100px) - was 60px
-      let minDistance = 100;
-
-      // Zorg dat camera matrices up-to-date zijn
-      if (camera) {
-        camera.updateMatrixWorld();
-        camera.updateProjectionMatrix();
-      }
-
-      dropZoneSprites.forEach((sprite) => {
-        // Projecteer 3D positie naar 2D schermcoördinaten
-        // Dit gebruikt dezelfde projectie als de renderer, dus klopt altijd met wat je ziet
-        const screenPos = sprite.position.clone();
-        screenPos.project(camera);
-
-        // Convert NDC (-1 tot 1) naar pixels relative aan viewport
-        const x = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
-        const y = -(screenPos.y * 0.5 - 0.5) * rect.height + rect.top;
-
-        // Bereken 2D afstand
-        const dx = x - mouseX;
-        const dy = y - mouseY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < minDistance) {
-          minDistance = dist;
-          closestSprite = sprite;
-        }
-      });
-
-      return closestSprite;
-    }
-
-    canvas.ondragover = (e) => {
-      e.preventDefault();
-      const sprite = getIntersectedSprite(e);
-
-      // Reset alle sprites visueel (behalve filled status)
-      dropZoneSprites.forEach((s) => {
-        if (!s.userData.placeholder.filled) {
-          // Normale grootte
-          s.scale.set(350, 350, 1);
-        }
-      });
-
-      if (sprite && !sprite.userData.placeholder.filled) {
-        // Highlight (groter)
-        sprite.scale.set(450, 450, 1);
-      }
-    };
-
-    canvas.ondrop = (e) => {
-      e.preventDefault();
-      const sprite = getIntersectedSprite(e);
-
-      if (sprite && !sprite.userData.placeholder.filled) {
-        const shapeType = e.dataTransfer.getData('text/plain') || draggedShapeType;
-        if (shapeType) {
-          console.log(`✅ [V7] 3D Drop op hoek ${sprite.userData.cornerIndex}`);
-          placeShapeOnCorner(sprite.userData.placeholder, shapeType);
-          updateProgressCounter();
-
-          if (draggedBlock) draggedBlock.remove();
-
-          // Update sprites (texture verandert naar rood)
-          createCornerDropZones();
-        }
-      } else {
-        console.log(`❌ [V8] Drop gemist. Muis: ${e.clientX},${e.clientY}`);
-        // Debug de dichtstbijzijnde sprite
-        let minD = 10000;
-        let nearest = null;
-        const rect = canvas.getBoundingClientRect();
-        dropZoneSprites.forEach((s, i) => {
-          const p = s.position.clone().project(camera);
-          const x = (p.x * 0.5 + 0.5) * rect.width + rect.left;
-          const y = -(p.y * 0.5 - 0.5) * rect.height + rect.top;
-          const d = Math.sqrt((x - e.clientX) ** 2 + (y - e.clientY) ** 2);
-          if (d < minD) {
-            minD = d;
-            nearest = i;
-          }
-        });
-        console.log(
-          `   Dichtstbijzijnde sprite: #${nearest} op ${Math.round(minD)}px afstand (limit: 100px)`,
-        );
-      }
-    };
+    document.body.appendChild(container);
+    console.log('✅ Isometrische kubus met 8 dropzones gemaakt');
   }
 
   // ============================================================
-  // 📐 BEREKEN 2D SCREEN POSITIES VAN KUBUS HOEKEN
-  // ============================================================
-  function calculateCornerScreenPositions() {
-    if (!renderer || !camera) return;
-
-    const rect = renderer.domElement.getBoundingClientRect();
-    cornerScreenPositions = [];
-
-    placeholders.forEach((p, i) => {
-      const worldPos = new THREE.Vector3();
-      p.mesh.getWorldPosition(worldPos);
-
-      // Project naar screen space
-      const screenPos = worldPos.clone();
-      screenPos.project(camera);
-
-      // Converteer naar pixel coordinaten
-      const screenX = (screenPos.x * 0.5 + 0.5) * rect.width + rect.left;
-      const screenY = (screenPos.y * -0.5 + 0.5) * rect.height + rect.top;
-
-      cornerScreenPositions[i] = {
-        x: screenX,
-        y: screenY,
-        z: screenPos.z, // Z-depth: -1 (ver) tot 1 (dichtbij camera)
-        placeholder: p,
-        cornerIndex: i,
-      };
-
-      debugLog(
-        `📍 Hoek ${i} screen: (${Math.round(screenX)}, ${Math.round(screenY)}) Z: ${screenPos.z.toFixed(3)}`,
-      );
-    });
-  }
-
-  // ============================================================
-  // ⭐ SHAPE CHOICES HOLDER - HTML CONTENT BLOCK
+  // 🎨 SHAPE CHOICES - 8 BLOKJES IN 2x4 GRID
   // ============================================================
   function createShapeChoicesHolder() {
-    debugLog('🎨 Creating shape choices holder...');
+    console.log('🎨 Maak shape choices holder met 8 blokjes...');
 
-    // Haal de gekozen shape op uit hoofdstuk 1
-    let userShape = 'piramide'; // Default
+    let userShape = 'piramide';
     if (window.gameManager && window.gameManager.getCurrentShape) {
       userShape = window.gameManager.getCurrentShape();
     }
-    debugLog(`🎯 User chose shape in chapter 1: ${userShape}`);
+    console.log(`🎯 Gekozen shape: ${userShape}`);
 
-    // Verwijder oude holder als die bestaat
     const oldHolder = document.getElementById('shape-choices-holder');
     if (oldHolder) oldHolder.remove();
 
-    // Bereken positie: ONDER het instructiepaneel
     const uiPanel = document.getElementById('chapter2-ui-panel');
-    let topPosition = 260; // Fallback
+    let topPosition = 280;
     if (uiPanel) {
       const rect = uiPanel.getBoundingClientRect();
-      topPosition = rect.bottom + 20; // 20px marge onder het panel
-      debugLog(`📍 UI panel bottom: ${rect.bottom}px, holder top: ${topPosition}px`);
+      topPosition = rect.bottom + 20;
     }
 
-    // Blokjes: 28px
-    const blockSize = 28;
-    const gap = 8;
-    const padding = 10;
-
-    // Maak de holder container
     const holder = document.createElement('div');
     holder.id = 'shape-choices-holder';
     holder.style.cssText = `
       position: fixed;
       top: ${topPosition}px;
       left: 20px;
-      padding: ${padding}px;
+      padding: 12px;
       background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
-      border: 0.5px solid #00ff00;
-      border-radius: 8px;
+      border: 3px solid #00ff00;
+      border-radius: 12px;
       display: grid;
-      grid-template-columns: repeat(2, ${blockSize}px);
-      grid-template-rows: repeat(4, ${blockSize}px);
-      gap: ${gap}px;
-      z-index: 9999;
-      box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
+      grid-template-columns: repeat(2, 50px);
+      grid-template-rows: repeat(4, 50px);
+      gap: 8px;
+      z-index: 10001;
+      box-shadow: 0 4px 20px rgba(0, 255, 0, 0.4);
     `;
 
-    // Maak 8 blokjes (2 kolommen x 4 rijen)
+    // 8 blokjes (2x4 grid)
     for (let i = 0; i < 8; i++) {
       const block = document.createElement('div');
       block.className = 'shape-choice-block';
       block.draggable = true;
       block.dataset.shapeType = userShape;
       block.dataset.blockIndex = i;
+      block.dataset.used = 'false';
       block.style.cssText = `
-        width: ${blockSize}px;
-        height: ${blockSize}px;
+        width: 50px;
+        height: 50px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(0, 255, 0, 0.2);
-        border: 0.075px solid #00ff00;
-        border-radius: 4px;
+        background: rgba(0, 255, 0, 0.3);
+        border: 2px solid #00ff00;
+        border-radius: 6px;
         cursor: grab;
         transition: all 0.2s ease;
       `;
 
-      // Maak de shape (gebaseerd op de keuze uit hoofdstuk 1)
       const shapeElement = document.createElement('div');
       shapeElement.style.cssText = getShapeStyle(userShape);
       shapeElement.style.pointerEvents = 'none';
-
       block.appendChild(shapeElement);
 
-      // Drag & Drop event listeners
-      block.addEventListener('dragstart', handleDragStart);
-      block.addEventListener('dragend', handleDragEnd);
+      block.addEventListener('dragstart', handleBlockDragStart);
+      block.addEventListener('dragend', handleBlockDragEnd);
 
-      // Hover effect
       block.addEventListener('mouseenter', () => {
-        if (!block.dataset.placed) {
-          block.style.background = 'rgba(0, 255, 0, 0.4)';
+        if (block.dataset.used !== 'true') {
+          block.style.background = 'rgba(0, 255, 0, 0.5)';
           block.style.transform = 'scale(1.1)';
+          block.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.6)';
         }
       });
       block.addEventListener('mouseleave', () => {
-        if (!block.dataset.placed) {
-          block.style.background = 'rgba(0, 255, 0, 0.2)';
+        if (block.dataset.used !== 'true') {
+          block.style.background = 'rgba(0, 255, 0, 0.3)';
           block.style.transform = 'scale(1)';
+          block.style.boxShadow = 'none';
         }
       });
 
@@ -928,503 +374,245 @@
     }
 
     document.body.appendChild(holder);
-
-    debugLog(`✅ Shape choices holder created with 8 blocks (shape: ${userShape})`);
+    console.log('✅ Shape choices holder met 8 blokjes gemaakt');
   }
 
-  // Helper functie: Geef de juiste CSS style voor elke shape
-  function getShapeStyle(shape) {
-    switch (shape) {
-      case 'piramide':
-        return `
-          width: 0;
-          height: 0;
-          border-left: 9.6px solid transparent;
-          border-right: 9.6px solid transparent;
-          border-bottom: 17.6px solid #00ff00;
-        `;
+  // ============================================================
+  // 🎯 DRAG & DROP HANDLERS
+  // ============================================================
 
-      case 'kubus':
-      case 'vierkant':
-        return `
-          width: 17.6px;
-          height: 17.6px;
-          background: #00ff00;
-          border: 0.8px solid #00cc00;
-        `;
-
-      case 'bol':
-        return `
-          width: 17.6px;
-          height: 17.6px;
-          background: #00ff00;
-          border-radius: 50%;
-          border: 0.8px solid #00cc00;
-        `;
-
-      case 'ruit':
-      case 'oktaeder':
-        return `
-          width: 16px;
-          height: 16px;
-          background: #00ff00;
-          border: 0.8px solid #00cc00;
-          transform: rotate(45deg);
-        `;
-
-      case 'zandloper':
-        return `
-          width: 0;
-          height: 0;
-          border-left: 8px solid transparent;
-          border-right: 8px solid transparent;
-          border-top: 8px solid #00ff00;
-          border-bottom: 8px solid #00ff00;
-        `;
-
-      default:
-        return `
-          width: 17.6px;
-          height: 17.6px;
-          background: #00ff00;
-          border: 0.8px solid #00cc00;
-        `;
+  function handleBlockDragStart(e) {
+    const block = e.target.closest('.shape-choice-block');
+    if (!block || block.dataset.used === 'true') {
+      e.preventDefault();
+      return;
     }
+
+    draggedBlock = block;
+    draggedShapeType = block.dataset.shapeType;
+
+    block.style.opacity = '0.5';
+    block.style.cursor = 'grabbing';
+
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', draggedShapeType);
+
+    // Highlight beschikbare dropzones
+    document.querySelectorAll('.corner-dropzone').forEach((zone) => {
+      if (zone.dataset.filled !== 'true') {
+        zone.style.border = '3px solid #ffff00';
+        zone.style.boxShadow = '0 0 20px rgba(255, 255, 0, 0.6)';
+      }
+    });
+
+    console.log(`🎯 Start drag: ${draggedShapeType}`);
+  }
+
+  function handleBlockDragEnd(e) {
+    const block = e.target.closest('.shape-choice-block');
+
+    // Reset dropzone highlights
+    document.querySelectorAll('.corner-dropzone').forEach((zone) => {
+      if (zone.dataset.filled !== 'true') {
+        zone.style.border = '3px dashed #00ff00';
+        zone.style.boxShadow = 'none';
+      }
+    });
+
+    if (block && block.dataset.used !== 'true') {
+      block.style.opacity = '1';
+      block.style.cursor = 'grab';
+    }
+  }
+
+  function handleDragEnter(e) {
+    e.preventDefault();
+    const zone = e.target.closest('.corner-dropzone');
+    if (zone && zone.dataset.filled !== 'true') {
+      zone.style.background = 'rgba(0, 255, 0, 0.4)';
+      zone.style.transform = 'translate(-50%, -50%) scale(1.15)';
+      zone.style.border = '3px solid #00ff00';
+    }
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }
+
+  function handleDragLeave(e) {
+    const zone = e.target.closest('.corner-dropzone');
+    if (zone && zone.dataset.filled !== 'true') {
+      zone.style.background = 'rgba(0, 255, 0, 0.15)';
+      zone.style.transform = 'translate(-50%, -50%) scale(1)';
+      zone.style.border = '3px dashed #00ff00';
+    }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    const zone = e.target.closest('.corner-dropzone');
+
+    if (!zone || zone.dataset.filled === 'true') return;
+
+    const shapeType = e.dataTransfer.getData('text/plain') || draggedShapeType;
+    if (!shapeType) return;
+
+    const cornerIndex = zone.dataset.cornerIndex;
+    console.log(`✅ Drop op hoek ${cornerIndex}: ${shapeType}`);
+
+    // Markeer dropzone als gevuld
+    zone.dataset.filled = 'true';
+    zone.style.background = 'rgba(0, 255, 0, 0.6)';
+    zone.style.border = '3px solid #00ff00';
+    zone.style.transform = 'translate(-50%, -50%) scale(1)';
+    zone.style.cursor = 'default';
+    zone.style.boxShadow = '0 0 25px rgba(0, 255, 0, 0.7)';
+    zone.textContent = '✓';
+    zone.style.fontSize = '28px';
+
+    // Markeer blokje als gebruikt
+    if (draggedBlock) {
+      draggedBlock.dataset.used = 'true';
+      draggedBlock.draggable = false;
+      draggedBlock.style.opacity = '0.3';
+      draggedBlock.style.background = 'rgba(100, 100, 100, 0.3)';
+      draggedBlock.style.border = '2px solid #666';
+      draggedBlock.style.cursor = 'not-allowed';
+      draggedBlock.style.pointerEvents = 'none';
+    }
+
+    placedCount++;
+    updateProgressCounter();
+
+    if (placedCount >= 8) {
+      setTimeout(showCompletionMessage, 500);
+    }
+
+    draggedBlock = null;
+    draggedShapeType = null;
   }
 
   // ============================================================
   // 🔧 HELPER FUNCTIES
   // ============================================================
 
-  // Debug logging helper
-  function debugLog(...args) {
-    if (DEBUG) {
-      console.log(...args);
-    }
-  }
-
-  // ============================================================
-  // ⭐ DRAG & DROP SYSTEEM - HTML BLOKJES NAAR KUBUS
-  // ============================================================
-
-  // ============================================================
-  // ⭐ SIMPELE 2D DRAG & DROP - DE KUBUS IS PLAT EN STATISCH
-  // ============================================================
-
-  function handleDragStart(e) {
-    draggedBlock = e.target;
-    draggedShapeType = e.target.dataset.shapeType;
-
-    e.target.style.opacity = '0.5';
-    e.target.style.cursor = 'grabbing';
-
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', e.target.innerHTML);
-    e.dataTransfer.setData('text/plain', draggedShapeType); // Voor drop zones
-
-    console.log(`🎯 START DRAG: ${draggedShapeType}`);
-  }
-
-  function handleDragEnd(e) {
-    if (draggedBlock) {
-      draggedBlock.style.opacity = '1';
-      draggedBlock.style.cursor = 'grab';
-    }
-    console.log('🎯 EINDE DRAG');
-  }
-
-  function handleDragOver(e) {
-    if (e.preventDefault) {
-      e.preventDefault();
-    }
-    e.dataTransfer.dropEffect = 'move';
-    return false;
-  }
-
-  function handleDrop(e) {
-    // OUDE FUNCTIE - NIET MEER GEBRUIKT
-    // Drop zones gebruiken nu HTML drop zones, niet canvas drop
-    console.log('⚠️ OUDE handleDrop aangeroepen - gebruik HTML drop zones in plaats daarvan!');
-    e.preventDefault();
-    return false;
-  }
-
   function updateProgressCounter() {
-    const filledCount = placeholders.filter((p) => p.filled).length;
-    const counter = document.getElementById('wireframe-counter');
+    const counter = document.getElementById('progress-counter');
     if (counter) {
-      counter.innerHTML = `<strong>Geplaatst:</strong><br><span style="font-weight: normal">Blokjes [${filledCount}/8]</span>`;
+      counter.innerHTML = `<strong>Geplaatst:</strong><br><span style="font-weight: normal">Shapes [${placedCount}/8]</span>`;
     }
   }
 
-  function createGeometry(shapeType) {
-    switch (shapeType) {
+  function getShapeStyle(shape) {
+    const baseSize = 20;
+    switch (shape) {
       case 'piramide':
-        return new THREE.TetrahedronGeometry(70, 0);
+        return `
+          width: 0;
+          height: 0;
+          border-left: ${baseSize / 2}px solid transparent;
+          border-right: ${baseSize / 2}px solid transparent;
+          border-bottom: ${baseSize}px solid #00ff00;
+        `;
       case 'kubus':
       case 'vierkant':
-        return new THREE.BoxGeometry(100, 100, 100);
+        return `
+          width: ${baseSize}px;
+          height: ${baseSize}px;
+          background: #00ff00;
+          border: 1px solid #00cc00;
+        `;
       case 'bol':
-        return new THREE.SphereGeometry(60, 24, 24);
+        return `
+          width: ${baseSize}px;
+          height: ${baseSize}px;
+          background: #00ff00;
+          border-radius: 50%;
+        `;
       case 'ruit':
       case 'oktaeder':
-        return new THREE.OctahedronGeometry(70, 0);
-      case 'zandloper': {
-        const hourglassGeometry = new THREE.CylinderGeometry(0, 50, 80, 8);
-        return hourglassGeometry;
-      }
+        return `
+          width: ${baseSize - 4}px;
+          height: ${baseSize - 4}px;
+          background: #00ff00;
+          transform: rotate(45deg);
+        `;
+      case 'zandloper':
+        return `
+          width: 0;
+          height: 0;
+          border-left: ${baseSize / 2.5}px solid transparent;
+          border-right: ${baseSize / 2.5}px solid transparent;
+          border-top: ${baseSize / 2.5}px solid #00ff00;
+          border-bottom: ${baseSize / 2.5}px solid #00ff00;
+        `;
       default:
-        return new THREE.BoxGeometry(100, 100, 100);
+        return `
+          width: ${baseSize}px;
+          height: ${baseSize}px;
+          background: #00ff00;
+        `;
     }
   }
-
-  function placeShapeOnCorner(placeholder, shapeType) {
-    // Gebruik de EXACTE lokale positie van de placeholder
-    // De placeholder is al een child van cubeGroup, dus zijn positie is al lokaal
-    const localPos = new THREE.Vector3();
-    localPos.copy(placeholder.mesh.position);
-
-    // DEBUG: Log de exacte positie
-    debugLog(
-      `📍 Plaats shape op hoek ${placeholder.mesh.userData.cornerIndex} - lokale positie:`,
-      localPos.x,
-      localPos.y,
-      localPos.z,
-    );
-
-    const geometry = createGeometry(shapeType);
-    const material = new THREE.MeshBasicMaterial({
-      color: 0x00ff00,
-      transparent: true,
-      opacity: 0.9,
-      side: THREE.DoubleSide,
-    });
-
-    const placedShape = new THREE.Mesh(geometry, material);
-
-    // Plaats de shape EXACT op dezelfde lokale positie als de placeholder
-    // Gebruik set() met exacte waarden (niet copy) om zeker te zijn
-    placedShape.position.x = localPos.x;
-    placedShape.position.y = localPos.y;
-    placedShape.position.z = localPos.z;
-
-    // Zorg dat de shape NIET roteert (behoudt lokale orientatie)
-    placedShape.rotation.set(0, 0, 0);
-
-    // Lock de positie zodat deze niet kan worden veranderd
-    placedShape.userData.positionLocked = true;
-    placedShape.userData.lockedPosition = localPos.clone();
-
-    placedShape.userData.isPlacedBlock = true;
-    placedShape.userData.cornerIndex = placeholder.mesh.userData.cornerIndex;
-    placedShape.userData.shape = shapeType;
-
-    // Voeg toe aan de cubeGroup (niet scene!) zodat het meedraait met de kubus
-    cubeGroup.add(placedShape);
-
-    // VERIFICATIE: Check direct na toevoegen of positie correct is
-    const verifyPos = new THREE.Vector3();
-    placedShape.getWorldPosition(verifyPos);
-    const placeholderWorldPos = new THREE.Vector3();
-    placeholder.mesh.getWorldPosition(placeholderWorldPos);
-
-    debugLog(
-      `🔍 VERIFICATIE - Shape world positie:`,
-      verifyPos.x.toFixed(1),
-      verifyPos.y.toFixed(1),
-      verifyPos.z.toFixed(1),
-    );
-    debugLog(
-      `🔍 VERIFICATIE - Placeholder world positie:`,
-      placeholderWorldPos.x.toFixed(1),
-      placeholderWorldPos.y.toFixed(1),
-      placeholderWorldPos.z.toFixed(1),
-    );
-
-    const distance = verifyPos.distanceTo(placeholderWorldPos);
-    if (distance > 1) {
-      debugLog(`⚠️ WAARSCHUWING: Shape staat ${distance.toFixed(1)} units van placeholder af!`);
-    }
-
-    // Markeer placeholder als GEVULD (DISABLED)
-    placeholder.filled = true;
-    placeholder.mesh.visible = false;
-
-    // Voeg ROODE DISABLED indicator toe (zichtbaar slot)
-    const disabledRing = new THREE.Mesh(
-      new THREE.RingGeometry(50, 70, 16),
-      new THREE.MeshBasicMaterial({
-        color: 0xff0000, // Rood
-        transparent: true,
-        opacity: 0.9,
-        side: THREE.DoubleSide,
-      }),
-    );
-    disabledRing.position.copy(localPos);
-    disabledRing.userData.isDisabledIndicator = true;
-    disabledRing.userData.cornerIndex = placeholder.mesh.userData.cornerIndex;
-    cubeGroup.add(disabledRing);
-
-    // Update drop zone (maak disabled)
-    const dropZone = document.querySelector(
-      `.corner-drop-zone[data-corner-index="${placeholder.mesh.userData.cornerIndex}"]`,
-    );
-    if (dropZone) {
-      dropZone.style.pointerEvents = 'none';
-      dropZone.style.cursor = 'not-allowed';
-      dropZone.style.background = 'rgba(255, 0, 0, 0.3)';
-      dropZone.style.border = '2px solid rgba(255, 0, 0, 0.8)';
-    }
-
-    console.log(`🔒 Hoek ${placeholder.mesh.userData.cornerIndex} is nu DISABLED (op slot)`);
-
-    // Forceer een render update
-    if (renderer && scene && camera) {
-      renderer.render(scene, camera);
-    }
-
-    // Zorg dat de positie behouden blijft
-    maintainPlacedShapesPositions();
-
-    checkCompletion();
-
-    debugLog(
-      `✅ 3D Shape EXACT geplaatst op hoek ${placeholder.mesh.userData.cornerIndex} (lokale positie: ${localPos.x}, ${localPos.y}, ${localPos.z})`,
-    );
-  }
-
-  function checkCompletion() {
-    const filledCount = placeholders.filter((p) => p.filled).length;
-    updateProgressCounter();
-
-    if (filledCount === 8) {
-      console.log('🎉 ALLE 8 HOEKEN GEVULD! PUZZEL COMPLEET!');
-      setTimeout(() => {
-        alert('🎉 Gefeliciteerd! Je hebt de kubus voltooid!');
-      }, 500);
-    }
-  }
-
-  // Functie om geplaatste shapes op hun juiste positie te houden
-  function maintainPlacedShapesPositions() {
-    cubeGroup.traverse((obj) => {
-      if (obj.userData && obj.userData.positionLocked && obj.userData.lockedPosition) {
-        // Reset positie naar locked positie als deze is veranderd
-        const currentPos = obj.position;
-        const lockedPos = obj.userData.lockedPosition;
-
-        const dx = Math.abs(currentPos.x - lockedPos.x);
-        const dy = Math.abs(currentPos.y - lockedPos.y);
-        const dz = Math.abs(currentPos.z - lockedPos.z);
-
-        // Als positie meer dan 0.1 units afwijkt, reset het
-        if (dx > 0.1 || dy > 0.1 || dz > 0.1) {
-          console.warn(
-            `🔒 Reset positie van shape op hoek ${obj.userData.cornerIndex} - was:`,
-            currentPos.x.toFixed(1),
-            currentPos.y.toFixed(1),
-            currentPos.z.toFixed(1),
-            `-> wordt:`,
-            lockedPos.x.toFixed(1),
-            lockedPos.y.toFixed(1),
-            lockedPos.z.toFixed(1),
-          );
-          obj.position.copy(lockedPos);
-        }
-      }
-    });
-  }
-
-  function createShapeChoices() {
-    console.log('🔧 createShapeChoices() wordt aangeroepen!');
-
-    // Verwijder oude dragShapes eerst
-    dragShapes.forEach((shape) => {
-      if (shape.parent) shape.parent.remove(shape);
-      else scene.remove(shape);
-    });
-    dragShapes = [];
-
-    // Positie links met padding (2x4 grid)
-    const viewSize = 4000; // Zelfde als camera viewSize
-    const aspect = window.innerWidth / window.innerHeight;
-    const halfWidth = (viewSize / 2) * aspect;
-    const padding = 200; // Padding vanaf linkerrand
-    const startX = -halfWidth + padding; // Links met padding
-    const startY = -400; // Onder instructiebox
-    const horizontalGap = 180; // Ruimte tussen kolommen
-    const verticalGap = 200; // Ruimte tussen rijen
-
-    // Maak een groep voor de shape choices box
-    const shapesBoxGroup = new THREE.Group();
-
-    // 8 IDENTIEKE GROENE BLOKJES (allemaal kubussen) in 2x4 GRID
-    const shapeSize = 120; // Grootte van de blokjes
-    const blockColor = 0x00ff00; // GROEN voor alle blokjes
-
-    // Maak 8 identieke groene kubussen in 2x4 grid (2 breed, 4 hoog)
-    for (let i = 0; i < 8; i++) {
-      const col = i % 2; // 0 of 1 (2 kolommen)
-      const row = Math.floor(i / 2); // 0-3 (4 rijen)
-
-      // Allemaal identieke kubussen - DUidelijk 3D met rotatie
-      const geometry = new THREE.BoxGeometry(shapeSize, shapeSize, shapeSize);
-      const material = new THREE.MeshBasicMaterial({
-        color: blockColor,
-        transparent: true,
-        opacity: 0.95,
-        side: THREE.DoubleSide,
-      });
-
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.userData.isDraggable = true;
-      mesh.userData.shape = 'kubus'; // Allemaal kubussen
-      mesh.userData.index = i; // Unieke index voor elk blokje
-      // Grid positie: X voor kolommen, Y voor rijen
-      mesh.position.set(startX + col * horizontalGap, startY - row * verticalGap, 0);
-
-      // Rotatie toevoegen zodat het duidelijk 3D is (niet plat)
-      mesh.rotation.x = Math.PI / 6; // 30 graden
-      mesh.rotation.y = Math.PI / 4; // 45 graden
-
-      dragShapes.push(mesh);
-      shapesBoxGroup.add(mesh);
-      console.log(
-        `✅ Groen blokje ${i + 1} toegevoegd in grid (kolom ${col}, rij ${row}) op positie:`,
-        mesh.position,
-      );
-    }
-
-    // Maak OUTLINE BOX rond de shape choices (alleen outline, geen vulling)
-    const boxWidth = 2 * horizontalGap + shapeSize + 50; // Breedte voor 2 kolommen
-    const boxHeight = 4 * verticalGap + shapeSize + 50; // Hoogte voor 4 rijen
-    const boxDepth = 10; // Diepte voor 3D effect
-
-    // Maak wireframe box (alleen edges, geen vlakken)
-    const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-    const boxEdges = new THREE.EdgesGeometry(boxGeometry);
-    const boxLineMaterial = new THREE.LineBasicMaterial({
-      color: 0x00ff00, // Groene outline
-      linewidth: 3,
-    });
-    const boxWireframe = new THREE.LineSegments(boxEdges, boxLineMaterial);
-
-    // Centreer de box rond de blokjes
-    const boxCenterX = startX + horizontalGap / 2; // Midden tussen de 2 kolommen
-    const boxCenterY = startY - (3 * verticalGap) / 2; // Midden tussen de 4 rijen
-    boxWireframe.position.set(boxCenterX, boxCenterY, 0);
-
-    shapesBoxGroup.add(boxWireframe);
-    shapesBoxGroup.position.z = 0; // Op voorgrond
-
-    // Voeg de hele groep toe aan de scene
-    scene.add(shapesBoxGroup);
-
-    console.log(
-      `🎯 Totaal ${dragShapes.length} groene blokjes gemaakt in 2x4 grid met outline box!`,
-    );
-  }
-
-  function positionHolder() {
-    // Geen holder meer - blokjes staan direct op vaste posities
-  }
-
-  // === Drag & Drop ===
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-
-  // OUDE 3D DRAG FUNCTIES - UITGESCHAKELD (niet meer nodig met button overlay systeem)
-  // Deze functies zijn nu disabled omdat we een nieuw click-to-place systeem gebruiken
-  /*
-  function onPointerDown(e) {
-    e.preventDefault();
-    updateMouse(e);
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(scene.children, true);
-    const draggableHits = intersects.filter(
-      (hit) =>
-        hit.object &&
-        hit.object.userData &&
-        (hit.object.userData.isDraggable || hit.object.userData.isPlacedBlock) &&
-        !hit.object.userData.positionLocked,
-    );
-    console.log(\`🎯 Draggable hits: \${draggableHits.length}\`);
-    if (draggableHits.length > 0) {
-      const hit = draggableHits[0];
-      if (hit && hit.object) {
-        dragged = hit.object;
-        const pt = hit.point;
-        const worldPos = new THREE.Vector3();
-        dragged.getWorldPosition(worldPos);
-        offset.copy(worldPos).sub(pt);
-      isDragging = true;
-      dragged.position.z = 100;
-        if (dragged.material) {
-      dragged.material.opacity = 0.6;
-        }
-        dragged.scale.multiplyScalar(1.1);
-      renderer.domElement.style.cursor = 'grabbing';
-        console.log('🖱️ Drag gestart:', dragged.userData, 'op positie:', dragged.position);
-      } else {
-        console.log('⚠️ Hit object heeft geen draggable userData:', hit.object);
-      }
-    } else {
-      console.log('⚠️ Geen draggable intersects gevonden');
-    }
-  }
-  function onPointerMove(e) {
-    if (!isDragging || !dragged) return;
-    e.preventDefault();
-    updateMouse(e);
-    raycaster.setFromCamera(mouse, camera);
-    const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), -100);
-    const intersect = new THREE.Vector3();
-    raycaster.ray.intersectPlane(planeZ, intersect);
-    if (intersect) {
-      dragged.position.set(intersect.x + offset.x, intersect.y + offset.y, 100);
-      console.log('🖱️ Drag beweging:', dragged.position);
-    }
-  }
-  function onPointerUp() {
-    if (isDragging && dragged) {
-      dragged.position.z = 1;
-      dragged.material.opacity = 0.8;
-      dragged.scale.divideScalar(1.1);
-      renderer.domElement.style.cursor = 'default';
-      if (dragged.userData && dragged.userData.isPlacedBlock && !dragged.userData.positionLocked) {
-        const cornerIndex = dragged.userData.cornerIndex;
-        placeholders[cornerIndex].filled = false;
-        scene.remove(dragged);
-        checkCompletion();
-      } else {
-        // ... rest of drag logic
-      }
-    }
-    isDragging = false;
-    dragged = null;
-  }
-  function updateMouse(e) {
-    const rect = renderer.domElement.getBoundingClientRect();
-    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  }
-  */
-  // EINDE OUDE 3D DRAG FUNCTIES
 
   function showCompletionMessage() {
+    console.log('🎉 ALLE 8 HOEKEN GEVULD! KUBUS COMPLEET!');
+
     const msg = document.createElement('div');
+    msg.id = 'completion-message';
     msg.style.cssText = `
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: linear-gradient(135deg, #8A2BE2, #4B0082); color: white;
-      padding: 30px 50px; border-radius: 15px; font-size: 24px; font-weight: bold;
-      z-index: 10001; text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      border: 3px solid #9370DB; font-family: 'Open Sans', sans-serif;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #8A2BE2, #4B0082);
+      color: white;
+      padding: 40px 60px;
+      border-radius: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      z-index: 20000;
+      text-align: center;
+      box-shadow: 0 10px 50px rgba(138, 43, 226, 0.6);
+      border: 4px solid #9370DB;
+      font-family: 'Open Sans', sans-serif;
+      animation: celebrate 0.5s ease-out;
     `;
-    msg.innerHTML = '🎉 HOOFDSTUK 2 VOLTOOID! 🎉<br><br>De Cubus is compleet!';
+    msg.innerHTML = `
+      🎉 LEVEL 2 VOLTOOID! 🎉
+      <br><br>
+      <span style="font-size: 20px; font-weight: normal;">
+        De Kubus is compleet!
+      </span>
+    `;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes celebrate {
+        0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+        50% { transform: translate(-50%, -50%) scale(1.1); }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+
     document.body.appendChild(msg);
 
     setTimeout(() => {
       if (msg.parentNode) msg.remove();
-    }, 3000);
+    }, 4000);
   }
+
+  // Resize handler
+  window.addEventListener('resize', () => {
+    if (window.level2Active) {
+      const uiPanel = document.getElementById('chapter2-ui-panel');
+      const holder = document.getElementById('shape-choices-holder');
+      if (uiPanel && holder) {
+        const rect = uiPanel.getBoundingClientRect();
+        holder.style.top = `${rect.bottom + 20}px`;
+      }
+    }
+  });
 })();
