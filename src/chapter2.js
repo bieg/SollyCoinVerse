@@ -255,15 +255,15 @@
         left: ${pos.x}px;
         top: ${pos.y}px;
         transform: translate(-50%, -50%);
-        width: 60px;
-        height: 60px;
-        border: 3px dashed #00ff00;
+        width: 30px;
+        height: 30px;
+        border: 2px dashed #00ff00;
         border-radius: 50%;
         background: rgba(0, 255, 0, 0.15);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 12px;
         font-weight: bold;
         color: #00ff00;
         cursor: crosshair;
@@ -557,51 +557,200 @@
   }
 
   function showCompletionMessage() {
-    console.log('🎉 ALLE 8 HOEKEN GEVULD! KUBUS COMPLEET!');
+    console.log('🎉 ALLE 8 HOEKEN GEVULD! KUBUS CONSUME INITIATING!');
 
-    const msg = document.createElement('div');
-    msg.id = 'completion-message';
-    msg.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: linear-gradient(135deg, #8A2BE2, #4B0082);
-      color: white;
-      padding: 40px 60px;
-      border-radius: 20px;
-      font-size: 28px;
-      font-weight: bold;
-      z-index: 20000;
-      text-align: center;
-      box-shadow: 0 10px 50px rgba(138, 43, 226, 0.6);
-      border: 4px solid #9370DB;
-      font-family: 'Open Sans', sans-serif;
-      animation: celebrate 0.5s ease-out;
-    `;
-    msg.innerHTML = `
-      🎉 LEVEL 2 VOLTOOID! 🎉
-      <br><br>
-      <span style="font-size: 20px; font-weight: normal;">
-        De Kubus is compleet!
-      </span>
-    `;
+    const uiPanel = document.getElementById('chapter2-ui-panel');
+    const holder = document.getElementById('shape-choices-holder');
+    const cubeContainer = document.getElementById('isometric-cube-container');
 
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes celebrate {
-        0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-        50% { transform: translate(-50%, -50%) scale(1.1); }
-        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    // Add epic consume animation styles
+    const consumeStyles = document.createElement('style');
+    consumeStyles.id = 'consume-styles';
+    consumeStyles.textContent = `
+      @keyframes cubeGlitch {
+        0%, 100% { filter: hue-rotate(0deg) brightness(1); transform: translate(0, 0) scale(1); }
+        10% { filter: hue-rotate(90deg) brightness(1.5); transform: translate(-5px, 3px) scale(1.02); }
+        20% { filter: hue-rotate(180deg) brightness(0.8); transform: translate(5px, -3px) scale(0.98); }
+        30% { filter: hue-rotate(270deg) brightness(1.3); transform: translate(-3px, -5px) scale(1.01); }
+        40% { filter: hue-rotate(360deg) brightness(1); transform: translate(3px, 5px) scale(0.99); }
+        50% { filter: hue-rotate(45deg) brightness(1.8); transform: translate(-2px, 2px) scale(1.03); }
+        60% { filter: hue-rotate(135deg) brightness(0.6); transform: translate(4px, -2px) scale(0.97); }
+        70% { filter: hue-rotate(225deg) brightness(1.4); transform: translate(-4px, 4px) scale(1.02); }
+        80% { filter: hue-rotate(315deg) brightness(1.1); transform: translate(2px, -4px) scale(0.98); }
+        90% { filter: hue-rotate(60deg) brightness(2); transform: translate(0, 0) scale(1.05); }
+      }
+      @keyframes consumeSpiral {
+        0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); opacity: 1; }
+        100% { transform: translate(-50%, -50%) rotate(720deg) scale(0); opacity: 0; }
+      }
+      @keyframes energyRing {
+        0% { transform: translate(-50%, -50%) scale(0); opacity: 1; border-width: 20px; }
+        100% { transform: translate(-50%, -50%) scale(4); opacity: 0; border-width: 2px; }
+      }
+      @keyframes singularity {
+        0% { transform: translate(-50%, -50%) scale(0); }
+        50% { transform: translate(-50%, -50%) scale(1.5); }
+        100% { transform: translate(-50%, -50%) scale(50); }
+      }
+      @keyframes glitchOverlay {
+        0%, 100% { opacity: 0; }
+        5% { opacity: 0.8; }
+        10% { opacity: 0; }
+        15% { opacity: 0.6; }
+        20% { opacity: 0; }
+        80% { opacity: 0; }
+        85% { opacity: 0.4; }
+        90% { opacity: 0; }
+        95% { opacity: 0.7; }
+      }
+      @keyframes scanlines {
+        0% { background-position: 0 0; }
+        100% { background-position: 0 100vh; }
+      }
+      @keyframes textGlitch {
+        0%, 100% { text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff; clip-path: inset(0 0 0 0); }
+        20% { text-shadow: 2px 0 #ff00ff, -2px 0 #00ffff; clip-path: inset(20% 0 60% 0); }
+        40% { text-shadow: -2px 0 #ffff00, 2px 0 #ff0000; clip-path: inset(60% 0 10% 0); }
+        60% { text-shadow: 2px 0 #00ff00, -2px 0 #0000ff; clip-path: inset(40% 0 30% 0); }
+        80% { text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff; clip-path: inset(10% 0 80% 0); }
+      }
+      .cube-glitching {
+        animation: cubeGlitch 0.1s infinite !important;
+      }
+      .cube-consuming {
+        animation: consumeSpiral 1.5s ease-in forwards !important;
       }
     `;
-    document.head.appendChild(style);
+    document.head.appendChild(consumeStyles);
 
-    document.body.appendChild(msg);
+    // Phase 1: Glitch the cube
+    if (cubeContainer) {
+      cubeContainer.classList.add('cube-glitching');
+    }
 
+    // Create glitch overlay
+    const glitchOverlay = document.createElement('div');
+    glitchOverlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 255, 0.03) 0px,
+        rgba(0, 255, 255, 0.03) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      z-index: 24000; pointer-events: none;
+      animation: scanlines 0.5s linear infinite, glitchOverlay 0.3s infinite;
+    `;
+    document.body.appendChild(glitchOverlay);
+
+    // Create status text
+    const statusText = document.createElement('div');
+    statusText.style.cssText = `
+      position: fixed; top: 15%; left: 50%; transform: translateX(-50%);
+      font-family: 'Orbitron', 'Courier New', monospace; font-size: 24px;
+      color: #00ffff; z-index: 25000; text-align: center;
+      animation: textGlitch 0.2s infinite;
+      text-transform: uppercase; letter-spacing: 5px;
+    `;
+    document.body.appendChild(statusText);
+
+    const messages = [
+      'KUBUS OVERLOAD DETECTED',
+      'INITIATING CONSUME PROTOCOL',
+      'BREAKING DIMENSIONAL BARRIER',
+      'CYBERSPACE BREACH IMMINENT',
+      'ENTERING CHAPTER 3...',
+    ];
+
+    let msgIndex = 0;
+    const msgInterval = setInterval(() => {
+      if (msgIndex < messages.length) {
+        statusText.textContent = messages[msgIndex];
+        msgIndex++;
+      }
+    }, 400);
+
+    // Phase 2: Start consuming after 1.5s
     setTimeout(() => {
-      if (msg.parentNode) msg.remove();
-    }, 4000);
+      if (cubeContainer) {
+        cubeContainer.classList.remove('cube-glitching');
+        cubeContainer.classList.add('cube-consuming');
+      }
+
+      // Create energy rings
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          const ring = document.createElement('div');
+          ring.style.cssText = `
+            position: fixed; top: 50%; left: 50%;
+            width: 100px; height: 100px;
+            border: 20px solid ${i % 2 === 0 ? '#ff00ff' : '#00ffff'};
+            border-radius: 50%; z-index: 23000;
+            animation: energyRing 0.8s ease-out forwards;
+          `;
+          document.body.appendChild(ring);
+          setTimeout(() => ring.remove(), 800);
+        }, i * 150);
+      }
+    }, 1500);
+
+    // Phase 3: Singularity and transition
+    setTimeout(() => {
+      clearInterval(msgInterval);
+
+      // Create singularity
+      const singularity = document.createElement('div');
+      singularity.style.cssText = `
+        position: fixed; top: 50%; left: 50%;
+        width: 20px; height: 20px;
+        background: radial-gradient(circle, #ffffff, #00ffff, #ff00ff, #000000);
+        border-radius: 50%; z-index: 26000;
+        animation: singularity 0.8s ease-in forwards;
+      `;
+      document.body.appendChild(singularity);
+
+      // White flash
+      setTimeout(() => {
+        const flash = document.createElement('div');
+        flash.style.cssText = `
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background: white; z-index: 27000; opacity: 0;
+          transition: opacity 0.2s ease-in;
+        `;
+        document.body.appendChild(flash);
+
+        setTimeout(() => {
+          flash.style.opacity = '1';
+        }, 50);
+
+        setTimeout(() => {
+          // Cleanup
+          if (uiPanel) uiPanel.remove();
+          if (holder) holder.remove();
+          if (cubeContainer) cubeContainer.remove();
+          glitchOverlay.remove();
+          statusText.remove();
+          singularity.remove();
+          consumeStyles.remove();
+
+          // Fade out flash
+          flash.style.transition = 'opacity 0.5s ease-out';
+          flash.style.opacity = '0';
+
+          setTimeout(() => {
+            flash.remove();
+            // Launch Chapter 3!
+            if (window.initChapter3) {
+              console.log('🚀 Launching Chapter 3!');
+              window.initChapter3();
+            } else {
+              console.warn('⚠️ initChapter3 not found');
+            }
+          }, 500);
+        }, 300);
+      }, 600);
+    }, 3000);
   }
 
   // Resize handler

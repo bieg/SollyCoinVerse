@@ -1,41 +1,146 @@
+// @ts-nocheck
+/* eslint-env browser */
+/* global THREE */
 // ===================================================================================
-// ==                            CHAPTER 3: NEON CYBERPUNK                       ==
-// ==                                                                             ==
-// ==      Geïnspireerd door Arcane en Into the Spider-Verse                     ==
-// ==      - Neon lijnen en glitch effects                                       ==
-// ==      - Fel roze, cyan, geel, paars (hoog contrast)                         ==
-// ==      - Comic book style shading                                            ==
-// ==      - Data streams en energetic movement                                  ==
+// ==                     CHAPTER 3: CYBER HANGMAN TERMINAL                        ==
+// ==                                                                               ==
+// ==      Neon Cyberpunk Hacking Game - Galgje maar dan CYBER                     ==
+// ==      - Terminal aesthetic met glitch effects                                  ==
+// ==      - 4 talen: Nederlands, Engels, Duits, Frans                             ==
+// ==      - Firewall breach meter in plaats van galg                              ==
+// ==      - Spider-Verse / Arcane inspired visuals                                ==
 // ===================================================================================
 
-(function() {
+(function () {
   'use strict';
 
-  // Debug toggle
-  const DEBUG = false;
-  function debugLog(...args) {
-    if (DEBUG) {
-      console.log('[Chapter3]', ...args);
-    }
-  }
+  // Game state
+  let currentWord = '';
+  let guessedLetters = [];
+  let wrongGuesses = 0;
+  let maxWrongGuesses = 8;
+  let currentLanguage = 'en';
+  let gameOver = false;
+  let gameWon = false;
 
-  // Three.js references
-  let scene, camera, renderer, controls;
-  
-  // Chapter 3 specific variables
-  let neonCube;
-  let dataStreams = [];
-  let glitchEffects = [];
-  let comicShading = null;
-  
-  // Neon color palette (Arcane/Spider-Verse inspired)
-  const NEON_COLORS = {
-    pink: 0xFF006E,
-    cyan: 0x00F5FF,
-    yellow: 0xFFFF00,
-    purple: 0xB300FF,
-    white: 0xFFFFFF,
-    black: 0x000000
+  // Word lists per language
+  const WORDS = {
+    nl: [
+      'BLOCKCHAIN',
+      'CRYPTOGRAFIE',
+      'ALGORITME',
+      'NETWERK',
+      'PROTOCOL',
+      'FIREWALL',
+      'ENCRYPTIE',
+      'DATABASE',
+      'TERMINAL',
+      'QUANTUM',
+      'MATRIX',
+      'SYSTEEM',
+      'HACKER',
+      'VIRUS',
+      'SERVER',
+      'BINARY',
+      'PIXEL',
+      'CYBER',
+      'DIGITAAL',
+      'VIRTUEEL',
+      'SOLLY',
+      'UNIVERSUM',
+      'PLANEET',
+      'STER',
+      'GALAXIE',
+    ],
+    en: [
+      'BLOCKCHAIN',
+      'CRYPTOGRAPHY',
+      'ALGORITHM',
+      'NETWORK',
+      'PROTOCOL',
+      'FIREWALL',
+      'ENCRYPTION',
+      'DATABASE',
+      'TERMINAL',
+      'QUANTUM',
+      'MATRIX',
+      'SYSTEM',
+      'HACKER',
+      'VIRUS',
+      'SERVER',
+      'BINARY',
+      'PIXEL',
+      'CYBER',
+      'DIGITAL',
+      'VIRTUAL',
+      'SOLLY',
+      'UNIVERSE',
+      'PLANET',
+      'STAR',
+      'GALAXY',
+    ],
+    de: [
+      'BLOCKCHAIN',
+      'KRYPTOGRAFIE',
+      'ALGORITHMUS',
+      'NETZWERK',
+      'PROTOKOLL',
+      'FIREWALL',
+      'VERSCHLUESSELUNG',
+      'DATENBANK',
+      'TERMINAL',
+      'QUANTUM',
+      'MATRIX',
+      'SYSTEM',
+      'HACKER',
+      'VIRUS',
+      'SERVER',
+      'BINAER',
+      'PIXEL',
+      'CYBER',
+      'DIGITAL',
+      'VIRTUELL',
+      'SOLLY',
+      'UNIVERSUM',
+      'PLANET',
+      'STERN',
+      'GALAXIE',
+    ],
+    fr: [
+      'BLOCKCHAIN',
+      'CRYPTOGRAPHIE',
+      'ALGORITHME',
+      'RESEAU',
+      'PROTOCOLE',
+      'PAREFEU',
+      'CHIFFREMENT',
+      'BASEDEDONNEES',
+      'TERMINAL',
+      'QUANTIQUE',
+      'MATRICE',
+      'SYSTEME',
+      'PIRATE',
+      'VIRUS',
+      'SERVEUR',
+      'BINAIRE',
+      'PIXEL',
+      'CYBER',
+      'NUMERIQUE',
+      'VIRTUEL',
+      'SOLLY',
+      'UNIVERS',
+      'PLANETE',
+      'ETOILE',
+      'GALAXIE',
+    ],
+  };
+
+  // Language display names
+  const LANG_NAMES = {
+    nl: 'Nederlands',
+    en: 'English',
+    de: 'Deutsch',
+    fr: 'Français',
   };
 
   // ===================================================================================
@@ -43,74 +148,26 @@
   // ===================================================================================
 
   function initChapter3() {
-    debugLog('🎨 Initializing Chapter 3: Neon Cyberpunk');
-    
-    // Get Three.js globals
-    scene = window.scene;
-    renderer = window.renderer;
-    controls = window.controls;
-    
-    if (!scene || !renderer) {
-      console.warn('⚠️ Scene not available, retrying...');
-      setTimeout(() => {
-        if (window.scene && window.renderer) {
-          initChapter3();
-        }
-      }, 500);
-      return;
-    }
+    console.log('🖥️ Chapter 3: CYBER HANGMAN TERMINAL');
 
     // Mark chapter 3 as active
     window.level3Active = true;
-    
+
     // Update chapter in ChapterManager
     if (window.chapterManager) {
       window.chapterManager.setCurrentChapter(3);
-      console.log('📚 Chapter 3 active in ChapterManager');
     }
 
-    // Setup camera for neon cyberpunk view
-    setupCamera();
-    
-    // Clear previous chapter elements
+    // Clear any previous elements
     clearPreviousChapter();
-    
-    // Setup neon environment
-    setupNeonEnvironment();
-    
-    // Setup neon cube with glitch effect
-    setupNeonCube();
-    
-    // Setup data streams
-    setupDataStreams();
-    
-    // Setup comic book shading
-    setupComicShading();
-    
-    // Setup UI
-    setupChapter3UI();
-    
-    // Start animation loop
-    animateChapter3();
-    
-    console.log('✅ Chapter 3 initialized successfully');
-  }
 
-  // ===================================================================================
-  // ⭐ CAMERA SETUP
-  // ===================================================================================
+    // Create the terminal UI
+    createTerminalUI();
 
-  function setupCamera() {
-    // Dynamic camera with perspective for more dramatic effect
-    const aspect = window.innerWidth / window.innerHeight;
-    camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 10000);
-    
-    // Position camera for cyberpunk angle
-    camera.position.set(0, 800, 2000);
-    camera.lookAt(0, 0, 0);
-    
-    window.camera = camera;
-    debugLog('📷 Camera setup complete');
+    // Start new game
+    startNewGame();
+
+    console.log('✅ Cyber Hangman initialized');
   }
 
   // ===================================================================================
@@ -118,405 +175,648 @@
   // ===================================================================================
 
   function clearPreviousChapter() {
-    // Remove all meshes from previous chapters
-    const objectsToRemove = [];
-    scene.traverse((object) => {
-      if (object.isMesh && object.userData.chapter !== 3) {
-        objectsToRemove.push(object);
-      }
-    });
-    
-    objectsToRemove.forEach(object => {
-      if (object.geometry) object.geometry.dispose();
-      if (object.material) {
-        if (Array.isArray(object.material)) {
-          object.material.forEach(mat => mat.dispose());
-        } else {
-          object.material.dispose();
-        }
-      }
-      scene.remove(object);
-    });
-    
-    debugLog('🧹 Previous chapter elements cleared');
-  }
-
-  // ===================================================================================
-  // ⭐ NEON ENVIRONMENT
-  // ===================================================================================
-
-  function setupNeonEnvironment() {
-    // Dark background for neon to pop
-    scene.background = new THREE.Color(NEON_COLORS.black);
-    scene.fog = new THREE.FogExp2(NEON_COLORS.purple, 0.0005);
-    
-    // Neon grid floor (Tron style)
-    createNeonGrid();
-    
-    // Neon lights
-    createNeonLights();
-    
-    debugLog('🌃 Neon environment setup complete');
-  }
-
-  function createNeonGrid() {
-    const gridSize = 5000;
-    const divisions = 50;
-    
-    // Create grid with neon cyan lines
-    const gridHelper = new THREE.GridHelper(gridSize, divisions, NEON_COLORS.cyan, NEON_COLORS.pink);
-    gridHelper.position.y = -500;
-    gridHelper.material.opacity = 0.5;
-    gridHelper.material.transparent = true;
-    gridHelper.userData.chapter = 3;
-    scene.add(gridHelper);
-    
-    // Add glow effect to grid
-    const gridGlowMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        color1: { value: new THREE.Color(NEON_COLORS.cyan) },
-        color2: { value: new THREE.Color(NEON_COLORS.pink) }
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float time;
-        uniform vec3 color1;
-        uniform vec3 color2;
-        varying vec2 vUv;
-        
-        void main() {
-          float wave = sin(vUv.x * 10.0 + time) * 0.5 + 0.5;
-          vec3 color = mix(color1, color2, wave);
-          gl_FragColor = vec4(color, 0.3);
-        }
-      `,
-      transparent: true,
-      side: THREE.DoubleSide
-    });
-    
-    const gridGlowGeometry = new THREE.PlaneGeometry(gridSize, gridSize);
-    const gridGlow = new THREE.Mesh(gridGlowGeometry, gridGlowMaterial);
-    gridGlow.rotation.x = -Math.PI / 2;
-    gridGlow.position.y = -499;
-    gridGlow.userData.chapter = 3;
-    gridGlow.userData.isAnimated = true;
-    scene.add(gridGlow);
-  }
-
-  function createNeonLights() {
-    // Neon pink point light
-    const pinkLight = new THREE.PointLight(NEON_COLORS.pink, 2, 3000);
-    pinkLight.position.set(-1000, 500, 500);
-    pinkLight.userData.chapter = 3;
-    scene.add(pinkLight);
-    
-    // Neon cyan point light
-    const cyanLight = new THREE.PointLight(NEON_COLORS.cyan, 2, 3000);
-    cyanLight.position.set(1000, 500, -500);
-    cyanLight.userData.chapter = 3;
-    scene.add(cyanLight);
-    
-    // Neon purple ambient light
-    const ambientLight = new THREE.AmbientLight(NEON_COLORS.purple, 0.3);
-    ambientLight.userData.chapter = 3;
-    scene.add(ambientLight);
-    
-    debugLog('💡 Neon lights added');
-  }
-
-  // ===================================================================================
-  // ⭐ NEON CUBE WITH GLITCH EFFECT
-  // ===================================================================================
-
-  function setupNeonCube() {
-    // Create cube with neon edges
-    const cubeSize = 600;
-    const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-    
-    // Transparent material for cube faces
-    const faceMaterial = new THREE.MeshStandardMaterial({
-      color: NEON_COLORS.purple,
-      transparent: true,
-      opacity: 0.1,
-      metalness: 0.8,
-      roughness: 0.2,
-      emissive: NEON_COLORS.purple,
-      emissiveIntensity: 0.5
-    });
-    
-    neonCube = new THREE.Mesh(geometry, faceMaterial);
-    neonCube.userData.chapter = 3;
-    neonCube.userData.isGlitching = true;
-    scene.add(neonCube);
-    
-    // Add neon edges
-    const edgesGeometry = new THREE.EdgesGeometry(geometry);
-    const edgesMaterial = new THREE.LineBasicMaterial({
-      color: NEON_COLORS.cyan,
-      linewidth: 3
-    });
-    const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
-    edges.userData.chapter = 3;
-    neonCube.add(edges);
-    
-    // Add corner spheres with glow
-    addNeonCorners(neonCube, cubeSize);
-    
-    debugLog('🔷 Neon cube created');
-  }
-
-  function addNeonCorners(cube, size) {
-    const cornerPositions = [
-      [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
-      [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
+    // Remove any leftover elements from chapter 2
+    const elementsToRemove = [
+      'chapter2-ui-panel',
+      'shape-choices-holder',
+      'isometric-cube-container',
+      'consume-styles',
+      'scanlines-overlay',
+      'consume-text',
+      'singularity',
     ];
-    
-    const colors = [
-      NEON_COLORS.pink, NEON_COLORS.cyan, NEON_COLORS.yellow, NEON_COLORS.purple,
-      NEON_COLORS.cyan, NEON_COLORS.pink, NEON_COLORS.purple, NEON_COLORS.yellow
-    ];
-    
-    cornerPositions.forEach((pos, i) => {
-      const sphereGeometry = new THREE.SphereGeometry(30, 32, 32);
-      const sphereMaterial = new THREE.MeshStandardMaterial({
-        color: colors[i],
-        emissive: colors[i],
-        emissiveIntensity: 1,
-        metalness: 0.9,
-        roughness: 0.1
-      });
-      
-      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-      sphere.position.set(pos[0] * size / 2, pos[1] * size / 2, pos[2] * size / 2);
-      sphere.userData.chapter = 3;
-      sphere.userData.cornerIndex = i;
-      sphere.userData.isPulsing = true;
-      cube.add(sphere);
-      
-      // Add glow
-      const glowGeometry = new THREE.SphereGeometry(40, 32, 32);
-      const glowMaterial = new THREE.MeshBasicMaterial({
-        color: colors[i],
-        transparent: true,
-        opacity: 0.3,
-        side: THREE.BackSide
-      });
-      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-      sphere.add(glow);
+
+    elementsToRemove.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.remove();
     });
-  }
 
-  // ===================================================================================
-  // ⭐ DATA STREAMS
-  // ===================================================================================
-
-  function setupDataStreams() {
-    // Create 20 data streams flowing around the cube
-    for (let i = 0; i < 20; i++) {
-      createDataStream(i);
-    }
-    
-    debugLog('📊 Data streams created');
-  }
-
-  function createDataStream(index) {
-    const particles = [];
-    const particleCount = 50;
-    const radius = 800 + Math.random() * 200;
-    
-    for (let i = 0; i < particleCount; i++) {
-      const geometry = new THREE.BoxGeometry(5, 5, 5);
-      const color = index % 2 === 0 ? NEON_COLORS.cyan : NEON_COLORS.pink;
-      const material = new THREE.MeshBasicMaterial({
-        color: color,
-        transparent: true,
-        opacity: 0.8
+    // Clear Three.js scene objects (keep lights)
+    if (window.scene) {
+      const toRemove = [];
+      window.scene.traverse((obj) => {
+        if (!obj.isCamera && !obj.isLight && !obj.isScene) {
+          toRemove.push(obj);
+        }
       });
-      
-      const particle = new THREE.Mesh(geometry, material);
-      particle.userData.chapter = 3;
-      particle.userData.streamIndex = index;
-      particle.userData.particleIndex = i;
-      particle.userData.angle = (i / particleCount) * Math.PI * 2;
-      particle.userData.radius = radius;
-      particle.userData.height = Math.random() * 1000 - 500;
-      
-      scene.add(particle);
-      particles.push(particle);
+      toRemove.forEach((obj) => {
+        if (obj.parent) obj.parent.remove(obj);
+      });
+
+      // Set dark background
+      window.scene.background = new THREE.Color(0x0a0a0a);
     }
-    
-    dataStreams.push(particles);
   }
 
   // ===================================================================================
-  // ⭐ COMIC BOOK SHADING (POST-PROCESSING)
+  // ⭐ TERMINAL UI
   // ===================================================================================
 
-  function setupComicShading() {
-    // This would typically use THREE.EffectComposer with custom shaders
-    // For now, we'll apply it to individual objects
-    debugLog('🎭 Comic shading setup (placeholder)');
-  }
+  function createTerminalUI() {
+    // Remove old terminal if exists
+    const oldTerminal = document.getElementById('cyber-terminal');
+    if (oldTerminal) oldTerminal.remove();
 
-  // ===================================================================================
-  // ⭐ UI SETUP
-  // ===================================================================================
-
-  function setupChapter3UI() {
-    // Remove old UI
-    const oldUI = document.getElementById('chapter3-ui');
-    if (oldUI) oldUI.remove();
-    
-    // Create neon cyberpunk UI
-    const ui = document.createElement('div');
-    ui.id = 'chapter3-ui';
-    ui.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 40px;
-      background: linear-gradient(135deg, rgba(255,0,110,0.1), rgba(0,245,255,0.1));
-      border: 3px solid #00F5FF;
-      border-radius: 0;
-      color: #00F5FF;
-      font-family: 'Courier New', monospace;
-      font-size: 24px;
-      text-align: center;
-      z-index: 1000;
-      box-shadow: 0 0 30px rgba(0,245,255,0.8), inset 0 0 30px rgba(255,0,110,0.3);
-      text-shadow: 0 0 10px #00F5FF, 0 0 20px #FF006E;
-      animation: glitch 0.3s infinite;
-    `;
-    
-    ui.innerHTML = `
-      <h1 style="margin: 0 0 20px 0; font-size: 48px; color: #FF006E;">
-        ⚡ CHAPTER 3: NEON CYBERPUNK ⚡
-      </h1>
-      <p style="margin: 10px 0; color: #FFD700;">Enter the digital realm...</p>
-      <p style="margin: 10px 0; font-size: 16px; color: #B300FF;">
-        Inspired by Arcane & Into the Spider-Verse
-      </p>
-      <button id="chapter3-start-btn" style="
-        margin-top: 30px;
-        padding: 15px 40px;
-        background: linear-gradient(135deg, #FF006E, #B300FF);
-        border: 2px solid #00F5FF;
-        color: white;
-        font-size: 20px;
+    // Inject CSS
+    const style = document.createElement('style');
+    style.id = 'cyber-terminal-styles';
+    style.textContent = `
+      @import url('https://fonts.googleapis.com/css2?family=VT323&family=Orbitron:wght@400;700&display=swap');
+      
+      @keyframes scanline {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100vh); }
+      }
+      
+      @keyframes flicker {
+        0%, 100% { opacity: 1; }
+        92% { opacity: 1; }
+        93% { opacity: 0.8; }
+        94% { opacity: 1; }
+        97% { opacity: 0.9; }
+      }
+      
+      @keyframes glitchText {
+        0%, 100% { text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff; }
+        25% { text-shadow: 2px 0 #ff00ff, -2px 0 #00ffff; }
+        50% { text-shadow: -2px -2px #ff00ff, 2px 2px #00ffff; }
+        75% { text-shadow: 2px -2px #ff00ff, -2px 2px #00ffff; }
+      }
+      
+      @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
+        50% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.8), 0 0 60px rgba(255, 0, 255, 0.4); }
+      }
+      
+      @keyframes typewriter {
+        from { width: 0; }
+        to { width: 100%; }
+      }
+      
+      #cyber-terminal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 580px;
+        max-height: 90vh;
+        background: linear-gradient(180deg, #0d0d0d 0%, #1a1a2e 100%);
+        border: 3px solid #00ffff;
+        border-radius: 10px;
+        padding: 0;
+        font-family: 'VT323', monospace;
+        color: #00ffff;
+        z-index: 10000;
+        box-shadow: 
+          0 0 30px rgba(0, 255, 255, 0.3),
+          0 0 60px rgba(255, 0, 255, 0.2),
+          inset 0 0 100px rgba(0, 0, 0, 0.5);
+        animation: pulse 3s infinite, flicker 5s infinite;
+        overflow: hidden;
+      }
+      
+      #cyber-terminal::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(0, 0, 0, 0.1) 0px,
+          rgba(0, 0, 0, 0.1) 1px,
+          transparent 1px,
+          transparent 2px
+        );
+        pointer-events: none;
+        z-index: 1;
+      }
+      
+      .terminal-header {
+        background: linear-gradient(90deg, #ff00ff, #00ffff);
+        padding: 8px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #00ffff;
+      }
+      
+      .terminal-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        color: #000;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+      
+      .terminal-dots {
+        display: flex;
+        gap: 6px;
+      }
+      
+      .terminal-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid rgba(0,0,0,0.3);
+      }
+      
+      .terminal-body {
+        padding: 15px 20px;
+        position: relative;
+        z-index: 2;
+      }
+      
+      .status-line {
+        color: #00ff88;
+        font-size: 15px;
+        margin-bottom: 4px;
+        letter-spacing: 1px;
+        text-shadow: 0 0 8px #00ff88;
+        font-weight: normal;
+      }
+      
+      .breach-container {
+        margin: 12px 0;
+        padding: 10px;
+        border: 2px solid #ff00ff;
+        border-radius: 5px;
+        background: rgba(255, 0, 255, 0.1);
+      }
+      
+      .breach-label {
+        font-size: 13px;
+        color: #ff00ff;
+        margin-bottom: 6px;
+      }
+      
+      .breach-bar {
+        height: 18px;
+        background: #1a1a1a;
+        border-radius: 3px;
+        overflow: hidden;
+        border: 1px solid #333;
+      }
+      
+      .breach-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
+        transition: width 0.5s ease;
+        box-shadow: 0 0 10px currentColor;
+      }
+      
+      .word-display {
+        font-size: 36px;
+        letter-spacing: 12px;
+        text-align: center;
+        margin: 15px 0;
+        color: #00ffff;
+        text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+        font-family: 'Orbitron', sans-serif;
+      }
+      
+      .keyboard-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 5px;
+        margin: 12px 0;
+      }
+      
+      .key-btn {
+        width: 36px;
+        height: 36px;
+        border: 2px solid #00ffff;
+        background: rgba(0, 255, 255, 0.1);
+        color: #00ffff;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 14px;
         font-weight: bold;
         cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+      }
+      
+      .key-btn:hover:not(:disabled) {
+        background: rgba(0, 255, 255, 0.3);
+        transform: scale(1.1);
+        box-shadow: 0 0 15px #00ffff;
+      }
+      
+      .key-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      
+      .key-btn.correct {
+        background: rgba(0, 255, 0, 0.4);
+        border-color: #00ff00;
+        color: #00ff00;
+      }
+      
+      .key-btn.wrong {
+        background: rgba(255, 0, 0, 0.4);
+        border-color: #ff0000;
+        color: #ff0000;
+      }
+      
+      .lang-selector {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #333;
+      }
+      
+      .lang-btn {
+        padding: 6px 12px;
+        border: none;
+        background: linear-gradient(135deg, #1a1a2e, #2d2d44);
+        color: #888;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: all 0.3s ease;
         text-transform: uppercase;
-        box-shadow: 0 0 20px #FF006E;
-        transition: all 0.3s;
-      ">
-        🚀 Start Mission
-      </button>
-    `;
-    
-    // Add glitch animation
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes glitch {
-        0%, 100% { clip-path: inset(0 0 0 0); }
-        25% { clip-path: inset(2px 0 0 0); transform: translate(-2px, 2px); }
-        50% { clip-path: inset(0 0 2px 0); transform: translate(2px, -2px); }
-        75% { clip-path: inset(0 2px 0 0); transform: translate(-2px, -2px); }
+        letter-spacing: 1px;
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .lang-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s ease;
+      }
+      
+      .lang-btn:hover::before {
+        left: 100%;
+      }
+      
+      .lang-btn:hover {
+        color: #00ffff;
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        transform: translateY(-2px);
+      }
+      
+      .lang-btn.active {
+        background: linear-gradient(135deg, #00ffff, #ff00ff);
+        color: #000;
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), 0 0 30px rgba(255, 0, 255, 0.3);
+      }
+      
+      .game-message {
+        text-align: center;
+        font-size: 22px;
+        margin: 12px 0;
+        padding: 12px;
+        border-radius: 8px;
+        animation: glitchText 0.3s infinite;
+      }
+      
+      .game-message.win {
+        background: rgba(0, 255, 0, 0.2);
+        border: 2px solid #00ff00;
+        color: #00ff00;
+      }
+      
+      .game-message.lose {
+        background: rgba(255, 0, 0, 0.2);
+        border: 2px solid #ff0000;
+        color: #ff0000;
+      }
+      
+      .new-game-btn {
+        display: block;
+        margin: 10px auto;
+        padding: 10px 30px;
+        background: linear-gradient(90deg, #ff00ff, #00ffff);
+        border: none;
+        color: #000;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+      }
+      
+      .new-game-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(255, 0, 255, 0.5);
+      }
+      
+      .scanline {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: rgba(0, 255, 255, 0.1);
+        animation: scanline 3s linear infinite;
+        pointer-events: none;
+        z-index: 10;
       }
     `;
     document.head.appendChild(style);
-    
-    document.body.appendChild(ui);
-    
-    // Start button handler
-    document.getElementById('chapter3-start-btn').addEventListener('click', () => {
-      ui.remove();
-      console.log('🎮 Chapter 3 mission started!');
-    });
-    
-    debugLog('🖥️ UI setup complete');
+
+    // Create terminal container
+    const terminal = document.createElement('div');
+    terminal.id = 'cyber-terminal';
+    terminal.innerHTML = `
+      <div class="scanline"></div>
+      <div class="terminal-header">
+        <span class="terminal-title">⚡ FIREWALL BREACH PROTOCOL v3.0</span>
+        <div class="terminal-dots">
+          <div class="terminal-dot" style="background: #ff5f56;"></div>
+          <div class="terminal-dot" style="background: #ffbd2e;"></div>
+          <div class="terminal-dot" style="background: #27ca40;"></div>
+        </div>
+      </div>
+      <div class="terminal-body">
+        <div class="status-line">> INITIATING DECRYPTION SEQUENCE...</div>
+        <div class="status-line">> TARGET WORD DETECTED</div>
+        
+        <div class="breach-container">
+          <div class="breach-label">🔓 FIREWALL INTEGRITY: <span id="breach-percent">100%</span></div>
+          <div class="breach-bar">
+            <div class="breach-fill" id="breach-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+        
+        <div class="word-display" id="word-display">_ _ _ _ _</div>
+        
+        <div id="game-status"></div>
+        
+        <div class="keyboard-container" id="keyboard"></div>
+        
+        <div class="lang-selector">
+          <button class="lang-btn" data-lang="nl">🇳🇱 NL</button>
+          <button class="lang-btn active" data-lang="en">🇬🇧 EN</button>
+          <button class="lang-btn" data-lang="de">🇩🇪 DE</button>
+          <button class="lang-btn" data-lang="fr">🇫🇷 FR</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(terminal);
+
+    // Setup keyboard
+    createKeyboard();
+
+    // Setup language buttons
+    setupLanguageButtons();
   }
 
   // ===================================================================================
-  // ⭐ ANIMATION LOOP
+  // ⭐ KEYBOARD
   // ===================================================================================
 
-  function animateChapter3() {
-    if (!window.level3Active) return;
-    
-    requestAnimationFrame(animateChapter3);
-    
-    const time = Date.now() * 0.001;
-    
-    // Animate neon cube (slow rotation + glitch)
-    if (neonCube) {
-      neonCube.rotation.y += 0.005;
-      neonCube.rotation.x += 0.002;
-      
-      // Random glitch effect
-      if (Math.random() < 0.02) {
-        neonCube.position.x = (Math.random() - 0.5) * 10;
-        neonCube.position.y = (Math.random() - 0.5) * 10;
+  function createKeyboard() {
+    const keyboard = document.getElementById('keyboard');
+    keyboard.innerHTML = '';
+
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+    letters.forEach((letter) => {
+      const btn = document.createElement('button');
+      btn.className = 'key-btn';
+      btn.textContent = letter;
+      btn.dataset.letter = letter;
+      btn.addEventListener('click', () => handleGuess(letter));
+      keyboard.appendChild(btn);
+    });
+  }
+
+  // ===================================================================================
+  // ⭐ LANGUAGE SELECTION
+  // ===================================================================================
+
+  function setupLanguageButtons() {
+    const langBtns = document.querySelectorAll('.lang-btn');
+    langBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        langBtns.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentLanguage = btn.dataset.lang;
+        startNewGame();
+      });
+    });
+  }
+
+  // ===================================================================================
+  // ⭐ GAME LOGIC
+  // ===================================================================================
+
+  function startNewGame() {
+    // Reset state
+    guessedLetters = [];
+    wrongGuesses = 0;
+    gameOver = false;
+    gameWon = false;
+
+    // Pick random word
+    const wordList = WORDS[currentLanguage];
+    currentWord = wordList[Math.floor(Math.random() * wordList.length)];
+
+    console.log(`🎮 New game started - Language: ${currentLanguage}`);
+
+    // Reset UI
+    updateWordDisplay();
+    updateBreachMeter();
+    createKeyboard();
+
+    // Clear game status
+    const status = document.getElementById('game-status');
+    if (status) status.innerHTML = '';
+  }
+
+  function handleGuess(letter) {
+    if (gameOver || guessedLetters.includes(letter)) return;
+
+    guessedLetters.push(letter);
+
+    const btn = document.querySelector(`.key-btn[data-letter="${letter}"]`);
+
+    if (currentWord.includes(letter)) {
+      // Correct guess
+      btn.classList.add('correct');
+      playGlitchEffect('correct');
+    } else {
+      // Wrong guess
+      btn.classList.add('wrong');
+      wrongGuesses++;
+      playGlitchEffect('wrong');
+    }
+
+    btn.disabled = true;
+
+    updateWordDisplay();
+    updateBreachMeter();
+    checkGameEnd();
+  }
+
+  function updateWordDisplay() {
+    const display = document.getElementById('word-display');
+    const displayText = currentWord
+      .split('')
+      .map((letter) => (guessedLetters.includes(letter) ? letter : '_'))
+      .join(' ');
+    display.textContent = displayText;
+  }
+
+  function updateBreachMeter() {
+    const fill = document.getElementById('breach-fill');
+    const percent = document.getElementById('breach-percent');
+
+    const integrity = Math.max(0, 100 - (wrongGuesses / maxWrongGuesses) * 100);
+    fill.style.width = `${integrity}%`;
+    percent.textContent = `${Math.round(integrity)}%`;
+
+    // Change color based on integrity
+    if (integrity > 60) {
+      fill.style.background = 'linear-gradient(90deg, #00ff00, #00ff00)';
+    } else if (integrity > 30) {
+      fill.style.background = 'linear-gradient(90deg, #ffff00, #ff8800)';
+    } else {
+      fill.style.background = 'linear-gradient(90deg, #ff0000, #ff0000)';
+    }
+  }
+
+  function checkGameEnd() {
+    const wordGuessed = currentWord.split('').every((letter) => guessedLetters.includes(letter));
+
+    if (wordGuessed) {
+      gameWon = true;
+      gameOver = true;
+      showGameMessage('win');
+    } else if (wrongGuesses >= maxWrongGuesses) {
+      gameOver = true;
+      showGameMessage('lose');
+    }
+  }
+
+  function showGameMessage(type) {
+    const status = document.getElementById('game-status');
+
+    if (type === 'win') {
+      status.innerHTML = `
+        <div class="game-message win">
+          🎉 ACCESS GRANTED 🎉<br>
+          <span style="font-size: 18px;">FIREWALL BREACHED SUCCESSFULLY</span>
+        </div>
+        <button class="new-game-btn" onclick="window.restartCyberHangman()">🔄 HACK AGAIN</button>
+      `;
+      playGlitchEffect('win');
+    } else {
+      status.innerHTML = `
+        <div class="game-message lose">
+          💀 ACCESS DENIED 💀<br>
+          <span style="font-size: 18px;">WORD WAS: ${currentWord}</span>
+        </div>
+        <button class="new-game-btn" onclick="window.restartCyberHangman()">🔄 TRY AGAIN</button>
+      `;
+      playGlitchEffect('lose');
+    }
+  }
+
+  // ===================================================================================
+  // ⭐ GLITCH EFFECTS
+  // ===================================================================================
+
+  function playGlitchEffect(type) {
+    const terminal = document.getElementById('cyber-terminal');
+
+    if (type === 'wrong') {
+      // Screen shake
+      terminal.style.animation = 'none';
+      terminal.offsetHeight; // Trigger reflow
+      terminal.style.animation = 'pulse 3s infinite, flicker 5s infinite';
+
+      // Red flash
+      const flash = document.createElement('div');
+      flash.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(255, 0, 0, 0.3);
+        z-index: 9999;
+        pointer-events: none;
+      `;
+      document.body.appendChild(flash);
+      setTimeout(() => flash.remove(), 150);
+    } else if (type === 'correct') {
+      // Green flash
+      const flash = document.createElement('div');
+      flash.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 255, 0, 0.2);
+        z-index: 9999;
+        pointer-events: none;
+      `;
+      document.body.appendChild(flash);
+      setTimeout(() => flash.remove(), 150);
+    } else if (type === 'win') {
+      // Neon celebration
+      for (let i = 0; i < 5; i++) {
         setTimeout(() => {
-          if (neonCube) {
-            neonCube.position.x = 0;
-            neonCube.position.y = 0;
-          }
-        }, 50);
+          const flash = document.createElement('div');
+          flash.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: ${i % 2 === 0 ? 'rgba(0, 255, 255, 0.3)' : 'rgba(255, 0, 255, 0.3)'};
+            z-index: 9999;
+            pointer-events: none;
+          `;
+          document.body.appendChild(flash);
+          setTimeout(() => flash.remove(), 100);
+        }, i * 150);
       }
-      
-      // Pulse corner spheres
-      neonCube.children.forEach(child => {
-        if (child.userData.isPulsing) {
-          const scale = 1 + Math.sin(time * 3 + child.userData.cornerIndex) * 0.2;
-          child.scale.set(scale, scale, scale);
-        }
-      });
-    }
-    
-    // Animate data streams
-    dataStreams.forEach((stream, streamIndex) => {
-      stream.forEach(particle => {
-        particle.userData.angle += 0.02;
-        const angle = particle.userData.angle;
-        const radius = particle.userData.radius;
-        
-        particle.position.x = Math.cos(angle) * radius;
-        particle.position.z = Math.sin(angle) * radius;
-        particle.position.y = particle.userData.height + Math.sin(time + particle.userData.particleIndex) * 50;
-        
-        particle.rotation.y += 0.1;
-      });
-    });
-    
-    // Animate grid glow
-    scene.traverse(object => {
-      if (object.userData.isAnimated && object.material && object.material.uniforms) {
-        object.material.uniforms.time.value = time;
-      }
-    });
-    
-    // Render
-    if (renderer) {
-      renderer.render(scene, camera);
+    } else if (type === 'lose') {
+      // Glitch out
+      terminal.style.filter = 'hue-rotate(180deg)';
+      setTimeout(() => {
+        terminal.style.filter = 'none';
+      }, 500);
     }
   }
 
   // ===================================================================================
-  // ⭐ EXPORT
+  // ⭐ KEYBOARD INPUT
   // ===================================================================================
 
-  // Make initChapter3 globally available
+  document.addEventListener('keydown', (e) => {
+    if (!window.level3Active || gameOver) return;
+
+    const letter = e.key.toUpperCase();
+    if (/^[A-Z]$/.test(letter) && !guessedLetters.includes(letter)) {
+      handleGuess(letter);
+    }
+  });
+
+  // ===================================================================================
+  // ⭐ GLOBAL FUNCTIONS
+  // ===================================================================================
+
   window.initChapter3 = initChapter3;
-  
-  debugLog('✅ Chapter 3 module loaded');
-
+  window.restartCyberHangman = startNewGame;
 })();
-
