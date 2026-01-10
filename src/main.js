@@ -1053,6 +1053,28 @@ document.addEventListener('keydown', (e) => {
       console.warn('⚠️ initChapter3 niet beschikbaar');
     }
   }
+
+  // Ctrl+4 (Windows/Linux) of Cmd+4 (Mac) - Chapter 4
+  if ((e.ctrlKey || e.metaKey) && e.key === '4') {
+    e.preventDefault();
+    console.log('⌨️ Keyboard shortcut: Direct naar Hoofdstuk 4 (De Meester)');
+
+    if (window.initChapter4) {
+      if (window.level4Active) {
+        console.log('⚠️ Hoofdstuk 4 is al actief');
+        return;
+      }
+
+      try {
+        console.log('🚀 Loading Hoofdstuk 4: De Meester via keyboard shortcut...');
+        window.initChapter4();
+      } catch (error) {
+        console.error('❌ Error loading Hoofdstuk 4:', error);
+      }
+    } else {
+      console.warn('⚠️ initChapter4 niet beschikbaar');
+    }
+  }
 });
 
 // Send collision to server

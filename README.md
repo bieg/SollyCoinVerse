@@ -1,5 +1,8 @@
 # Sollyverse - Modulaire JavaScript Structuur
 
+> **Copyright (c) 2024-2025 bieg. All Rights Reserved.**
+> See [LICENSE](./LICENSE) for details. Unauthorized copying, modification, or distribution is prohibited.
+
 ## 🎯 **Project Status: dApp FASE 1 (Web3 Foundation)**
 
 Het Sollyverse is nu een **volledige dApp** met Web3 integratie! We hebben de basis blockchain functionaliteit geïmplementeerd en zijn klaar voor smart contract integratie.
