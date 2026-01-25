@@ -1092,6 +1092,23 @@ document.addEventListener('keydown', (e) => {
       console.warn('⚠️ initSecretLevel niet beschikbaar - is RedTakeover.js geladen?');
     }
   }
+
+  // Ctrl+0 (Windows/Linux) of Cmd+0 (Mac) - GAME ENDING: The Creation
+  if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+    e.preventDefault();
+    console.log('⌨️ Keyboard shortcut: GAME ENDING - The Creation! 🌌');
+
+    if (window.triggerGameEnding) {
+      try {
+        console.log('🌌 Loading Game Ending: The Creation...');
+        window.triggerGameEnding();
+      } catch (error) {
+        console.error('❌ Error loading Game Ending:', error);
+      }
+    } else {
+      console.warn('⚠️ triggerGameEnding niet beschikbaar - is GameEnding.js geladen?');
+    }
+  }
 });
 
 // Send collision to server
