@@ -58,8 +58,13 @@
                     <span class="status-indicator" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ff0000; margin-right: 8px;"></span>
                     <span id="wallet-status-text">Niet verbonden</span>
                   </p>
-                  <p id="wallet-address" style="font-size: 0.9em; color: #888; margin-bottom: 12px; display: none;">0x...</p>
+                  <p id="wallet-address" style="font-size: 0.9em; color: #888; margin-bottom: 8px; display: none;">0x...</p>
+                  <p id="network-status" style="font-size: 0.85em; color: #666; margin-bottom: 12px;">
+                    <span id="network-indicator" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #888; margin-right: 6px;"></span>
+                    <span id="network-name">Geen netwerk</span>
+                  </p>
                   <button id="connect-wallet-btn" onclick="connectWalletFromUI()" style="margin-bottom: 8px;">🔗 Connect Wallet</button>
+                  <button id="switch-sepolia-btn" onclick="switchToSepoliaFromUI()" style="margin-bottom: 8px; display: none; background: #6f42c1;">🔄 Switch naar Sepolia</button>
                   <button id="disconnect-wallet-btn" onclick="disconnectWalletFromUI()" style="display: none;">🔌 Disconnect</button>
                 </div>
                 <div class="dashboard-card">
@@ -545,6 +550,7 @@
         const walletAddress = document.getElementById('wallet-address');
         const connectBtn = document.getElementById('connect-wallet-btn');
         const disconnectBtn = document.getElementById('disconnect-wallet-btn');
+        const switchSepoliaBtn = document.getElementById('switch-sepolia-btn');
 
         if (!window.web3Manager || !window.web3Manager.isConnected || !window.web3Manager.currentAccount) {
           // Not connected
@@ -553,11 +559,12 @@
           if (walletAddress) walletAddress.style.display = 'none';
           if (connectBtn) connectBtn.style.display = 'block';
           if (disconnectBtn) disconnectBtn.style.display = 'none';
+          if (switchSepoliaBtn) switchSepoliaBtn.style.display = 'none';
         } else {
           // Connected
           const account = window.web3Manager.currentAccount;
           const shortAddress = `${account.slice(0, 6)}...${account.slice(-4)}`;
-          
+
           if (statusText) statusText.textContent = 'Verbonden';
           if (statusIndicator) statusIndicator.style.background = '#00ff00';
           if (walletAddress) {
@@ -566,6 +573,61 @@
           }
           if (connectBtn) connectBtn.style.display = 'none';
           if (disconnectBtn) disconnectBtn.style.display = 'block';
+
+          // Update network status
+          updateNetworkStatus();
+        }
+      }
+
+      // Update network status indicator
+      async function updateNetworkStatus() {
+        const networkIndicator = document.getElementById('network-indicator');
+        const networkName = document.getElementById('network-name');
+        const switchSepoliaBtn = document.getElementById('switch-sepolia-btn');
+
+        if (!window.web3Manager || !window.web3Manager.web3) {
+          if (networkName) networkName.textContent = 'Geen netwerk';
+          if (networkIndicator) networkIndicator.style.background = '#888';
+          return;
+        }
+
+        try {
+          const network = await window.web3Manager.getCurrentNetwork();
+          const isOnSepolia = network.chainId === 11155111;
+
+          if (networkName) networkName.textContent = network.name;
+
+          if (isOnSepolia) {
+            // On Sepolia - good!
+            if (networkIndicator) networkIndicator.style.background = '#28a745';
+            if (switchSepoliaBtn) switchSepoliaBtn.style.display = 'none';
+          } else {
+            // Not on Sepolia - show switch button
+            if (networkIndicator) networkIndicator.style.background = '#ffc107';
+            if (switchSepoliaBtn) switchSepoliaBtn.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('❌ Network status error:', error);
+          if (networkName) networkName.textContent = 'Fout bij laden';
+          if (networkIndicator) networkIndicator.style.background = '#dc3545';
+        }
+      }
+
+      // Switch to Sepolia testnet
+      async function switchToSepoliaFromUI() {
+        try {
+          if (!window.web3Manager) {
+            alert('⚠️ Web3Manager niet geïnitialiseerd');
+            return;
+          }
+
+          await window.web3Manager.switchToSepolia();
+          updateNetworkStatus();
+
+          console.log('✅ Switched to Sepolia testnet');
+        } catch (error) {
+          console.error('❌ Sepolia switch error:', error);
+          alert('❌ Kon niet naar Sepolia wisselen: ' + error.message);
         }
       }
 
@@ -576,22 +638,31 @@
 
           // Check if MetaMask was previously connected
           const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          
+
           if (accounts && accounts.length > 0) {
             console.log('🔗 Auto-connecting wallet...');
             window.web3Manager.currentAccount = accounts[0];
             window.web3Manager.isConnected = true;
-            
+
             if (window.contractManager) {
               window.contractManager.setAccount(accounts[0]);
             }
 
             updateWalletStatus();
+            updateNetworkStatus();
             console.log('✅ Auto-connected:', accounts[0]);
           }
         } catch (error) {
           console.error('❌ Auto-connect failed:', error);
         }
+      }
+
+      // Listen for network changes from MetaMask
+      if (window.ethereum) {
+        window.ethereum.on('chainChanged', () => {
+          console.log('🔄 Network changed, updating status...');
+          updateNetworkStatus();
+        });
       }
 
       document.addEventListener('DOMContentLoaded', () => {
@@ -684,6 +755,7 @@
     <script src="src/chapter2.js?v=CONSUME3"></script>
     <script src="src/chapter3.js?v=COMPACT2"></script>
     <script src="src/chapter4.js?v=1"></script>
+    <script src="src/RedTakeover.js?v=1"></script>
     <script src="src/animation.js"></script>
     <!-- Web3 library en manager -->
     <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>

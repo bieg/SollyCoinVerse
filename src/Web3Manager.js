@@ -7,6 +7,7 @@
 // ==      - Account management                                                   ==
 // ==      - Transaction handling                                                ==
 // ===================================================================================
+/* global Web3 */
 
 class Web3Manager {
   constructor() {
@@ -29,18 +30,18 @@ class Web3Manager {
   async initialize() {
     try {
       this.debugLog('🔗 Initializing Web3Manager...');
-      
+
       // Check if MetaMask is available
       if (typeof window.ethereum !== 'undefined') {
         this.provider = window.ethereum;
         this.web3 = new Web3(this.provider);
         this.isConnected = true;
-        
+
         this.debugLog('✅ Web3 initialized with MetaMask');
-        
+
         // Setup event listeners
         this.setupEventListeners();
-        
+
         return true;
       } else {
         this.debugLog('⚠️ MetaMask not found, Web3 not available');
@@ -55,28 +56,28 @@ class Web3Manager {
   // Setup event listeners for wallet changes
   setupEventListeners() {
     if (!this.provider) return;
-    
+
     // Account change event
     this.provider.on('accountsChanged', (accounts) => {
       this.debugLog('👤 Account changed:', accounts);
       this.currentAccount = accounts[0] || null;
       this.emit('accountChanged', this.currentAccount);
     });
-    
+
     // Network change event
     this.provider.on('chainChanged', (chainId) => {
       this.debugLog('🌐 Network changed:', chainId);
       this.currentNetwork = this.getNetworkName(chainId);
       this.emit('networkChanged', this.currentNetwork);
     });
-    
+
     // Connect event
     this.provider.on('connect', (connectInfo) => {
       this.debugLog('🔗 Wallet connected:', connectInfo);
       this.isConnected = true;
       this.emit('connected', connectInfo);
     });
-    
+
     // Disconnect event
     this.provider.on('disconnect', (error) => {
       this.debugLog('🔌 Wallet disconnected:', error);
@@ -90,21 +91,21 @@ class Web3Manager {
   async connectWallet() {
     try {
       this.debugLog('🔗 Connecting wallet...');
-      
+
       if (!this.provider) {
         throw new Error('No Web3 provider available');
       }
-      
+
       const accounts = await this.provider.request({
-        method: 'eth_requestAccounts'
+        method: 'eth_requestAccounts',
       });
-      
+
       this.currentAccount = accounts[0];
       this.isConnected = true;
-      
+
       this.debugLog('✅ Wallet connected:', this.currentAccount);
       this.emit('walletConnected', this.currentAccount);
-      
+
       return this.currentAccount;
     } catch (error) {
       this.debugLog('❌ Wallet connection failed:', error);
@@ -116,13 +117,13 @@ class Web3Manager {
   async disconnectWallet() {
     try {
       this.debugLog('🔌 Disconnecting wallet...');
-      
+
       this.currentAccount = null;
       this.isConnected = false;
-      
+
       this.debugLog('✅ Wallet disconnected');
       this.emit('walletDisconnected');
-      
+
       return true;
     } catch (error) {
       this.debugLog('❌ Wallet disconnection failed:', error);
@@ -141,10 +142,10 @@ class Web3Manager {
       if (!this.web3) {
         throw new Error('Web3 not initialized');
       }
-      
+
       const accounts = await this.web3.eth.getAccounts();
       this.debugLog('👥 Accounts retrieved:', accounts);
-      
+
       return accounts;
     } catch (error) {
       this.debugLog('❌ Failed to get accounts:', error);
@@ -158,16 +159,16 @@ class Web3Manager {
       if (!this.web3) {
         throw new Error('Web3 not initialized');
       }
-      
+
       const chainId = await this.web3.eth.getChainId();
       const networkName = this.getNetworkName(chainId);
-      
+
       this.currentNetwork = networkName;
       this.debugLog('🌐 Current network:', networkName, '(Chain ID:', chainId, ')');
-      
+
       return {
         chainId: chainId,
-        name: networkName
+        name: networkName,
       };
     } catch (error) {
       this.debugLog('❌ Failed to get current network:', error);
@@ -179,16 +180,16 @@ class Web3Manager {
   async switchNetwork(chainId) {
     try {
       this.debugLog('🔄 Switching to network:', chainId);
-      
+
       if (!this.provider) {
         throw new Error('No Web3 provider available');
       }
-      
+
       await this.provider.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: chainId }]
+        params: [{ chainId: chainId }],
       });
-      
+
       this.debugLog('✅ Network switched successfully');
       return true;
     } catch (error) {
@@ -201,16 +202,16 @@ class Web3Manager {
   async addNetwork(networkConfig) {
     try {
       this.debugLog('➕ Adding network:', networkConfig.name);
-      
+
       if (!this.provider) {
         throw new Error('No Web3 provider available');
       }
-      
+
       await this.provider.request({
         method: 'wallet_addEthereumChain',
-        params: [networkConfig]
+        params: [networkConfig],
       });
-      
+
       this.debugLog('✅ Network added successfully');
       return true;
     } catch (error) {
@@ -226,16 +227,73 @@ class Web3Manager {
       3: 'Ropsten Testnet',
       4: 'Rinkeby Testnet',
       5: 'Goerli Testnet',
+      11155111: 'Sepolia Testnet',
       42: 'Kovan Testnet',
       56: 'Binance Smart Chain',
       97: 'Binance Smart Chain Testnet',
       137: 'Polygon Mainnet',
       80001: 'Polygon Mumbai Testnet',
       1337: 'Localhost',
-      31337: 'Hardhat Network'
+      31337: 'Hardhat Network',
     };
-    
+
     return networks[chainId] || `Unknown Network (${chainId})`;
+  }
+
+  // Sepolia testnet configuration
+  getSepoliaConfig() {
+    return {
+      chainId: '0xaa36a7', // 11155111 in hex
+      chainName: 'Sepolia Testnet',
+      nativeCurrency: {
+        name: 'Sepolia ETH',
+        symbol: 'SEP',
+        decimals: 18,
+      },
+      rpcUrls: ['https://sepolia.infura.io/v3/', 'https://rpc.sepolia.org'],
+      blockExplorerUrls: ['https://sepolia.etherscan.io'],
+    };
+  }
+
+  // Switch to Sepolia testnet
+  async switchToSepolia() {
+    try {
+      this.debugLog('🔄 Switching to Sepolia testnet...');
+
+      const sepoliaChainId = '0xaa36a7'; // 11155111 in hex
+
+      try {
+        // Try to switch to Sepolia
+        await this.provider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: sepoliaChainId }],
+        });
+        this.debugLog('✅ Switched to Sepolia');
+        return true;
+      } catch (switchError) {
+        // If Sepolia is not added, add it
+        if (switchError.code === 4902) {
+          this.debugLog('➕ Sepolia not found, adding network...');
+          await this.addNetwork(this.getSepoliaConfig());
+          this.debugLog('✅ Sepolia added and switched');
+          return true;
+        }
+        throw switchError;
+      }
+    } catch (error) {
+      this.debugLog('❌ Failed to switch to Sepolia:', error);
+      throw error;
+    }
+  }
+
+  // Check if on Sepolia
+  async isOnSepolia() {
+    try {
+      const chainId = await this.web3.eth.getChainId();
+      return chainId === 11155111;
+    } catch (error) {
+      return false;
+    }
   }
 
   // Get account balance
@@ -245,12 +303,12 @@ class Web3Manager {
       if (!targetAccount) {
         throw new Error('No account specified');
       }
-      
+
       const balance = await this.web3.eth.getBalance(targetAccount);
       const ethBalance = this.web3.utils.fromWei(balance, 'ether');
-      
+
       this.debugLog('💰 Balance for', targetAccount, ':', ethBalance, 'ETH');
-      
+
       return ethBalance;
     } catch (error) {
       this.debugLog('❌ Failed to get balance:', error);
@@ -262,16 +320,16 @@ class Web3Manager {
   async sendTransaction(transaction) {
     try {
       this.debugLog('📤 Sending transaction:', transaction);
-      
+
       if (!this.currentAccount) {
         throw new Error('No account connected');
       }
-      
+
       const result = await this.web3.eth.sendTransaction({
         from: this.currentAccount,
-        ...transaction
+        ...transaction,
       });
-      
+
       this.debugLog('✅ Transaction sent successfully:', result.transactionHash);
       return result;
     } catch (error) {
@@ -284,16 +342,13 @@ class Web3Manager {
   async signMessage(message) {
     try {
       this.debugLog('✍️ Signing message:', message);
-      
+
       if (!this.currentAccount) {
         throw new Error('No account connected');
       }
-      
-      const signature = await this.web3.eth.personal.sign(
-        message,
-        this.currentAccount
-      );
-      
+
+      const signature = await this.web3.eth.personal.sign(message, this.currentAccount);
+
       this.debugLog('✅ Message signed successfully:', signature);
       return signature;
     } catch (error) {
@@ -307,12 +362,12 @@ class Web3Manager {
     try {
       const gasPrice = await this.web3.eth.getGasPrice();
       const gasPriceGwei = this.web3.utils.fromWei(gasPrice, 'gwei');
-      
+
       this.debugLog('⛽ Gas price:', gasPriceGwei, 'Gwei');
-      
+
       return {
         wei: gasPrice,
-        gwei: gasPriceGwei
+        gwei: gasPriceGwei,
       };
     } catch (error) {
       this.debugLog('❌ Failed to get gas price:', error);
@@ -324,9 +379,9 @@ class Web3Manager {
   async estimateGas(transaction) {
     try {
       this.debugLog('⛽ Estimating gas for transaction:', transaction);
-      
+
       const gasEstimate = await this.web3.eth.estimateGas(transaction);
-      
+
       this.debugLog('✅ Gas estimate:', gasEstimate);
       return gasEstimate;
     } catch (error) {
@@ -354,7 +409,7 @@ class Web3Manager {
 
   emit(event, data) {
     if (this.eventListeners[event]) {
-      this.eventListeners[event].forEach(callback => {
+      this.eventListeners[event].forEach((callback) => {
         try {
           callback(data);
         } catch (error) {
@@ -386,7 +441,7 @@ class Web3Manager {
       currentAccount: this.currentAccount,
       currentNetwork: this.currentNetwork,
       hasProvider: !!this.provider,
-      hasWeb3: !!this.web3
+      hasWeb3: !!this.web3,
     };
   }
 
@@ -406,6 +461,8 @@ class Web3Manager {
 window.Web3Manager = Web3Manager;
 
 // Export voor gebruik in andere modules
+/* eslint-disable no-undef */
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = Web3Manager;
-} 
+}
+/* eslint-enable no-undef */

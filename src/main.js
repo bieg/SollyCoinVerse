@@ -1075,6 +1075,23 @@ document.addEventListener('keydown', (e) => {
       console.warn('⚠️ initChapter4 niet beschikbaar');
     }
   }
+
+  // Ctrl+6 (Windows/Linux) of Cmd+6 (Mac) - SECRET LEVEL: Red Takeover
+  if ((e.ctrlKey || e.metaKey) && e.key === '6') {
+    e.preventDefault();
+    console.log('⌨️ Keyboard shortcut: SECRET LEVEL - Red Takeover! 🔴');
+
+    if (window.initSecretLevel) {
+      try {
+        console.log('🔴 Loading Secret Level: Red Takeover...');
+        window.initSecretLevel();
+      } catch (error) {
+        console.error('❌ Error loading Secret Level:', error);
+      }
+    } else {
+      console.warn('⚠️ initSecretLevel niet beschikbaar - is RedTakeover.js geladen?');
+    }
+  }
 });
 
 // Send collision to server
