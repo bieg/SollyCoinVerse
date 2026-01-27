@@ -53,8 +53,15 @@ class GameEnding {
       1: 8000, // Multiverse tunnel
       2: 5000, // Big bang rebirth
       3: 6000, // Saturn ring formation
-      4: -1, // Infinite zoom (endless)
+      4: 10000, // Anorak's message (hover to reveal)
+      5: -1, // Infinite zoom (endless)
     };
+
+    // Anorak state
+    this.anorakGhost = null;
+    this.anorakRevealed = false;
+    this.goldenKey = null;
+    this.isHoveringstar = false;
 
     this.DEBUG = window.DEBUG || false;
   }
@@ -539,10 +546,411 @@ class GameEnding {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // PHASE 4: ZOOM TO INFINITY - You're part of the universe now
+  // PHASE 4: ANORAK'S MESSAGE - The Creator speaks
+  // ═══════════════════════════════════════════════════════════════
+  startAnorakMessage() {
+    this.debugLog('👻 PHASE 4: ANORAK THE ALL-KNOWING');
+
+    // Setup hover detection on star
+    this.setupStarHoverDetection();
+
+    // Show hint text
+    this.showPhaseText('HOVER OVER YOUR CREATION...', 'rgba(255,215,0,0.7)');
+
+    // Create Anorak's ghost (wireframe humanoid figure)
+    this.createAnorakGhost();
+
+    // Create golden key
+    this.createGoldenKey();
+  }
+
+  createAnorakGhost() {
+    // Wireframe robed figure - Anorak style
+    const ghostGroup = new THREE.Group();
+
+    // Head (sphere)
+    const headGeom = new THREE.SphereGeometry(30, 16, 16);
+    const wireframeMat = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      wireframe: true,
+      transparent: true,
+      opacity: 0,
+    });
+    const head = new THREE.Mesh(headGeom, wireframeMat.clone());
+    head.position.y = 180;
+    ghostGroup.add(head);
+
+    // Body (cone/robe shape)
+    const bodyGeom = new THREE.ConeGeometry(80, 200, 8, 1, true);
+    const body = new THREE.Mesh(bodyGeom, wireframeMat.clone());
+    body.position.y = 50;
+    body.rotation.x = Math.PI;
+    ghostGroup.add(body);
+
+    // Arms (cylinders)
+    const armGeom = new THREE.CylinderGeometry(8, 8, 100, 8);
+    const leftArm = new THREE.Mesh(armGeom, wireframeMat.clone());
+    leftArm.position.set(-70, 100, 0);
+    leftArm.rotation.z = Math.PI / 4;
+    ghostGroup.add(leftArm);
+
+    const rightArm = new THREE.Mesh(armGeom, wireframeMat.clone());
+    rightArm.position.set(70, 100, 0);
+    rightArm.rotation.z = -Math.PI / 4;
+    ghostGroup.add(rightArm);
+
+    // Position ghost to the side of the star
+    ghostGroup.position.set(400, 0, 0);
+    ghostGroup.visible = false;
+
+    this.scene.add(ghostGroup);
+    this.anorakGhost = ghostGroup;
+  }
+
+  createGoldenKey() {
+    // Golden key that will float toward the player
+    const keyGroup = new THREE.Group();
+
+    // Key handle (torus)
+    const handleGeom = new THREE.TorusGeometry(15, 5, 8, 16);
+    const goldMat = new THREE.MeshBasicMaterial({
+      color: 0xffd700,
+      transparent: true,
+      opacity: 0,
+    });
+    const handle = new THREE.Mesh(handleGeom, goldMat.clone());
+    keyGroup.add(handle);
+
+    // Key shaft
+    const shaftGeom = new THREE.BoxGeometry(8, 60, 8);
+    const shaft = new THREE.Mesh(shaftGeom, goldMat.clone());
+    shaft.position.y = -45;
+    keyGroup.add(shaft);
+
+    // Key teeth
+    const teethGeom = new THREE.BoxGeometry(20, 8, 8);
+    const teeth1 = new THREE.Mesh(teethGeom, goldMat.clone());
+    teeth1.position.set(6, -65, 0);
+    keyGroup.add(teeth1);
+
+    const teeth2 = new THREE.Mesh(teethGeom, goldMat.clone());
+    teeth2.position.set(6, -55, 0);
+    teeth2.scale.x = 0.7;
+    keyGroup.add(teeth2);
+
+    keyGroup.position.set(300, 100, 200);
+    keyGroup.rotation.z = Math.PI / 6;
+    keyGroup.visible = false;
+
+    this.scene.add(keyGroup);
+    this.goldenKey = keyGroup;
+  }
+
+  setupStarHoverDetection() {
+    // Mouse move handler for hover detection
+    this.hoverHandler = (event) => {
+      if (!this.newStar || this.phase !== 4) return;
+
+      const rect = this.renderer.domElement.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        -((event.clientY - rect.top) / rect.height) * 2 + 1,
+      );
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, this.camera);
+
+      const intersects = raycaster.intersectObject(this.newStar, true);
+
+      if (intersects.length > 0 && !this.anorakRevealed) {
+        this.revealAnorak();
+      }
+    };
+
+    this.renderer.domElement.addEventListener('mousemove', this.hoverHandler);
+  }
+
+  revealAnorak() {
+    this.anorakRevealed = true;
+    this.debugLog('👻 ANORAK REVEALED!');
+
+    // Show Anorak ghost with fade in
+    if (this.anorakGhost) {
+      this.anorakGhost.visible = true;
+      this.anorakGhost.children.forEach((child) => {
+        this.fadeInMesh(child, 2000);
+      });
+    }
+
+    // VHS glitch effect
+    this.addVHSGlitch();
+
+    // Show Anorak's message after ghost fades in
+    setTimeout(() => {
+      this.showAnorakMessage();
+    }, 2000);
+
+    // Show golden key after message
+    setTimeout(() => {
+      this.revealGoldenKey();
+    }, 6000);
+  }
+
+  fadeInMesh(mesh, duration) {
+    const startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+
+      if (mesh.material) {
+        mesh.material.opacity = progress * 0.8;
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    animate();
+  }
+
+  addVHSGlitch() {
+    // VHS-style scanlines and glitch
+    this.vhsStyle = document.createElement('style');
+    this.vhsStyle.textContent = `
+      @keyframes vhs-glitch {
+        0% { transform: translateX(0); filter: none; }
+        10% { transform: translateX(-2px); filter: hue-rotate(90deg); }
+        20% { transform: translateX(2px); filter: none; }
+        30% { transform: translateX(0); filter: saturate(2); }
+        40% { transform: translateX(-1px); filter: none; }
+        100% { transform: translateX(0); filter: none; }
+      }
+      .anorak-message {
+        animation: vhs-glitch 0.3s infinite;
+      }
+      .scanlines {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(0, 0, 0, 0.1),
+          rgba(0, 0, 0, 0.1) 1px,
+          transparent 1px,
+          transparent 2px
+        );
+        pointer-events: none;
+        z-index: 10003;
+        opacity: 0.5;
+      }
+    `;
+    document.head.appendChild(this.vhsStyle);
+
+    // Add scanlines overlay
+    this.scanlines = document.createElement('div');
+    this.scanlines.className = 'scanlines';
+    document.body.appendChild(this.scanlines);
+  }
+
+  showAnorakMessage() {
+    const messageBox = document.createElement('div');
+    messageBox.className = 'anorak-message';
+    messageBox.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 20, 0, 0.95);
+      border: 2px solid #00ff00;
+      padding: 40px;
+      max-width: 600px;
+      font-family: 'Courier New', monospace;
+      color: #00ff00;
+      z-index: 10004;
+      box-shadow: 0 0 50px rgba(0, 255, 0, 0.5),
+                  inset 0 0 30px rgba(0, 255, 0, 0.1);
+    `;
+
+    messageBox.innerHTML = `
+      <div style="text-align: center; margin-bottom: 20px; font-size: 12px; color: #00aa00;">
+        ████████████████████████████████████
+      </div>
+      <div style="text-align: center; margin-bottom: 20px; font-size: 14px; letter-spacing: 3px;">
+        ANORAK'S JOURNAL - FINAL ENTRY
+      </div>
+      <div style="text-align: center; margin-bottom: 20px; font-size: 12px; color: #00aa00;">
+        ████████████████████████████████████
+      </div>
+      <p style="line-height: 1.8; margin-bottom: 15px;">
+        "I created the OASIS because I never felt at home in the real world.
+      </p>
+      <p style="line-height: 1.8; margin-bottom: 15px;">
+        I didn't know how to connect with people there.
+      </p>
+      <p style="line-height: 1.8; margin-bottom: 15px;">
+        But <span style="color: #ffff00;">you</span>... you did something I never could.
+      </p>
+      <p style="line-height: 1.8; margin-bottom: 15px; color: #ffff00;">
+        You didn't just find the egg.
+      </p>
+      <p style="line-height: 1.8; font-size: 20px; color: #ffd700; text-shadow: 0 0 10px #ffd700;">
+        You created your own universe."
+      </p>
+      <div style="text-align: right; margin-top: 30px; font-style: italic; color: #00aa00;">
+        - S.<br>
+        <span style="font-size: 10px;">(Solly? Satoshi? Someone else?)</span>
+      </div>
+    `;
+
+    document.body.appendChild(messageBox);
+    this.anorakMessageBox = messageBox;
+
+    // Remove after golden key appears
+    setTimeout(() => {
+      messageBox.style.transition = 'opacity 2s ease';
+      messageBox.style.opacity = '0';
+      setTimeout(() => messageBox.remove(), 2000);
+    }, 5000);
+  }
+
+  revealGoldenKey() {
+    if (!this.goldenKey) return;
+
+    this.debugLog('🗝️ GOLDEN KEY REVEALED!');
+    this.goldenKey.visible = true;
+
+    // Fade in and float toward ring
+    this.goldenKey.children.forEach((child) => {
+      this.fadeInMesh(child, 1500);
+    });
+
+    // Animate key floating to ring
+    const startPos = this.goldenKey.position.clone();
+    const endPos = new THREE.Vector3(0, 0, 250); // Near the saturn ring
+    const startTime = Date.now();
+    const duration = 3000;
+
+    const animateKey = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+
+      this.goldenKey.position.lerpVectors(startPos, endPos, eased);
+      this.goldenKey.rotation.y += 0.05;
+      this.goldenKey.rotation.z = Math.PI / 6 + Math.sin(elapsed * 0.003) * 0.2;
+
+      if (progress < 1) {
+        requestAnimationFrame(animateKey);
+      } else {
+        // Key merges with ring - ring turns gold!
+        this.transformRingToGold();
+      }
+    };
+
+    animateKey();
+
+    // Show "First to the key" text
+    setTimeout(() => {
+      this.showPhaseText('FIRST TO THE KEY...', 'rgba(255,215,0,0.9)');
+    }, 500);
+
+    setTimeout(() => {
+      this.showPhaseText('FIRST TO THE EGG...', 'rgba(255,215,0,0.9)');
+    }, 2000);
+
+    setTimeout(() => {
+      this.showPhaseText('WINNER', 'rgba(255,215,0,1)');
+    }, 3500);
+  }
+
+  transformRingToGold() {
+    this.debugLog('✨ RING TRANSFORMS TO GOLD!');
+
+    // Flash effect
+    if (this.overlay) {
+      this.overlay.style.background = 'rgba(255,215,0,0.5)';
+      setTimeout(() => {
+        this.overlay.style.background = 'rgba(0,0,20,0.7)';
+      }, 200);
+    }
+
+    // Transform ring color to gold
+    if (this.saturnRing) {
+      this.saturnRing.material.color.setHex(0xffd700);
+      this.saturnRing.material.opacity = 0.6;
+    }
+
+    // Transform ring particles to gold
+    this.ringParticles.forEach((particle) => {
+      if (particle.material.map) {
+        // Recreate with gold color
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 48px Courier New';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // Get original character
+        const charMatch = particle.material.map.image?.dataset?.char;
+        ctx.fillText(charMatch || '★', 32, 32);
+        particle.material.map = new THREE.CanvasTexture(canvas);
+        particle.material.needsUpdate = true;
+      }
+    });
+
+    // Remove key
+    if (this.goldenKey) {
+      this.scene.remove(this.goldenKey);
+      this.goldenKey = null;
+    }
+
+    this.playSound('golden_transformation');
+  }
+
+  updateAnorakMessage(progress) {
+    // Anorak ghost floats/hovers
+    if (this.anorakGhost && this.anorakGhost.visible) {
+      this.anorakGhost.position.y = Math.sin(Date.now() * 0.001) * 20;
+      this.anorakGhost.rotation.y += 0.002;
+    }
+
+    // Star pulses invitingly if not yet revealed
+    if (this.newStar && !this.anorakRevealed) {
+      const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.1;
+      this.newStar.scale.setScalar(100 * pulse);
+    }
+
+    // Continue ring rotation
+    this.ringParticles.forEach((particle) => {
+      particle.userData.angle += 0.003;
+      particle.position.x = Math.cos(particle.userData.angle) * particle.userData.radius;
+      particle.position.z = Math.sin(particle.userData.angle) * particle.userData.radius;
+    });
+
+    if (this.saturnRing) {
+      this.saturnRing.rotation.z += 0.001;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // PHASE 5: ZOOM TO INFINITY - You're part of the universe now
   // ═══════════════════════════════════════════════════════════════
   startZoomToInfinity() {
-    this.debugLog('🌌 PHASE 4: ZOOM TO INFINITY');
+    this.debugLog('🌌 PHASE 5: ZOOM TO INFINITY');
+
+    // Clean up Anorak elements
+    if (this.anorakGhost) {
+      this.scene.remove(this.anorakGhost);
+    }
+    if (this.vhsStyle) this.vhsStyle.remove();
+    if (this.scanlines) this.scanlines.remove();
+    if (this.hoverHandler) {
+      this.renderer.domElement.removeEventListener('mousemove', this.hoverHandler);
+    }
 
     // Create thousands of other "player stars"
     for (let i = 0; i < 1000; i++) {
@@ -732,6 +1140,9 @@ class GameEnding {
         this.updateSaturnRing(progress);
         break;
       case 4:
+        this.updateAnorakMessage(progress);
+        break;
+      case 5:
         this.updateZoomToInfinity(progress);
         break;
     }
@@ -762,6 +1173,9 @@ class GameEnding {
         this.startSaturnRing();
         break;
       case 4:
+        this.startAnorakMessage();
+        break;
+      case 5:
         this.startZoomToInfinity();
         break;
     }
@@ -777,7 +1191,15 @@ class GameEnding {
     // Remove DOM elements
     if (this.overlay) this.overlay.remove();
     if (this.chromaticStyle) this.chromaticStyle.remove();
+    if (this.vhsStyle) this.vhsStyle.remove();
+    if (this.scanlines) this.scanlines.remove();
+    if (this.anorakMessageBox) this.anorakMessageBox.remove();
     this.multiversePanels.forEach((p) => p.element.remove());
+
+    // Remove hover handler
+    if (this.hoverHandler) {
+      this.renderer.domElement.removeEventListener('mousemove', this.hoverHandler);
+    }
 
     // Remove 3D objects
     this.tunnelRings.forEach((r) => this.scene.remove(r));
@@ -788,6 +1210,8 @@ class GameEnding {
     if (this.newStar) this.scene.remove(this.newStar);
     if (this.saturnRing) this.scene.remove(this.saturnRing);
     if (this.implosionCore) this.scene.remove(this.implosionCore);
+    if (this.anorakGhost) this.scene.remove(this.anorakGhost);
+    if (this.goldenKey) this.scene.remove(this.goldenKey);
 
     // Reset camera
     this.camera.position.copy(this.originalCameraPos);
