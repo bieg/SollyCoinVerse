@@ -111,4 +111,14 @@ test_*.html
 temp_*.html
 
 # Local server files
-.python-version 
+.python-version
+
+# Large media files (use Git LFS or external hosting)
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+
+# Keep small assets in repo, but not large dumps
+images.jpeg
