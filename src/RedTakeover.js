@@ -61,10 +61,77 @@ class RedTakeover {
     }
   }
 
+  // Disable any currently active chapters before starting secret level
+  disableActiveChapters() {
+    this.debugLog('🛑 Disabling active chapters...');
+
+    // All possible levels
+    const levels = ['chapter2', 'chapter3', 'chapter4', 'chapter5', 'gameEnding', 'gameIntro'];
+
+    levels.forEach((level) => {
+      if (window[level] && window[level].isActive) {
+        if (typeof window[level].cleanup === 'function') {
+          window[level].cleanup();
+        }
+        window[level].isActive = false;
+        this.debugLog(`  ↳ ${level} disabled`);
+      }
+    });
+
+    // Disable level2Active flag
+    if (window.level2Active) {
+      window.level2Active = false;
+    }
+
+    // Remove any chapter UI overlays
+    const selectors = [
+      '.chapter-overlay',
+      '.chapter-ui',
+      '.game-ui',
+      '#chapter2-ui',
+      '#chapter3-ui',
+      '#chapter4-ui',
+      '#chapter5-overlay',
+      '#game-ending-overlay',
+      '#game-intro-screen',
+      '#level2-indicator',
+      '#wireframe-counter',
+      '#kaboom-counter',
+    ];
+    document.querySelectorAll(selectors.join(', ')).forEach((el) => {
+      el.style.display = 'none';
+      this.debugLog('  ↳ Hidden:', el.id || el.className);
+    });
+
+    this.debugLog('✅ All active chapters disabled');
+  }
+
   // Initialize the secret level
   init() {
     this.debugLog('🔴 Initializing Red Takeover Secret Level...');
+
+    // FIRST: Disable any active chapters/levels
+    this.disableActiveChapters();
+
     this.isActive = true;
+
+    // CRITICAL: Completely disable OrbitControls so we can drag planets!
+    if (window.controls) {
+      window.controls.enabled = false;
+      window.controls.enableRotate = false;
+      window.controls.enableZoom = false;
+      window.controls.enablePan = false;
+      // Remove OrbitControls event listeners from canvas
+      window.controls.dispose();
+      this.debugLog('🎮 OrbitControls FULLY DISABLED (disposed)');
+    }
+
+    // Also check for 'controls' without window prefix
+    if (typeof window.controls !== 'undefined' && window.controls) {
+      window.controls.enabled = false;
+      window.controls.enableRotate = false;
+      this.debugLog('🎮 Local controls also disabled');
+    }
 
     // Create UI
     this.createUI();
@@ -251,16 +318,34 @@ class RedTakeover {
 
   // Setup event listeners for drag & drop
   setupEventListeners() {
-    const canvas = this.renderer.domElement;
+    // Canvas reference for future use
+    // const canvas = this.renderer.domElement;
 
-    canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
-    canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
-    canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
+    // Use capture phase to get events before other handlers
+    this.boundMouseDown = (e) => this.onMouseDown(e);
+    this.boundMouseMove = (e) => this.onMouseMove(e);
+    this.boundMouseUp = (e) => this.onMouseUp(e);
 
-    // Touch support
-    canvas.addEventListener('touchstart', (e) => this.onTouchStart(e));
-    canvas.addEventListener('touchmove', (e) => this.onTouchMove(e));
-    canvas.addEventListener('touchend', (e) => this.onTouchEnd(e));
+    // Listen on DOCUMENT level to catch all clicks
+    document.addEventListener('mousedown', this.boundMouseDown, true);
+    document.addEventListener('mousemove', this.boundMouseMove, true);
+    document.addEventListener('mouseup', this.boundMouseUp, true);
+
+    // Touch support on document level too
+    document.addEventListener('touchstart', (e) => this.onTouchStart(e), true);
+    document.addEventListener('touchmove', (e) => this.onTouchMove(e), true);
+    document.addEventListener('touchend', (e) => this.onTouchEnd(e), true);
+
+    this.debugLog('🎯 Event listeners attached to DOCUMENT (capture phase)');
+
+    // DEBUG: Check what's blocking clicks
+    document.addEventListener(
+      'click',
+      (e) => {
+        this.debugLog('🔍 Click on element:', e.target.tagName, e.target.id || e.target.className);
+      },
+      true,
+    );
   }
 
   // Raycaster for planet detection
@@ -274,19 +359,47 @@ class RedTakeover {
 
     raycaster.setFromCamera(mouse, this.camera);
 
-    const intersects = raycaster.intersectObjects(this.redPlanets);
-    return intersects.length > 0 ? intersects[0].object : null;
+    // Check all red planets, including children
+    const intersects = raycaster.intersectObjects(this.redPlanets, true);
+
+    this.debugLog(
+      `🎯 Raycast at (${mouse.x.toFixed(2)}, ${mouse.y.toFixed(2)}) - ${intersects.length} hits, checking ${this.redPlanets.length} planets`,
+    );
+
+    if (intersects.length > 0) {
+      // Find the actual planet object (might be a child mesh)
+      let obj = intersects[0].object;
+      while (obj && !obj.userData.isRed && obj.parent) {
+        obj = obj.parent;
+      }
+      return obj;
+    }
+    return null;
   }
 
   onMouseDown(event) {
-    if (!this.isActive) return;
+    if (!this.isActive) {
+      this.debugLog('⚠️ RedTakeover not active, ignoring click');
+      return;
+    }
+
+    this.debugLog('🖱️ Mouse down detected at', event.clientX, event.clientY);
 
     const planet = this.getIntersectedPlanet(event);
-    if (planet && planet.userData.isRedPlanet) {
-      this.isDragging = true;
-      this.draggedPlanet = planet;
-      this.draggedPlanet.material.emissiveIntensity = 1.0;
-      this.debugLog('🖱️ Started dragging planet:', planet.userData.id);
+    if (planet) {
+      this.debugLog('🎯 Hit planet:', planet.userData);
+      if (planet.userData.isRed) {
+        this.isDragging = true;
+        this.draggedPlanet = planet;
+        if (this.draggedPlanet.material) {
+          this.draggedPlanet.material.emissiveIntensity = 1.0;
+        }
+        this.debugLog('✅ Started dragging planet:', planet.userData.redTakeoverId);
+        event.stopPropagation();
+        event.preventDefault();
+      }
+    } else {
+      this.debugLog('❌ No planet hit');
     }
   }
 
@@ -782,7 +895,7 @@ class RedTakeover {
 // Make available globally
 window.RedTakeover = RedTakeover;
 
-// Initialize function for Ctrl+6
+// Initialize function for secret level
 window.initSecretLevel = function () {
   if (!window.scene || !window.camera || !window.renderer) {
     console.error('❌ Scene/Camera/Renderer not available for Secret Level');
@@ -798,4 +911,42 @@ window.initSecretLevel = function () {
   window.redTakeover.init();
 };
 
-console.log('🔴 RedTakeover.js loaded - Press Ctrl+6 for Secret Level!');
+// ============================================
+// KONAMI CODE: ↑↑↓↓←→←→BA
+// ============================================
+const konamiCode = [
+  'ArrowUp',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowLeft',
+  'ArrowRight',
+  'b',
+  'a',
+];
+let konamiIndex = 0;
+
+document.addEventListener('keydown', (e) => {
+  const key = e.key.toLowerCase() === e.key ? e.key : e.key;
+  const expectedKey = konamiCode[konamiIndex];
+
+  if (key === expectedKey || e.key === expectedKey) {
+    konamiIndex++;
+    console.log(`🎮 Konami: ${konamiIndex}/${konamiCode.length}`);
+
+    if (konamiIndex === konamiCode.length) {
+      console.log('🎮✨ KONAMI CODE ACTIVATED! ↑↑↓↓←→←→BA');
+      konamiIndex = 0;
+
+      if (window.initSecretLevel) {
+        window.initSecretLevel();
+      }
+    }
+  } else {
+    konamiIndex = 0;
+  }
+});
+
+console.log('🔴 RedTakeover.js loaded - Enter the Konami Code for Secret Level! ↑↑↓↓←→←→BA');
