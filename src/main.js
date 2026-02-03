@@ -8,7 +8,6 @@
 
 // --- Startscherm en Star Wars intro ---
 const startscreen = document.getElementById('startscreen');
-const startBtn = document.getElementById('start-btn');
 const starwarsIntro = document.getElementById('starwars-intro');
 const starwarsCrawl = document.getElementById('starwars-crawl');
 let starWarsIntroActive = false;
@@ -18,6 +17,7 @@ let userInterface = null;
 let sollyverseInitialized = false;
 let web3Manager = null;
 let webSocketClient = null;
+let gameIntro = null;
 
 // Globale variabelen
 let scene, camera, renderer, controls;
@@ -52,10 +52,40 @@ let portalMovement = { time: 0, radius: 8000, speed: 0.02 };
 let portalAnimating = false;
 let portalClicked = false;
 
-// Import en wallet functionaliteit verwijderd - alleen Start button blijft
+// Import en wallet functionaliteit verwijderd - nu voice/type intro
 
-// Start button handler
-document.getElementById('start-btn').onclick = function () {
+// ============================================================================
+// NEW GAME INTRO - Voice + Type "Hi" to begin
+// ============================================================================
+
+// Initialize GameIntro when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🎬 Initializing new GameIntro...');
+
+  // Start the new interactive intro
+  if (window.GameIntro) {
+    gameIntro = new window.GameIntro();
+    gameIntro.init();
+  } else {
+    console.error('❌ GameIntro class not loaded!');
+    // Fallback to old behavior
+    startGameWithStarWars();
+  }
+});
+
+// Listen for GameIntro completion
+document.addEventListener('gameIntroComplete', (event) => {
+  console.log('🎉 GameIntro completed!', event.detail);
+  startGameWithStarWars();
+});
+
+// Also expose as global function
+window.onGameIntroComplete = function () {
+  startGameWithStarWars();
+};
+
+// Start game with Star Wars intro sequence
+function startGameWithStarWars() {
   // Reset sollyConfig voor schone slate
   sollyConfig = null;
 
@@ -65,7 +95,10 @@ document.getElementById('start-btn').onclick = function () {
     window.databaseManager.resetDatabase();
   }
 
-  startscreen.style.display = 'none';
+  // Hide old startscreen (if visible)
+  if (startscreen) startscreen.style.display = 'none';
+
+  // Show Star Wars intro
   starwarsIntro.style.display = 'flex';
 
   // VOEG STERREN TOE TIJDENS STAR WARS ANIMATIE
@@ -77,6 +110,7 @@ document.getElementById('start-btn').onclick = function () {
   setTimeout(() => {
     starwarsCrawl.classList.add('starwars-crawl-animate');
   }, 100);
+
   setTimeout(() => {
     starwarsIntro.style.display = 'none';
     starWarsIntroActive = false;
@@ -88,8 +122,14 @@ document.getElementById('start-btn').onclick = function () {
 
     initSollyverse();
   }, 9000);
+
   starWarsIntroActive = true;
-};
+}
+
+// Legacy: Keep old start button handler as fallback (hidden)
+if (document.getElementById('start-btn')) {
+  document.getElementById('start-btn').onclick = startGameWithStarWars;
+}
 
 // Functie om sterren toe te voegen tijdens Star Wars animatie - IN STAR WARS MODAL
 function createStarWarsStars() {
@@ -1076,20 +1116,23 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
-  // Ctrl+6 (Windows/Linux) of Cmd+6 (Mac) - SECRET LEVEL: Red Takeover
-  if ((e.ctrlKey || e.metaKey) && e.key === '6') {
-    e.preventDefault();
-    console.log('⌨️ Keyboard shortcut: SECRET LEVEL - Red Takeover! 🔴');
+  // SECRET LEVEL: Red Takeover - now triggered by Konami Code (↑↑↓↓←→←→BA)
+  // See RedTakeover.js for implementation
 
-    if (window.initSecretLevel) {
+  // Ctrl+5 (Windows/Linux) of Cmd+5 (Mac) - Chapter 5: The Void Walk
+  if ((e.ctrlKey || e.metaKey) && e.key === '5') {
+    e.preventDefault();
+    console.log('⌨️ Keyboard shortcut: Chapter 5 - The Void Walk! 🌑');
+
+    if (window.initChapter5) {
       try {
-        console.log('🔴 Loading Secret Level: Red Takeover...');
-        window.initSecretLevel();
+        console.log('🌑 Loading Chapter 5: The Void Walk...');
+        window.initChapter5();
       } catch (error) {
-        console.error('❌ Error loading Secret Level:', error);
+        console.error('❌ Error loading Chapter 5:', error);
       }
     } else {
-      console.warn('⚠️ initSecretLevel niet beschikbaar - is RedTakeover.js geladen?');
+      console.warn('⚠️ initChapter5 niet beschikbaar - is chapter5.js geladen?');
     }
   }
 

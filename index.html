@@ -709,13 +709,9 @@
         console.log('🔗 Blockchain Hub knowacht op game start (5 seconden)');
       });
     </script>
-    <div id="startscreen">
-        <h1>Welkom in de Sollyverse</h1>
-        <div class="info-box">
-            <h2>Wat is de Sollyverse?</h2>
-            <p>De Sollyverse is een magisch 3D-universum vol Sollys, planeten en sterren. Ontdek, groei, kies je pad en beleef unieke avonturen. Jouw voortgang is direct als nft beschikbaar .<br><br>Jij kan dus zelf handelen met je eigen nft als token in jouw eigen wallet!</p>
-        </div>
-        <button id="start-btn" style="margin-top: 24px;">Start</button>
+    <!-- Old startscreen removed - replaced by GameIntro -->
+    <div id="startscreen" style="display: none;">
+        <!-- Legacy fallback - not used anymore -->
     </div>
     <div id="starwars-intro" class="starwars-modal" style="display:none;">
         <div class="starwars-crawl-container" id="starwars-crawl">
@@ -751,18 +747,20 @@
     <script src="src/CollisionManager.js"></script>
     <script src="src/galaxy.js"></script>
     <script src="src/portal.js"></script>
-    <script src="src/sollys.js"></script>
-    <script src="src/chapter2.js?v=CONSUME3"></script>
+    <script src="src/sollys.js?v=2"></script>
+    <script src="src/chapter2.js?v=3CONSUME3"></script>
     <script src="src/chapter3.js?v=COMPACT2"></script>
-    <script src="src/chapter4.js?v=1"></script>
-    <script src="src/RedTakeover.js?v=1"></script>
+    <script src="src/chapter4.js?v=3"></script>
+    <script src="src/chapter5.js?v=10"></script>
+    <script src="src/RedTakeover.js?v=10"></script>
     <script src="src/GameEnding.js?v=1"></script>
+    <script src="src/GameIntro.js?v=18"></script>
     <script src="src/animation.js"></script>
     <!-- Web3 library en manager -->
     <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="src/Web3Manager.js"></script>
     <script src="src/WebSocketClientManager.js"></script>
-    <script src="src/main.js?v=6"></script>
+    <script src="src/main.js?v=9"></script>
 </body>
 </html>

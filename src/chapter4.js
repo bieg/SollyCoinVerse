@@ -159,6 +159,24 @@
   }
 
   function cleanupPreviousChapters() {
+    console.log('🛑 Chapter 4: Disabling all other levels...');
+
+    // Disable all other levels via cleanup
+    const levels = ['chapter2', 'chapter3', 'chapter5', 'redTakeover', 'gameEnding', 'gameIntro'];
+    levels.forEach((level) => {
+      if (window[level] && window[level].isActive) {
+        if (typeof window[level].cleanup === 'function') {
+          window[level].cleanup();
+        }
+        window[level].isActive = false;
+        console.log(`  ↳ ${level} disabled`);
+      }
+    });
+
+    // Reset flags
+    window.level2Active = false;
+    window.level3Active = false;
+
     // Remove chapter 2 UI
     const ch2UI = document.getElementById('chapter2-ui-panel');
     if (ch2UI) ch2UI.remove();
@@ -167,30 +185,34 @@
     const ch2Shapes = document.getElementById('shape-choices-holder');
     if (ch2Shapes) ch2Shapes.remove();
 
-    // Remove chapter 3 UI - forceer verwijdering van alle mogelijke elementen
+    // Remove chapter 3 UI
     const ch3ElementIds = [
       'chapter3-terminal',
       'cyber-terminal',
       'cyber-terminal-styles',
       'hangman-container',
-      'firewall-container'
+      'firewall-container',
     ];
-    ch3ElementIds.forEach(id => {
+    ch3ElementIds.forEach((id) => {
       const el = document.getElementById(id);
-      if (el) {
-        console.log(`🧹 Removing chapter 3 element: ${id}`);
-        el.remove();
-      }
+      if (el) el.remove();
     });
 
     // Ook alle elementen met cyber-terminal class verwijderen
-    document.querySelectorAll('[id*="cyber"], [id*="terminal"], [id*="hangman"]').forEach(el => {
-      console.log(`🧹 Removing by selector: ${el.id || el.className}`);
+    document.querySelectorAll('[id*="cyber"], [id*="terminal"], [id*="hangman"]').forEach((el) => {
       el.remove();
     });
 
-    // Reset chapter 3 flag
-    window.level3Active = false;
+    // Hide other level UIs
+    const selectors = [
+      '#chapter5-overlay',
+      '#red-takeover-ui',
+      '#game-ending-overlay',
+      '#game-intro-screen',
+    ];
+    document.querySelectorAll(selectors.join(', ')).forEach((el) => {
+      el.style.display = 'none';
+    });
 
     // Remove chapter 1 elements
     const cta = document.getElementById('cta-buttons');

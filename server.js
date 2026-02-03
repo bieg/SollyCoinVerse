@@ -23,13 +23,13 @@ class SollyCoinServer {
     this.server = http.createServer(this.app);
     this.io = socketIo(this.server, {
       cors: {
-        origin: ["http://127.0.0.1:5555", "http://localhost:5555", "http://127.0.0.1:5556", "http://localhost:5556"],
+        origin: ["http://127.0.0.1:8080", "http://localhost:8080"],
         methods: ["GET", "POST"],
         credentials: true
       }
     });
     
-    this.port = 5555;
+    this.port = 8080;
     this.connectedPlayers = new Map();
     this.gameState = {
       players: new Map(),
@@ -62,7 +62,7 @@ class SollyCoinServer {
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com", "https://r2cdn.perplexity.ai"],
           imgSrc: ["'self'", "data:", "https:", "blob:"],
-          connectSrc: ["'self'", "ws://127.0.0.1:5555", "ws://localhost:5555", "wss://127.0.0.1:5555", "wss://localhost:5555", "https://cdn.jsdelivr.net", "https://cdn.socket.io", "https://cdnjs.cloudflare.com"],
+          connectSrc: ["'self'", "ws://127.0.0.1:8080", "ws://localhost:8080", "wss://127.0.0.1:8080", "wss://localhost:8080", "https://cdn.jsdelivr.net", "https://cdn.socket.io", "https://cdnjs.cloudflare.com"],
           objectSrc: ["'none'"],
           baseUri: ["'self'"],
           formAction: ["'self'"],
@@ -81,7 +81,7 @@ class SollyCoinServer {
 
     // CORS - ALLOW ALLE POORTEN VOOR DEVELOPMENT
     this.app.use(cors({
-      origin: ["http://127.0.0.1:5555", "http://localhost:5555", "http://127.0.0.1:5556", "http://localhost:5556"],
+      origin: ["http://127.0.0.1:8080", "http://localhost:8080"],
       credentials: true
     }));
 

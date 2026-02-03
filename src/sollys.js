@@ -1295,6 +1295,11 @@ if (window && window.renderer && window.renderer.domElement) {
 window.solly1DragActive = false;
 
 function onSolly1PointerDown(event) {
+  // Skip als RedTakeover actief is - die handelt z'n eigen clicks af
+  if (window.redTakeover && window.redTakeover.isActive) {
+    return;
+  }
+
   // Skip als er een ShapeChoice modal open is
   if (window.shapeChoiceModalOpen) {
     return;

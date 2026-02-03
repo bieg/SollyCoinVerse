@@ -15,6 +15,32 @@
   let draggedBlock = null;
   let draggedShapeType = null;
 
+  function disableAllOtherLevels() {
+    console.log('🛑 Chapter 2: Disabling all other levels...');
+    const levels = ['chapter3', 'chapter4', 'chapter5', 'redTakeover', 'gameEnding', 'gameIntro'];
+    levels.forEach((level) => {
+      if (window[level] && window[level].isActive) {
+        if (typeof window[level].cleanup === 'function') {
+          window[level].cleanup();
+        }
+        window[level].isActive = false;
+        console.log(`  ↳ ${level} disabled`);
+      }
+    });
+    // Hide UI overlays
+    const selectors = [
+      '#chapter3-ui',
+      '#chapter4-ui',
+      '#chapter5-overlay',
+      '#red-takeover-ui',
+      '#game-ending-overlay',
+      '#game-intro-screen',
+    ];
+    document.querySelectorAll(selectors.join(', ')).forEach((el) => {
+      el.style.display = 'none';
+    });
+  }
+
   function initChapter2() {
     console.log('🎮 Chapter 2 gestart - Isometrische kubus met 8 dropzones');
 
@@ -31,6 +57,9 @@
       }, 500);
       return;
     }
+
+    // FIRST: Disable all other levels
+    disableAllOtherLevels();
 
     // Zet Level 2 modus aan
     window.level2Active = true;
