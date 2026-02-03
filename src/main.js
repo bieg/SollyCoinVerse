@@ -1136,20 +1136,22 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
-  // Ctrl+0 (Windows/Linux) of Cmd+0 (Mac) - GAME ENDING: The Creation
+  // Ctrl+0 (Windows/Linux) of Cmd+0 (Mac) - CINEMATIC ENDING
   if ((e.ctrlKey || e.metaKey) && e.key === '0') {
     e.preventDefault();
-    console.log('⌨️ Keyboard shortcut: GAME ENDING - The Creation! 🌌');
+    console.log('⌨️ Keyboard shortcut: CINEMATIC ENDING 📺');
 
-    if (window.triggerGameEnding) {
+    if (window.triggerCinematicEnding) {
       try {
-        console.log('🌌 Loading Game Ending: The Creation...');
-        window.triggerGameEnding();
+        console.log('📺 Loading Cinematic Ending...');
+        window.triggerCinematicEnding();
       } catch (error) {
-        console.error('❌ Error loading Game Ending:', error);
+        console.error('❌ Error loading Cinematic Ending:', error);
       }
     } else {
-      console.warn('⚠️ triggerGameEnding niet beschikbaar - is GameEnding.js geladen?');
+      console.warn(
+        '⚠️ triggerCinematicEnding niet beschikbaar - is GameEndingCinematic.js geladen?',
+      );
     }
   }
 });
