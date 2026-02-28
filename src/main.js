@@ -552,6 +552,11 @@ async function initSollyverse() {
 function animate() {
   requestAnimationFrame(animate);
 
+  // Stop rendering during cinematic ending
+  if (window.cinematicEnding && window.cinematicEnding.isActive) {
+    return;
+  }
+
   // Hard 2D-mode voor Level 2: geen camera/scene updates
   if (window.level2Active) {
     if (controls) {
@@ -1048,8 +1053,111 @@ function sendPlayerMovement(position, rotation) {
   }
 }
 
+// ===================================================================================
+// ==                     HIDE ALL CHAPTERS - CLEANUP FUNCTION                     ==
+// ===================================================================================
+
+/**
+ * Verbergt/verwijdert alle chapter-specifieke UI elementen
+ * Roep dit aan voordat je een nieuw chapter start
+ */
+function hideAllChapters() {
+  console.log('🧹 Cleaning up all chapter UIs...');
+
+  // Reset alle chapter active flags
+  window.level2Active = false;
+  window.level3Active = false;
+  window.level4Active = false;
+  window.level5Active = false;
+
+  // Chapter 2 elementen
+  const chapter2Elements = [
+    'chapter2-ui-panel',
+    'shape-choices-holder',
+    'isometric-cube-container',
+    'consume-styles',
+    'scanlines-overlay',
+    'consume-text',
+    'singularity',
+  ];
+
+  // Chapter 3 elementen (Cyber Hangman)
+  const chapter3Elements = ['cyber-terminal', 'cyber-terminal-styles'];
+
+  // Chapter 4 elementen
+  const chapter4Elements = ['chapter4-container', 'chapter4-styles', 'marble-labyrinth'];
+
+  // Chapter 5 elementen
+  const chapter5Elements = ['chapter5-container', 'chapter5-styles', 'void-walk-container'];
+
+  // Cinematic ending elementen
+  const cinematicElements = ['cinematic-ending', 'freq-style', 'egg-style'];
+
+  // Red Takeover elementen
+  const redTakeoverElements = ['red-takeover-container', 'red-takeover-styles'];
+
+  // Combineer alle elementen
+  const allElements = [
+    ...chapter2Elements,
+    ...chapter3Elements,
+    ...chapter4Elements,
+    ...chapter5Elements,
+    ...cinematicElements,
+    ...redTakeoverElements,
+  ];
+
+  // Verwijder alle elementen
+  allElements.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.remove();
+      console.log(`  ↳ Removed: ${id}`);
+    }
+  });
+
+  // Stop eventuele cinematic endings
+  if (window.cinematicEnding && window.cinematicEnding.isActive) {
+    window.cinematicEnding.cleanup();
+  }
+
+  // Stop Red Takeover als actief
+  if (window.RedTakeover && window.RedTakeover.isActive) {
+    window.RedTakeover.cleanup();
+  }
+
+  console.log('✅ All chapter UIs cleaned up');
+}
+
+// Maak beschikbaar voor andere modules
+window.hideAllChapters = hideAllChapters;
+
 // Keyboard shortcuts om hoofdstukken direct te laden
 document.addEventListener('keydown', (e) => {
+  // Ctrl+1 (Windows/Linux) of Cmd+1 (Mac) - Chapter 1 (Space Scene)
+  if ((e.ctrlKey || e.metaKey) && e.key === '1') {
+    e.preventDefault();
+    console.log('⌨️ Keyboard shortcut: Terug naar Hoofdstuk 1 (Space Scene)');
+
+    try {
+      hideAllChapters(); // Clean up other chapters
+      console.log('🚀 Returning to Chapter 1: Space Scene...');
+
+      // Reset scene background to space
+      if (window.scene) {
+        window.scene.background = new window.THREE.Color(0x000011);
+      }
+
+      // Trigger chapter manager update
+      if (window.chapterManager) {
+        window.chapterManager.setCurrentChapter(1);
+      }
+
+      console.log('✅ Chapter 1 active');
+    } catch (error) {
+      console.error('❌ Error returning to Chapter 1:', error);
+    }
+  }
+
   // Ctrl+2 (Windows/Linux) of Cmd+2 (Mac) - Chapter 2
   if ((e.ctrlKey || e.metaKey) && e.key === '2') {
     e.preventDefault();
@@ -1062,6 +1170,7 @@ document.addEventListener('keydown', (e) => {
       }
 
       try {
+        hideAllChapters(); // Clean up other chapters first
         console.log('🚀 Loading Hoofdstuk 2 via keyboard shortcut...');
         window.initChapter2();
       } catch (error) {
@@ -1084,6 +1193,7 @@ document.addEventListener('keydown', (e) => {
       }
 
       try {
+        hideAllChapters(); // Clean up other chapters first
         console.log('🚀 Loading Hoofdstuk 3: Neon Cyberpunk via keyboard shortcut...');
         window.initChapter3();
       } catch (error) {
@@ -1106,6 +1216,7 @@ document.addEventListener('keydown', (e) => {
       }
 
       try {
+        hideAllChapters(); // Clean up other chapters first
         console.log('🚀 Loading Hoofdstuk 4: De Meester via keyboard shortcut...');
         window.initChapter4();
       } catch (error) {
@@ -1126,6 +1237,7 @@ document.addEventListener('keydown', (e) => {
 
     if (window.initChapter5) {
       try {
+        hideAllChapters(); // Clean up other chapters first
         console.log('🌑 Loading Chapter 5: The Void Walk...');
         window.initChapter5();
       } catch (error) {
@@ -1143,6 +1255,7 @@ document.addEventListener('keydown', (e) => {
 
     if (window.triggerCinematicEnding) {
       try {
+        hideAllChapters(); // Clean up other chapters first
         console.log('📺 Loading Cinematic Ending...');
         window.triggerCinematicEnding();
       } catch (error) {
