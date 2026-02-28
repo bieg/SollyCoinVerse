@@ -95,35 +95,6 @@
         { x: 350, y: 100 },
       ],
     },
-    {
-      // Level 3 - Master level
-      name: 'De Meester',
-      startX: 50,
-      startY: 50,
-      finishX: 450,
-      finishY: 450,
-      walls: [
-        // Outer maze
-        { x: 80, y: 80, w: 340, h: CONFIG.wallThickness },
-        { x: 80, y: 80, w: CONFIG.wallThickness, h: 340 },
-        { x: 80, y: 420, w: 260, h: CONFIG.wallThickness },
-        { x: 420, y: 160, w: CONFIG.wallThickness, h: 260 },
-        // Inner obstacles
-        { x: 160, y: 160, w: CONFIG.wallThickness, h: 180 },
-        { x: 240, y: 80, w: CONFIG.wallThickness, h: 180 },
-        { x: 320, y: 200, w: CONFIG.wallThickness, h: 180 },
-        { x: 160, y: 340, w: 180, h: CONFIG.wallThickness },
-        { x: 240, y: 260, w: 100, h: CONFIG.wallThickness },
-      ],
-      holes: [
-        { x: 120, y: 200 },
-        { x: 200, y: 120 },
-        { x: 280, y: 320 },
-        { x: 360, y: 280 },
-        { x: 200, y: 400 },
-        { x: 380, y: 120 },
-      ],
-    },
   ];
 
   // ============================================================
