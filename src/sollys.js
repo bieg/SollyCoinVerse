@@ -11,7 +11,13 @@ function debugLog(...args) {
 // -----------------------------------------------------------------------------
 
 function addSolly1AndSolly2(scene) {
-  // Solly2 is niet meer nodig – alleen Solly1 wordt aangemaakt
+  // Guard: verwijder bestaande Solly1 uit scene voor dubbele driehoek
+  if (window.solly1) {
+    scene.remove(window.solly1);
+    window.solly1 = null;
+    solly1 = null;
+  }
+
   // Solly1 (Wit) - Maak een duidelijke piramide
   solly1 = createSolly(60, false, 0xffffff);
 

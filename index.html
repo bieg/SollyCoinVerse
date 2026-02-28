@@ -699,14 +699,10 @@
         }
       }
       
-      // Luister naar game start events
-      document.addEventListener('DOMContentLoaded', () => {
-        // Toon Wallet Hub knop na 5 seconden (simuleer game start)
-        setTimeout(() => {
-          showWalletHubButton();
-        }, 5000);
-        
-        console.log('🔗 Blockchain Hub knowacht op game start (5 seconden)');
+      // Wallet knop pas tonen als game echt gestart is (via event van main.js)
+      document.addEventListener('sollyverseStarted', () => {
+        showWalletHubButton();
+        console.log('💳 Wallet Hub knop zichtbaar na game start');
       });
     </script>
     <!-- Old startscreen removed - replaced by GameIntro -->

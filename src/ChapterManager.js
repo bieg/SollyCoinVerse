@@ -17,6 +17,7 @@ class ChapterManager {
     this.achievements = new Map();
     this.storyProgress = 0;
     this.DEBUG = window.DEBUG || false;
+    this.eventListeners = {}; // Fix: was nooit geïnitialiseerd
 
     // Initialize immediately
     this.initialize();

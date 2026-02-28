@@ -8,6 +8,8 @@
 // ==      - Screen shake en camera effecten                                     ==
 // ===================================================================================
 
+/* global THREE, solly1, solly2, scene, camera, renderer, controls, Level2Manager, ChapterManager, GameManager, UserInterface, WebSocketClientManager, GameEndingCinematic, eventBus, io, gsap */
+
 class CollisionManager {
   constructor() {
     this.collisionDetected = false;
@@ -19,21 +21,21 @@ class CollisionManager {
   // Hoofdfunctie voor collision trigger
   triggerCollision() {
     if (this.collisionDetected) return;
-    
+
     console.log('💥 Collision triggered!');
     this.collisionDetected = true;
-    
+
     // Pauzeer beweging
     if (window.sollyCore) {
       window.sollyCore.setCanMove(false);
     }
-    
+
     // Start explosie animatie
     this.createCollisionExplosion();
-    
+
     // Camera animatie uitgeschakeld voor statische camera
     // this.startCameraAnimationToCollision();
-    
+
     // Update game state
     this.updateGameState();
 
@@ -43,22 +45,22 @@ class CollisionManager {
 
   createCollisionExplosion() {
     console.log('💥 Starting collision explosion animation!');
-    
+
     const solly1 = window.solly1;
     if (!solly1) return;
-    
+
     // Bereken explosie positie - gebruik de EXACTE positie van Solly1
     const explosionPos = solly1.position.clone();
     console.log('💥 Explosie positie:', explosionPos);
-    
+
     // Maak meerdere explosie lagen voor spectaculair effect
-    this.createExplosionLayer(explosionPos, 0xFFD700, 50, 800, 800); // Gouden kern
-    this.createExplosionLayer(explosionPos, 0xFF4500, 100, 1200, 600); // Oranje explosie
-    this.createExplosionLayer(explosionPos, 0xFF0000, 150, 1600, 400); // Rode schokgolf
-    
+    this.createExplosionLayer(explosionPos, 0xffd700, 50, 800, 800); // Gouden kern
+    this.createExplosionLayer(explosionPos, 0xff4500, 100, 1200, 600); // Oranje explosie
+    this.createExplosionLayer(explosionPos, 0xff0000, 150, 1600, 400); // Rode schokgolf
+
     // Voeg particle effect toe
     this.createExplosionParticles(explosionPos);
-    
+
     // Voeg screen shake effect toe
     this.createScreenShake();
   }
@@ -66,11 +68,11 @@ class CollisionManager {
   createExplosionLayer(position, color, delay, maxScale, duration) {
     setTimeout(() => {
       const geo = new THREE.SphereGeometry(1, 32, 32);
-      const mat = new THREE.MeshBasicMaterial({ 
-        color: color, 
-        transparent: true, 
-        opacity: 0.9, 
-        blending: THREE.AdditiveBlending 
+      const mat = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
       });
       const explosion = new THREE.Mesh(geo, mat);
       explosion.position.copy(position);
@@ -79,20 +81,20 @@ class CollisionManager {
       const start = performance.now();
       const startScale = 10;
       const endScale = maxScale;
-      
+
       const animate = () => {
         const t = (performance.now() - start) / duration;
         if (t >= 1) {
           window.scene.remove(explosion);
           return;
         }
-        
+
         // Easing functie voor natuurlijke explosie
         const ease = 1 - Math.pow(1 - t, 2);
         const scale = THREE.MathUtils.lerp(startScale, endScale, ease);
         explosion.scale.setScalar(scale);
         explosion.material.opacity = 0.9 * (1 - ease);
-        
+
         requestAnimationFrame(animate);
       };
       animate();
@@ -102,48 +104,48 @@ class CollisionManager {
   createExplosionParticles(position) {
     const particleCount = 50;
     const particles = [];
-    
+
     for (let i = 0; i < particleCount; i++) {
       const geo = new THREE.SphereGeometry(0.5, 8, 8);
-      const mat = new THREE.MeshBasicMaterial({ 
-        color: Math.random() > 0.5 ? 0xFFD700 : 0xFF4500, 
-        transparent: true, 
-        opacity: 1.0 
+      const mat = new THREE.MeshBasicMaterial({
+        color: Math.random() > 0.5 ? 0xffd700 : 0xff4500,
+        transparent: true,
+        opacity: 1.0,
       });
       const particle = new THREE.Mesh(geo, mat);
-      
+
       // Willekeurige richting en snelheid
       const direction = new THREE.Vector3(
         (Math.random() - 0.5) * 2,
         (Math.random() - 0.5) * 2,
-        (Math.random() - 0.5) * 2
+        (Math.random() - 0.5) * 2,
       ).normalize();
-      
+
       const speed = 50 + Math.random() * 100;
       particle.velocity = direction.multiplyScalar(speed);
       particle.position.copy(position);
-      
+
       window.scene.add(particle);
       particles.push(particle);
     }
-    
+
     // Animeer particles
     const start = performance.now();
     const duration = 2000;
-    
+
     const animateParticles = () => {
       const t = (performance.now() - start) / duration;
       if (t >= 1) {
-        particles.forEach(p => window.scene.remove(p));
+        particles.forEach((p) => window.scene.remove(p));
         return;
       }
-      
-      particles.forEach(particle => {
+
+      particles.forEach((particle) => {
         particle.position.add(particle.velocity.clone().multiplyScalar(0.016));
         particle.material.opacity = 1.0 * (1 - t);
         particle.scale.setScalar(1 - t * 0.5);
       });
-      
+
       requestAnimationFrame(animateParticles);
     };
     animateParticles();
@@ -151,63 +153,63 @@ class CollisionManager {
 
   createScreenShake() {
     if (this.screenShakeActive) return;
-    
+
     this.screenShakeActive = true;
     const originalPosition = window.camera.position.clone();
     const shakeIntensity = 50;
     const shakeDuration = 1000;
     const startTime = performance.now();
-    
+
     const shake = () => {
       const elapsed = performance.now() - startTime;
       const progress = elapsed / shakeDuration;
-      
+
       if (progress >= 1) {
         window.camera.position.copy(originalPosition);
         this.screenShakeActive = false;
         return;
       }
-      
+
       const intensity = shakeIntensity * (1 - progress);
       const offset = new THREE.Vector3(
         (Math.random() - 0.5) * intensity,
         (Math.random() - 0.5) * intensity,
-        (Math.random() - 0.5) * intensity
+        (Math.random() - 0.5) * intensity,
       );
-      
+
       window.camera.position.copy(originalPosition).add(offset);
       requestAnimationFrame(shake);
     };
-    
+
     shake();
   }
 
   startCameraAnimationToCollision() {
     if (!window.camera || !window.solly1) return;
-    
+
     const startPosition = window.camera.position.clone();
     const targetPosition = window.solly1.position.clone().add(new THREE.Vector3(0, 200, 800));
     const duration = 1500;
     const startTime = performance.now();
-    
+
     const animateCamera = () => {
       const elapsed = performance.now() - startTime;
       const progress = elapsed / duration;
-      
+
       if (progress >= 1) {
         window.camera.position.copy(targetPosition);
         window.camera.lookAt(window.solly1.position);
         return;
       }
-      
+
       // Smooth easing
       const ease = 1 - Math.pow(1 - progress, 3);
       window.camera.position.lerpVectors(startPosition, targetPosition, ease);
       window.camera.lookAt(window.solly1.position);
-      
+
       requestAnimationFrame(animateCamera);
     };
-    
+
     animateCamera();
   }
 
@@ -217,48 +219,52 @@ class CollisionManager {
     if (window.solly1DragActive || window.isDragging) {
       return;
     }
-    
+
     // Skip als ShapeChoice modal open is
     if (window.shapeChoiceModalOpen || document.querySelector('.shape-choice-modal')) {
       return;
     }
-    
+
     // Skip als er al een collision is gedetecteerd (globaal of lokaal)
     if (window.collisionDetected || this.collisionDetected) return;
-    
+
     // Stop bij 4 collisions
-            if (window.gameManager && window.gameManager.getKaboomCount() >= 5) {
+    if (window.gameManager && window.gameManager.getKaboomCount() >= 5) {
       return;
     }
-    
+
     if (!window.miniSollys || !window.solly1) return;
-    
+
     // === DUIDELIJKE 2D OVERLAP COLLISION DETECTION ===
     const solly1Pos = window.solly1.position;
     const solly1Radius = this._getMeshRadius(window.solly1);
-    
-    console.log(`🔍 Checking collision - Solly1 pos: (${solly1Pos.x.toFixed(1)}, ${solly1Pos.z.toFixed(1)}), radius: ${solly1Radius.toFixed(1)}`);
-    
+
+    console.log(
+      `🔍 Checking collision - Solly1 pos: (${solly1Pos.x.toFixed(1)}, ${solly1Pos.z.toFixed(1)}), radius: ${solly1Radius.toFixed(1)}`,
+    );
+
     let bestCollision = null;
     let bestOverlapPct = 0;
-    
+
     for (let i = 0; i < window.miniSollys.length; i++) {
       const mini = window.miniSollys[i];
       if (!mini || !mini.visible) continue;
-      
+
       const miniPos = mini.position;
       const miniRadius = this._getMeshRadius(mini);
-      
+
       // 2D afstand berekenen (X en Z as)
       const dx = solly1Pos.x - miniPos.x;
       const dz = solly1Pos.z - miniPos.z;
       const distance2D = Math.sqrt(dx * dx + dz * dz);
-      
+
       // Som van radii
       const sumRadii = solly1Radius + miniRadius;
-      
-      console.log(`🔍 Mini ${i}: pos (${miniPos.x.toFixed(1)}, ${miniPos.z.toFixed(1)}), radius: ${miniRadius.toFixed(1)}, distance: ${distance2D.toFixed(1)}, sum radii: ${sumRadii.toFixed(1)}`);
-      
+
+      console.log(
+        `🔍 Mini ${i}: pos (${miniPos.x.toFixed(1)}, ${miniPos.z.toFixed(1)}), radius: ${miniRadius.toFixed(1)}, distance: ${distance2D.toFixed(1)}, sum radii: ${sumRadii.toFixed(1)}`,
+      );
+
       // Check of er overlap is
       if (distance2D < sumRadii) {
         // === Nauwkeurige overlap percentage op basis van cirkel-oppervlakte ===
@@ -273,85 +279,97 @@ class CollisionManager {
           const d = distance2D;
           const part1 = r1 * r1 * Math.acos((d * d + r1 * r1 - r2 * r2) / (2 * d * r1));
           const part2 = r2 * r2 * Math.acos((d * d + r2 * r2 - r1 * r1) / (2 * d * r2));
-          const part3 = 0.5 * Math.sqrt(Math.max(0, (-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2)));
+          const part3 =
+            0.5 *
+            Math.sqrt(Math.max(0, (-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2)));
           const intersectionArea = part1 + part2 - part3;
           const minArea = Math.PI * Math.min(r1, r2) * Math.min(r1, r2);
           overlapPct = (intersectionArea / minArea) * 100;
         }
-        
+
         console.log(`💥 OVERLAP DETECTED! Mini ${i}: overlap%: ${overlapPct.toFixed(1)}%`);
-        
+
         // Alleen collision als overlap >= 60%
         if (overlapPct >= 60) {
           if (overlapPct > bestOverlapPct) {
             bestOverlapPct = overlapPct;
-            bestCollision = { 
-              mini, 
-              index: i, 
-              overlapPct, 
+            bestCollision = {
+              mini,
+              index: i,
+              overlapPct,
               distance2D,
               solly1Radius,
-              miniRadius
+              miniRadius,
             };
           }
         } else {
           console.log(`❌ Overlap ${overlapPct.toFixed(1)}% < 60% - GEEN COLLISION`);
         }
       } else {
-        console.log(`❌ Geen overlap - distance ${distance2D.toFixed(1)} >= sum radii ${sumRadii.toFixed(1)}`);
+        console.log(
+          `❌ Geen overlap - distance ${distance2D.toFixed(1)} >= sum radii ${sumRadii.toFixed(1)}`,
+        );
       }
     }
-    
+
     // Trigger collision als er een geldige overlap is
     if (bestCollision) {
-      console.log(`🎯 COLLISION TRIGGERED! Mini ${bestCollision.index}: ${bestCollision.overlapPct.toFixed(1)}% overlap`);
-      console.log(`📊 Details: distance=${bestCollision.distance2D.toFixed(1)}, overlap%=${bestCollision.overlapPct.toFixed(1)}%, solly1Radius=${bestCollision.solly1Radius.toFixed(1)}, miniRadius=${bestCollision.miniRadius.toFixed(1)}`);
-      
+      console.log(
+        `🎯 COLLISION TRIGGERED! Mini ${bestCollision.index}: ${bestCollision.overlapPct.toFixed(1)}% overlap`,
+      );
+      console.log(
+        `📊 Details: distance=${bestCollision.distance2D.toFixed(1)}, overlap%=${bestCollision.overlapPct.toFixed(1)}%, solly1Radius=${bestCollision.solly1Radius.toFixed(1)}, miniRadius=${bestCollision.miniRadius.toFixed(1)}`,
+      );
+
       this.handleMiniSollyCollision(bestCollision.mini, bestCollision.index);
-      
+
       // Zet globale flag zodat main.js stopt met herhaald checken
       window.collisionDetected = true;
     }
   }
-  
+
   // Helper om effectieve radius te krijgen voor collision detection
   _getMeshRadius(mesh) {
     if (!mesh || !mesh.geometry) {
       console.log(`❌ Mesh of geometry ontbreekt voor radius berekening`);
       return 50; // Fallback radius
     }
-    
+
     // Zorg dat bounding sphere is berekend
     if (!mesh.geometry.boundingSphere) {
       mesh.geometry.computeBoundingSphere();
     }
-    
+
     // Gebruik de grootste schaal voor radius (voor niet-uniforme schaling)
     const maxScale = Math.max(mesh.scale.x, mesh.scale.y, mesh.scale.z);
     const radius = mesh.geometry.boundingSphere.radius * maxScale;
-    
-    console.log(`📏 Mesh radius: ${radius.toFixed(1)} (scale: ${maxScale.toFixed(1)}, base radius: ${mesh.geometry.boundingSphere.radius.toFixed(1)})`);
-    
+
+    console.log(
+      `📏 Mesh radius: ${radius.toFixed(1)} (scale: ${maxScale.toFixed(1)}, base radius: ${mesh.geometry.boundingSphere.radius.toFixed(1)})`,
+    );
+
     return radius;
   }
 
   handleMiniSollyCollision(miniSolly, index) {
     console.log(`💥 Mini Solly collision detected at index ${index}`);
-    
+
     // Verberg de mini Solly
     miniSolly.visible = false;
-    
+
     // Bepaal het exacte midden van de botsing voor de explosie
     let kaboomPos = miniSolly.position.clone();
     if (window.solly1) {
-      kaboomPos = new THREE.Vector3().addVectors(window.solly1.position, miniSolly.position).multiplyScalar(0.5);
+      kaboomPos = new THREE.Vector3()
+        .addVectors(window.solly1.position, miniSolly.position)
+        .multiplyScalar(0.5);
     }
     // Maak KABOOM explosie effect
     this.createKaboomExplosion(kaboomPos);
-    
+
     // Update game state
     this.updateGameState();
-    
+
     // Trigger portal activatie na meerdere collisions
     this.checkPortalActivation();
   }
@@ -359,83 +377,83 @@ class CollisionManager {
   createKaboomExplosion(position) {
     // Grote KABOOM explosie met meerdere lagen
     console.log('💥 KABOOM explosie gestart!');
-    
+
     // Laag 1: Grote explosie ring
-    this.createExplosionLayer(position, 0xFFD700, 0, 400, 800);
-    
+    this.createExplosionLayer(position, 0xffd700, 0, 400, 800);
+
     // Laag 2: Paarse explosie ring
-    this.createExplosionLayer(position, 0x8A2BE2, 100, 600, 600);
-    
+    this.createExplosionLayer(position, 0x8a2be2, 100, 600, 600);
+
     // Laag 3: Rode explosie ring
-    this.createExplosionLayer(position, 0xFF4500, 200, 800, 400);
-    
+    this.createExplosionLayer(position, 0xff4500, 200, 800, 400);
+
     // Screen shake voor extra effect
     this.createScreenShake();
-    
+
     // Particle explosie
     this.createKaboomParticles(position);
-    
+
     // Toon "KABOOM!" tekst
     this.showKaboomText(position);
   }
-  
+
   createKaboomParticles(position) {
     const particleCount = 50;
     const particles = [];
-    const colors = [0xFFD700, 0xFF4500, 0x8A2BE2, 0x00FF00, 0xFF69B4];
-    
+    const colors = [0xffd700, 0xff4500, 0x8a2be2, 0x00ff00, 0xff69b4];
+
     for (let i = 0; i < particleCount; i++) {
       const geo = new THREE.SphereGeometry(0.5, 8, 8);
-      const mat = new THREE.MeshBasicMaterial({ 
-        color: colors[i % colors.length], 
-        transparent: true, 
-        opacity: 1.0 
+      const mat = new THREE.MeshBasicMaterial({
+        color: colors[i % colors.length],
+        transparent: true,
+        opacity: 1.0,
       });
       const particle = new THREE.Mesh(geo, mat);
-      
+
       const direction = new THREE.Vector3(
         (Math.random() - 0.5) * 4,
         (Math.random() - 0.5) * 4,
-        (Math.random() - 0.5) * 4
+        (Math.random() - 0.5) * 4,
       ).normalize();
-      
+
       const speed = 50 + Math.random() * 100;
       particle.velocity = direction.multiplyScalar(speed);
       particle.position.copy(position);
-      
+
       window.scene.add(particle);
       particles.push(particle);
     }
-    
+
     const start = performance.now();
     const duration = 2000;
-    
+
     const animateParticles = () => {
       const t = (performance.now() - start) / duration;
       if (t >= 1) {
-        particles.forEach(p => window.scene.remove(p));
+        particles.forEach((p) => window.scene.remove(p));
         return;
       }
-      
-      particles.forEach(particle => {
+
+      particles.forEach((particle) => {
         particle.position.add(particle.velocity.clone().multiplyScalar(0.016));
         particle.material.opacity = 1.0 * (1 - t);
         particle.scale.setScalar(1 - t * 0.5);
       });
-      
+
       requestAnimationFrame(animateParticles);
     };
     animateParticles();
   }
-  
+
   showKaboomText(position) {
     // Projecteer 3D positie naar 2D scherm coördinaten
     const vector = position.clone();
     vector.project(window.camera);
-    
+
     const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
     const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
-    
+
     const kaboomEl = document.createElement('div');
     kaboomEl.textContent = '💥 KABOOM! 💥';
     kaboomEl.style.cssText = `
@@ -454,7 +472,7 @@ class CollisionManager {
       animation: kaboomPulse 1s ease-out;
       pointer-events: none;
     `;
-    
+
     // Voeg animatie CSS toe
     if (!document.getElementById('kaboom-animations')) {
       const style = document.createElement('style');
@@ -468,54 +486,54 @@ class CollisionManager {
       `;
       document.head.appendChild(style);
     }
-    
+
     document.body.appendChild(kaboomEl);
     setTimeout(() => kaboomEl.remove(), 1000);
   }
-  
+
   createMiniExplosion(position) {
     const particleCount = 20;
     const particles = [];
-    
+
     for (let i = 0; i < particleCount; i++) {
       const geo = new THREE.SphereGeometry(0.3, 6, 6);
-      const mat = new THREE.MeshBasicMaterial({ 
-        color: 0xFFD700, 
-        transparent: true, 
-        opacity: 1.0 
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xffd700,
+        transparent: true,
+        opacity: 1.0,
       });
       const particle = new THREE.Mesh(geo, mat);
-      
+
       const direction = new THREE.Vector3(
         (Math.random() - 0.5) * 2,
         (Math.random() - 0.5) * 2,
-        (Math.random() - 0.5) * 2
+        (Math.random() - 0.5) * 2,
       ).normalize();
-      
+
       const speed = 30 + Math.random() * 50;
       particle.velocity = direction.multiplyScalar(speed);
       particle.position.copy(position);
-      
+
       window.scene.add(particle);
       particles.push(particle);
     }
-    
+
     const start = performance.now();
     const duration = 1500;
-    
+
     const animateParticles = () => {
       const t = (performance.now() - start) / duration;
       if (t >= 1) {
-        particles.forEach(p => window.scene.remove(p));
+        particles.forEach((p) => window.scene.remove(p));
         return;
       }
-      
-      particles.forEach(particle => {
+
+      particles.forEach((particle) => {
         particle.position.add(particle.velocity.clone().multiplyScalar(0.016));
         particle.material.opacity = 1.0 * (1 - t);
         particle.scale.setScalar(1 - t * 0.3);
       });
-      
+
       requestAnimationFrame(animateParticles);
     };
     animateParticles();
@@ -524,11 +542,11 @@ class CollisionManager {
   updateGameState() {
     // Update kaboom count
     if (window.gameManager) {
-                      // Record kaboom with position and shape data
-                const position = solly1.position.clone();
-                const shape = window.gameManager.getCurrentShape();
-                window.gameManager.incrementKaboomCount(1, position, shape);
-      
+      // Record kaboom with position and shape data
+      const position = solly1.position.clone();
+      const shape = window.gameManager.getCurrentShape();
+      window.gameManager.incrementKaboomCount(1, position, shape);
+
       // Update KABOOM counter in UI
       const kaboomCounter = document.getElementById('kaboom-counter');
       const kaboomNumber = document.getElementById('kaboom-number');
@@ -536,20 +554,20 @@ class CollisionManager {
         const totalCollisions = window.gameManager.getKaboomCount();
         kaboomNumber.textContent = totalCollisions;
         kaboomCounter.style.display = 'block'; // Altijd zichtbaar
-        
+
         console.log('💥 KABOOM counter bijgewerkt naar:', totalCollisions);
-        
+
         // Voeg een kleine animatie toe
         kaboomCounter.style.transform = 'scale(1.2)';
         setTimeout(() => {
           kaboomCounter.style.transform = 'scale(1)';
         }, 200);
-        
+
         // Stop bij 5 collisions
         if (totalCollisions >= 4) {
           console.log('🎯 4 collisions bereikt - collision detection gestopt');
           window.collisionDetected = true; // Stop verdere collisions
-          
+
           // Toon automatisch de ShapeChoice modal
           setTimeout(() => {
             this.showShapeChoiceModal();
@@ -559,7 +577,7 @@ class CollisionManager {
         console.error('❌ KABOOM counter elementen niet gevonden in updateGameState!');
       }
     }
-    
+
     // Update sollys count (geel)
     if (window.gameManager) {
       const currentGeel = window.gameManager.getSollysValue('geel');
@@ -571,9 +589,9 @@ class CollisionManager {
     // Check of er genoeg collisions zijn voor portal activatie
     if (window.gameManager) {
       const kaboomCount = window.gameManager.getKaboomCount();
-      
-              // Na 5 collisions: toon ShapeChoice modal
-              if (kaboomCount % 5 === 0) {
+
+      // Na 5 collisions: toon ShapeChoice modal
+      if (kaboomCount % 5 === 0) {
         this.showShapeChoiceModal();
       }
       // Na 5 collisions: activeer portal
@@ -591,20 +609,20 @@ class CollisionManager {
 
   showShapeChoiceModal() {
     console.log('🎨 Showing ShapeChoice modal after 4 collisions');
-    
+
     // Zet flag om collisions te blokkeren
     window.shapeChoiceModalOpen = true;
-    
+
     // BEWAAR DE PORTAL - verwijder deze NIET
     // De portal moet blijven bestaan tijdens de shape choice
     console.log('🔮 Portal wordt bewaard tijdens shape choice');
-    
+
     // Verwijder bestaande modal als die er is
     const existingModal = document.querySelector('.shape-choice-modal');
     if (existingModal) {
       existingModal.remove();
     }
-    
+
     // Maak modal HTML (zonder onclick handlers)
     const modalHTML = `
       <div class="shape-choice-modal">
@@ -640,7 +658,7 @@ class CollisionManager {
         </div>
       </div>
     `;
-    
+
     // Voeg CSS toe als het nog niet bestaat
     if (!document.getElementById('shape-choice-styles')) {
       const style = document.createElement('style');
@@ -749,16 +767,16 @@ class CollisionManager {
       `;
       document.head.appendChild(style);
     }
-    
+
     // Voeg modal toe aan DOM
     const modalContainer = document.createElement('div');
     modalContainer.innerHTML = modalHTML;
     const modal = modalContainer.firstElementChild;
     document.body.appendChild(modal);
-    
+
     // Voeg event listeners toe aan shape options
     const shapeOptions = modal.querySelectorAll('.shape-option');
-    shapeOptions.forEach(option => {
+    shapeOptions.forEach((option) => {
       option.addEventListener('click', (event) => {
         const shape = option.getAttribute('data-shape');
         if (shape) {
@@ -766,7 +784,7 @@ class CollisionManager {
         }
       });
     });
-    
+
     // Maak collisionManager globaal beschikbaar
     window.collisionManager = this;
   }
@@ -775,16 +793,16 @@ class CollisionManager {
     console.log(`🎨 Shape chosen: ${shape}`);
     console.log(`🔍 DEBUG: Shape parameter type: ${typeof shape}`);
     console.log(`🔍 DEBUG: Shape parameter value: "${shape}"`);
-    
+
     // Verwijder flag om collisions weer toe te staan
     window.shapeChoiceModalOpen = false;
-    
+
     // Voorkom dubbele clicks door modal direct te verwijderen
     const modal = document.querySelector('.shape-choice-modal');
     if (modal) {
       modal.remove();
     }
-    
+
     // Start universe transition effect
     this.startUniverseTransition(shape);
   }
@@ -792,11 +810,11 @@ class CollisionManager {
   // === 🌌 UNIVERSE TRANSITION EFFECT ============================================
   startUniverseTransition(shape) {
     console.log('🌌 Starting universe transition effect...');
-    
+
     // Store original camera position
     const originalCameraPosition = window.camera.position.clone();
     const originalCameraTarget = new THREE.Vector3(0, 0, 0);
-    
+
     // Phase 1: Pull universe towards center
     this.pullUniverseToCenter(() => {
       // Phase 2: Twirl effect
@@ -809,12 +827,12 @@ class CollisionManager {
 
   pullUniverseToCenter(callback) {
     console.log('🌀 Subtle universe transition...');
-    
+
     const duration = 800; // 0.8 seconds (much shorter)
     const startTime = performance.now();
     const startPosition = window.camera.position.clone();
     const targetPosition = new THREE.Vector3(0, 150, 1200); // Further back, more subtle
-    
+
     // Store original positions of all objects
     const objects = [];
     window.scene.traverse((child) => {
@@ -822,36 +840,36 @@ class CollisionManager {
         objects.push({
           mesh: child,
           originalPosition: child.position.clone(),
-          originalScale: child.scale.clone()
+          originalScale: child.scale.clone(),
         });
       }
     });
-    
+
     function animatePull() {
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      
+
       // Very gentle easing
       const easeProgress = 1 - Math.pow(1 - progress, 3);
-      
+
       // Move camera back (subtle)
       window.camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
       window.camera.lookAt(0, 0, 0);
-      
+
       // Very subtle object movement (only 10% towards center)
       objects.forEach(({ mesh, originalPosition, originalScale }) => {
         const targetPos = new THREE.Vector3(
           originalPosition.x * 0.9, // Only move 10% towards center
           originalPosition.y * 0.9,
-          originalPosition.z * 0.9
+          originalPosition.z * 0.9,
         );
         mesh.position.lerpVectors(originalPosition, targetPos, easeProgress * 0.2);
-        
+
         // Very minimal scale change (only 5% smaller)
-        const scaleFactor = 1 - (easeProgress * 0.05);
+        const scaleFactor = 1 - easeProgress * 0.05;
         mesh.scale.setScalar(scaleFactor);
       });
-      
+
       if (progress < 1) {
         requestAnimationFrame(animatePull);
       } else {
@@ -859,20 +877,20 @@ class CollisionManager {
         callback();
       }
     }
-    
+
     animatePull();
   }
 
   twirlUniverse(callback) {
     console.log('🌪️ Subtle twirl effect...');
-    
+
     const duration = 600; // 0.6 seconds (much shorter)
     const startTime = performance.now();
-    
+
     function animateTwirl() {
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      
+
       // Very subtle twirl - only half rotation
       const twirlAmount = progress * Math.PI; // Half rotation
       const radius = 1200; // Keep original distance
@@ -880,15 +898,20 @@ class CollisionManager {
       window.camera.position.z = Math.sin(twirlAmount) * radius * 0.1;
       window.camera.position.y = 150 + Math.sin(twirlAmount * 2) * 20; // Minimal vertical movement
       window.camera.lookAt(0, 0, 0);
-      
+
       // Very minimal object rotation
       window.scene.traverse((child) => {
-        if (child.isMesh && child.userData && !child.userData.isSolly1 && !child.userData.isSolly2) {
+        if (
+          child.isMesh &&
+          child.userData &&
+          !child.userData.isSolly1 &&
+          !child.userData.isSolly2
+        ) {
           child.rotation.y += 0.001; // Very slow rotation
           child.rotation.x += 0.0005;
         }
       });
-      
+
       if (progress < 1) {
         requestAnimationFrame(animateTwirl);
       } else {
@@ -896,42 +919,42 @@ class CollisionManager {
         callback();
       }
     }
-    
+
     animateTwirl();
   }
 
   returnCameraToNormal() {
     console.log('📷 Returning camera to normal position...');
-    
+
     const duration = 1000; // 1 second
     const startTime = performance.now();
     const startPosition = window.camera.position.clone();
     const targetPosition = new THREE.Vector3(0, 200, 1000); // Normal game position
-    
+
     function animateReturn() {
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      
+
       // Smooth easing
       const easeProgress = 1 - Math.pow(1 - progress, 2);
-      
+
       // Move camera to normal position
       window.camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
       window.camera.lookAt(0, 0, 0);
-      
+
       if (progress < 1) {
         requestAnimationFrame(animateReturn);
       } else {
         console.log('✅ Camera returned to normal position');
       }
     }
-    
+
     animateReturn();
   }
 
   completeShapeChange(shape) {
     console.log('✨ Completing shape change...');
-    
+
     // Create basketball hoop effect
     this.createBasketballHoopEffect(shape);
   }
@@ -939,10 +962,10 @@ class CollisionManager {
   // === 🏀 BASKETBALL HOOP EFFECT ================================================
   createBasketballHoopEffect(shape) {
     console.log('🏀 Creating basketball hoop effect...');
-    
+
     // Create a portal/hoop
     this.createPortalHoop();
-    
+
     // Animate Solly1 through the hoop
     this.animateSollyThroughHoop(shape);
   }
@@ -954,139 +977,145 @@ class CollisionManager {
       console.warn('❌ Solly1 not found for hoop sizing');
       return;
     }
-    
+
     // Calculate the bounding box of Solly1 to get its size
     const box = new THREE.Box3().setFromObject(solly1);
     const size = box.getSize(new THREE.Vector3());
     const maxDimension = Math.max(size.x, size.y, size.z);
-    
+
     // Create hoop with size matching Solly1's largest dimension
     const hoopRadius = maxDimension * 0.6; // Slightly larger than Solly1
     const hoopThickness = maxDimension * 0.1; // Thin ring
-    
+
     const hoopGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness, hoopRadius, 16);
     const hoopMaterial = new THREE.MeshBasicMaterial({
-      color: 0xFFD700, // Gold color
+      color: 0xffd700, // Gold color
       transparent: true,
       opacity: 0.8,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
-    
+
     const hoop = new THREE.Mesh(hoopGeometry, hoopMaterial);
     hoop.position.set(0, 0, 0); // Center of universe
     hoop.rotation.x = Math.PI / 2; // Horizontal
     hoop.userData.isPortalHoop = true;
     hoop.userData.hoopRadius = hoopRadius;
-    
+
     window.scene.add(hoop);
-    
+
     // Add glow effect
     const glowGeometry = new THREE.RingGeometry(hoopRadius - hoopThickness - 5, hoopRadius + 5, 32);
     const glowMaterial = new THREE.MeshBasicMaterial({
-      color: 0xFFD700,
+      color: 0xffd700,
       transparent: true,
       opacity: 0.3,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
-    
+
     const glow = new THREE.Mesh(glowGeometry, glowMaterial);
     glow.position.set(0, 0, 0);
     glow.rotation.x = Math.PI / 2;
     glow.userData.isPortalGlow = true;
-    
+
     window.scene.add(glow);
-    
+
     // Store references
     window.portalHoop = hoop;
     window.portalGlow = glow;
-    
-    console.log(`🏀 Created hoop with radius: ${hoopRadius.toFixed(2)} (Solly1 size: ${maxDimension.toFixed(2)})`);
+
+    console.log(
+      `🏀 Created hoop with radius: ${hoopRadius.toFixed(2)} (Solly1 size: ${maxDimension.toFixed(2)})`,
+    );
   }
 
   animateSollyThroughHoop(shape) {
     if (!window.solly1) return;
-    
+
     const duration = 2000; // 2 seconds for a nice drop
     const startTime = performance.now();
     const startPosition = window.solly1.position.clone();
     const hoopPosition = new THREE.Vector3(0, 0, 0);
-    
+
     // Position Solly1 above the hoop
     window.solly1.position.set(0, 200, 0); // Start above the hoop
     const newStartPosition = window.solly1.position.clone();
-    
+
     // Calculate trajectory - Solly drops straight down through the hoop
     const endPosition = new THREE.Vector3(0, -200, 0); // End below the hoop
-    
+
     function animateSolly() {
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      
+
       // Smooth easing for natural drop
       const easeProgress = 1 - Math.pow(1 - progress, 3);
-      
+
       // Linear drop with slight arc
       const t = easeProgress;
       const currentY = newStartPosition.y + (endPosition.y - newStartPosition.y) * t;
       const currentX = newStartPosition.x + Math.sin(t * Math.PI) * 20; // Slight side movement
       const currentZ = newStartPosition.z + Math.sin(t * Math.PI * 0.5) * 10; // Slight forward movement
-      
+
       window.solly1.position.set(currentX, currentY, currentZ);
-      
+
       // Add rotation for falling effect
       window.solly1.rotation.x += 0.05;
       window.solly1.rotation.y += 0.1;
       window.solly1.rotation.z += 0.03;
-      
+
       // Check if Solly1 is passing through the hoop
       if (window.portalHoop && window.portalHoop.userData.hoopRadius) {
         const distanceFromCenter = Math.sqrt(currentX * currentX + currentZ * currentZ);
-        if (distanceFromCenter < window.portalHoop.userData.hoopRadius && currentY < 50 && currentY > -50) {
+        if (
+          distanceFromCenter < window.portalHoop.userData.hoopRadius &&
+          currentY < 50 &&
+          currentY > -50
+        ) {
           // Solly1 is passing through the hoop - add a little "swish" effect
           window.solly1.scale.setScalar(1.1); // Slightly bigger when passing through
         } else {
           window.solly1.scale.setScalar(1.0); // Normal size
         }
       }
-      
+
       if (progress < 1) {
         requestAnimationFrame(animateSolly);
       } else {
         console.log('🏀 Solly dropped through the hoop!');
-        
+
         // Complete the shape change
         this.finishShapeChange(shape);
       }
     }
-    
+
     animateSolly();
   }
 
   finishShapeChange(shape) {
     // Return camera to normal position
     this.returnCameraToNormal();
-    
+
     // Update game state
     if (window.gameManager) {
       window.gameManager.changeShape(shape);
     }
-    
+
     // Update Solly1 vorm
     this.updateSolly1Shape(shape);
-    
+
     // Toon bericht
     this.showShapeChangeMessage(shape);
-    
+
     // MAAK EEN SHAPECHOICE OBJECT DAT JE KUNT SLEPEN
     this.createDraggableShapeChoice(shape);
-    
+
     // MAAK PORTAL AAN NA SHAPE CHOICE
     console.log(`🔮 Creating portal after shape choice with shape: "${shape}"`);
     this.createShapePortal(shape);
-    
+
     // EXTRA: Maak ook een eenvoudige test portal die gegarandeerd zichtbaar is
     this.createSimpleTestPortal(shape);
-    
+
     // Clean up hoop after a delay
     setTimeout(() => {
       if (window.portalHoop) {
@@ -1098,30 +1127,32 @@ class CollisionManager {
         window.portalGlow = null;
       }
     }, 3000);
-    
+
     // DEBUG: Check of portal echt bestaat
     setTimeout(() => {
       console.log('🔍 DEBUG: Checking portal existence...');
       if (window.portal) {
         console.log(`✅ Portal exists: ${window.portal.name}`);
-        console.log(`📍 Portal position: ${window.portal.position.x}, ${window.portal.position.y}, ${window.portal.position.z}`);
+        console.log(
+          `📍 Portal position: ${window.portal.position.x}, ${window.portal.position.y}, ${window.portal.position.z}`,
+        );
         console.log(`👁️ Portal visible: ${window.portal.visible}`);
       } else {
         console.log('❌ Portal does not exist!');
       }
-      
+
       // Check scene objects
       if (window.scene) {
-        const portalObjects = window.scene.children.filter(child => 
-          child.name && child.name.includes('Portal')
+        const portalObjects = window.scene.children.filter(
+          (child) => child.name && child.name.includes('Portal'),
         );
         console.log(`🔍 Portal objects in scene: ${portalObjects.length}`);
-        portalObjects.forEach(obj => {
+        portalObjects.forEach((obj) => {
           console.log(`  - ${obj.name}: ${obj.position.x}, ${obj.position.y}, ${obj.position.z}`);
         });
       }
     }, 500); // Check na 0.5 seconde
-    
+
     // START VORTEX ANIMATIE VOOR LEVEL 2
     setTimeout(() => {
       console.log('🌀 Starting vortex animation before Level 2');
@@ -1130,7 +1161,7 @@ class CollisionManager {
         this.startVortexAnimation(centerPosition, null);
       }
     }, 1000); // Start vortex na 1 seconde
-    
+
     // START LEVEL 2 NA VORTEX
     setTimeout(() => {
       console.log('🚀 Starting Level 2 after vortex animation');
@@ -1138,13 +1169,11 @@ class CollisionManager {
     }, 6000); // Wacht 6 seconden (vortex duurt 5 seconden)
   }
 
-
-
   updateSolly1Shape(shape) {
     if (!window.solly1) return;
-    
+
     console.log(`🎨 Updating Solly1 shape to: ${shape}`);
-    
+
     // Verwijder oude children (voor zandloper)
     while (window.solly1.children.length > 0) {
       const child = window.solly1.children[0];
@@ -1153,71 +1182,71 @@ class CollisionManager {
         window.scene.remove(child);
       }
     }
-    
+
     // Verwijder oude geometrie
     if (window.solly1.geometry) {
       window.solly1.geometry.dispose();
     }
-    
+
     // Maak nieuwe geometrie op basis van shape
     let newGeometry;
     let material;
-    
+
     switch (shape) {
       case 'vierkant':
         newGeometry = new THREE.BoxGeometry(120, 120, 120);
-        material = new THREE.MeshLambertMaterial({ 
-          color: 0x8A2BE2,
+        material = new THREE.MeshLambertMaterial({
+          color: 0x8a2be2,
           transparent: true,
-          opacity: 0.9
+          opacity: 0.9,
         });
         break;
-        
+
       case 'zandloper':
         // Zandloper = gebruik een octahedron als basis en maak het hoger
         newGeometry = new THREE.OctahedronGeometry(80, 0);
-        material = new THREE.MeshBasicMaterial({ 
-          color: 0xFFFFFF, // Wit zoals Solly1
+        material = new THREE.MeshBasicMaterial({
+          color: 0xffffff, // Wit zoals Solly1
           transparent: false,
-          opacity: 1.0
+          opacity: 1.0,
         });
         // Schaal om zandloper vorm te krijgen
         newGeometry.scale(1, 2, 1);
         break;
-        
+
       case 'ruit':
         newGeometry = new THREE.OctahedronGeometry(80);
-        material = new THREE.MeshLambertMaterial({ 
-          color: 0x8A2BE2,
+        material = new THREE.MeshLambertMaterial({
+          color: 0x8a2be2,
           transparent: true,
-          opacity: 0.9
+          opacity: 0.9,
         });
         break;
-        
+
       case 'piramide':
       default:
         newGeometry = new THREE.ConeGeometry(60, 120, 4);
-        material = new THREE.MeshLambertMaterial({ 
-          color: 0x8A2BE2,
+        material = new THREE.MeshLambertMaterial({
+          color: 0x8a2be2,
           transparent: true,
-          opacity: 0.9
+          opacity: 0.9,
         });
         break;
     }
-    
+
     // Voor alle vormen: update geometrie en material
     window.solly1.geometry = newGeometry;
     window.solly1.material = material;
     window.solly1.userData.shape = shape;
-    
+
     // Positioneer Solly1 op de juiste hoogte
     window.solly1.position.set(0, 200, 0);
-    
+
     // Herstel raycasting direct na vorm verandering
     if (typeof window.enableSolly1DragOnly === 'function') {
       window.enableSolly1DragOnly();
     }
-    
+
     // Zorg ervoor dat Solly1 zichtbaar en klikbaar is
     if (window.solly1) {
       window.solly1.visible = true;
@@ -1227,11 +1256,11 @@ class CollisionManager {
         window.solly1.material.transparent = false;
       }
       window.solly1.raycast = THREE.Mesh.prototype.raycast;
-      
+
       // Voor alle vormen: zorg dat raycasting werkt
       window.solly1.raycast = THREE.Mesh.prototype.raycast;
     }
-    
+
     console.log(`🎨 Solly1 shape updated to: ${shape} and positioned in center`);
   }
 
@@ -1267,7 +1296,7 @@ class CollisionManager {
       box-shadow: 0 8px 24px rgba(76, 175, 80, 0.4);
       animation: shapeChangePulse 2s ease-out;
     `;
-    
+
     // Voeg animatie CSS toe
     if (!document.getElementById('shape-change-animations')) {
       const style = document.createElement('style');
@@ -1286,55 +1315,55 @@ class CollisionManager {
       `;
       document.head.appendChild(style);
     }
-    
+
     document.body.appendChild(messageEl);
     setTimeout(() => messageEl.remove(), 2000);
   }
 
   createShapePortal(shape) {
     console.log(`🌀 Creating mystieke portal for: ${shape}`);
-    
+
     if (!window.scene) return;
-    
+
     // Check of er al een actieve portal is
     if (window.portal && window.portalActive) {
       console.log('🔮 Portal is al actief - geen nieuwe portal aangemaakt');
       return;
     }
-    
+
     // Verwijder bestaande portal als die er is (alleen als niet actief)
     const existingPortal = window.scene.getObjectByName('ShapePortal');
     if (existingPortal) {
       window.scene.remove(existingPortal);
     }
-    
+
     // Verwijder bestaande PortalShape als die er is
     const existingShape = window.scene.getObjectByName('PortalShape');
     if (existingShape) {
       window.scene.remove(existingShape);
     }
-    
+
     // Verwijder bestaande PortalInnerFill als die er is
     const existingFill = window.scene.getObjectByName('PortalInnerFill');
     if (existingFill) {
       window.scene.remove(existingFill);
     }
-    
+
     // Verwijder bestaande PortalInnerRing als die er is
     const existingInnerRing = window.scene.getObjectByName('PortalInnerRing');
     if (existingInnerRing) {
       window.scene.remove(existingInnerRing);
     }
-    
+
     // Verwijder bestaande PortalClickTarget als die er is
     const existingClickTarget = window.scene.getObjectByName('PortalClickTarget');
     if (existingClickTarget) {
       window.scene.remove(existingClickTarget);
     }
-    
+
     // MYSTIEKE PORTAL MET VORM-SPECIFIEKE BINNENKANT
     let outerRing, innerRing, clickTarget;
-    
+
     console.log(`🔍 DEBUG: Switch statement - shape parameter: "${shape}"`);
     switch (shape) {
       case 'vierkant':
@@ -1343,145 +1372,145 @@ class CollisionManager {
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
           new THREE.MeshBasicMaterial({
-            color: 0x8A2BE2,
+            color: 0x8a2be2,
             transparent: true,
             opacity: 1.0, // Volledig zichtbaar
-            side: THREE.DoubleSide
-          })
+            side: THREE.DoubleSide,
+          }),
         );
-        
+
         innerRing = new THREE.Mesh(
           new THREE.RingGeometry(200, 400, 4), // 4 segments = vierkant
           new THREE.MeshBasicMaterial({
-            color: 0x9370DB,
+            color: 0x9370db,
             transparent: true,
             opacity: 0.9,
-            side: THREE.DoubleSide
-          })
+            side: THREE.DoubleSide,
+          }),
         );
-        
+
         clickTarget = new THREE.Mesh(
           new THREE.PlaneGeometry(300, 300), // Vierkant
-          new THREE.MeshBasicMaterial({ 
-            transparent: true, 
-            opacity: 0, 
-            side: THREE.DoubleSide 
-          })
+          new THREE.MeshBasicMaterial({
+            transparent: true,
+            opacity: 0,
+            side: THREE.DoubleSide,
+          }),
         );
         break;
-        
+
       case 'zandloper':
         console.log(`🔍 DEBUG: Creating ZANDLOPER portal`);
         // ZANDLOPER PORTAL (twee piramides op elkaar)
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
           new THREE.MeshBasicMaterial({
-            color: 0x8A2BE2,
+            color: 0x8a2be2,
             transparent: true,
             opacity: 1.0, // Volledig zichtbaar
-            side: THREE.DoubleSide
-          })
+            side: THREE.DoubleSide,
+          }),
         );
-        
+
         // Maak een groep voor de zandloper vorm
         const zandloperGroup = new THREE.Group();
         zandloperGroup.name = 'ZandloperShape';
-        
+
         // Bovenste piramide (punt naar boven)
         const topPyramid = new THREE.Mesh(
           new THREE.ConeGeometry(150, 200, 3),
           new THREE.MeshBasicMaterial({
-            color: 0x9370DB,
+            color: 0x9370db,
             transparent: true,
             opacity: 0.9,
-            side: THREE.DoubleSide
-          })
+            side: THREE.DoubleSide,
+          }),
         );
         topPyramid.position.y = 100;
         topPyramid.rotation.x = Math.PI; // Draai om zodat punt naar boven wijst
         zandloperGroup.add(topPyramid);
-        
+
         // Onderste piramide (punt naar beneden)
         const bottomPyramid = new THREE.Mesh(
           new THREE.ConeGeometry(150, 200, 3),
           new THREE.MeshBasicMaterial({
-            color: 0x9370DB,
+            color: 0x9370db,
             transparent: true,
             opacity: 0.9,
-            side: THREE.DoubleSide
-          })
+            side: THREE.DoubleSide,
+          }),
         );
         bottomPyramid.position.y = -100;
         zandloperGroup.add(bottomPyramid);
-        
+
         // Gebruik de groep als innerRing
         innerRing = zandloperGroup;
-        
+
         // Click target als combinatie van beide piramides
         const clickTargetGroup = new THREE.Group();
         clickTargetGroup.name = 'ZandloperClickTarget';
-        
+
         const topClickTarget = new THREE.Mesh(
           new THREE.ConeGeometry(150, 200, 3),
-          new THREE.MeshBasicMaterial({ 
-            transparent: true, 
-            opacity: 0, 
-            side: THREE.DoubleSide 
-          })
+          new THREE.MeshBasicMaterial({
+            transparent: true,
+            opacity: 0,
+            side: THREE.DoubleSide,
+          }),
         );
         topClickTarget.position.y = 100;
         topClickTarget.rotation.x = Math.PI;
         clickTargetGroup.add(topClickTarget);
-        
+
         const bottomClickTarget = new THREE.Mesh(
           new THREE.ConeGeometry(150, 200, 3),
-          new THREE.MeshBasicMaterial({ 
-            transparent: true, 
-            opacity: 0, 
-            side: THREE.DoubleSide 
-          })
+          new THREE.MeshBasicMaterial({
+            transparent: true,
+            opacity: 0,
+            side: THREE.DoubleSide,
+          }),
         );
         bottomClickTarget.position.y = -100;
         clickTargetGroup.add(bottomClickTarget);
-        
+
         clickTarget = clickTargetGroup;
         break;
-        
+
       case 'ruit':
         console.log(`🔍 DEBUG: Creating RUIT portal`);
         // RUIT PORTAL (diamant vorm)
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
           new THREE.MeshBasicMaterial({
-            color: 0x8A2BE2,
+            color: 0x8a2be2,
             transparent: true,
             opacity: 1.0, // Volledig zichtbaar
-            side: THREE.DoubleSide
-          })
+            side: THREE.DoubleSide,
+          }),
         );
-        
+
         innerRing = new THREE.Mesh(
           new THREE.RingGeometry(200, 400, 4), // 4 segments = vierkant (gedraaid)
           new THREE.MeshBasicMaterial({
-            color: 0x9370DB,
+            color: 0x9370db,
             transparent: true,
             opacity: 0.9,
-            side: THREE.DoubleSide
-          })
+            side: THREE.DoubleSide,
+          }),
         );
         innerRing.rotation.z = Math.PI / 4; // Draai 45 graden voor diamant vorm
-        
+
         clickTarget = new THREE.Mesh(
           new THREE.PlaneGeometry(300, 300), // Vierkant
-          new THREE.MeshBasicMaterial({ 
-            transparent: true, 
-            opacity: 0, 
-            side: THREE.DoubleSide 
-          })
+          new THREE.MeshBasicMaterial({
+            transparent: true,
+            opacity: 0,
+            side: THREE.DoubleSide,
+          }),
         );
         clickTarget.rotation.z = Math.PI / 4; // Draai 45 graden voor diamant vorm
         break;
-        
+
       case 'piramide':
       default:
         console.log(`🔍 DEBUG: Creating PIRAMIDE portal (default case)`);
@@ -1489,103 +1518,103 @@ class CollisionManager {
         outerRing = new THREE.Mesh(
           new THREE.RingGeometry(400, 600, 32),
           new THREE.MeshBasicMaterial({
-            color: 0x8A2BE2,
+            color: 0x8a2be2,
             transparent: true,
             opacity: 1.0, // Volledig zichtbaar
-            side: THREE.DoubleSide
-          })
+            side: THREE.DoubleSide,
+          }),
         );
-        
+
         innerRing = new THREE.Mesh(
           new THREE.RingGeometry(200, 400, 3), // 3 segments = driehoek
           new THREE.MeshBasicMaterial({
-            color: 0x9370DB,
+            color: 0x9370db,
             transparent: true,
             opacity: 0.9,
-            side: THREE.DoubleSide
-          })
+            side: THREE.DoubleSide,
+          }),
         );
-        
+
         clickTarget = new THREE.Mesh(
           new THREE.ConeGeometry(150, 300, 3), // Driehoekige basis
-          new THREE.MeshBasicMaterial({ 
-            transparent: true, 
-            opacity: 0, 
-            side: THREE.DoubleSide 
-          })
+          new THREE.MeshBasicMaterial({
+            transparent: true,
+            opacity: 0,
+            side: THREE.DoubleSide,
+          }),
         );
         break;
     }
-    
+
     // Positie en rotatie instellen - DUidelijk zichtbaar en vast
     outerRing.rotation.x = -Math.PI / 2;
     outerRing.name = 'ShapePortal';
     outerRing.position.set(-400, 200, -200); // Dichterbij positie, makkelijker te bereiken
-    
+
     innerRing.rotation.x = -Math.PI / 2;
     innerRing.position.copy(outerRing.position);
     innerRing.name = 'PortalInnerRing';
-    
+
     clickTarget.rotation.x = -Math.PI / 2;
     clickTarget.position.copy(outerRing.position);
     clickTarget.userData.isClickTarget = true;
     clickTarget.name = 'PortalClickTarget';
-    
+
     // Voeg portal elementen toe aan scene
     window.scene.add(outerRing);
     window.scene.add(innerRing);
     window.scene.add(clickTarget);
-    
+
     // Maak portal extra zichtbaar
     outerRing.visible = true;
     innerRing.visible = true;
     clickTarget.visible = true;
-    
+
     // Zorg ervoor dat portal bovenop andere objecten staat
     outerRing.renderOrder = 1000;
     innerRing.renderOrder = 1001;
     clickTarget.renderOrder = 1002;
-    
+
     // Markeer innerRing als ShapeMesh voor latere pulses
     innerRing.userData.isShapeMesh = true;
-    
+
     // Maak portal dropable (grotere drop zone voor simpele drag-and-drop)
     this.makePortalDropable(outerRing, innerRing);
-    
+
     // Voeg een grote, felgekleurde indicator toe om de portal positie te markeren
-    let indicatorColor = 0xFF0000; // Default rood
-    
+    let indicatorColor = 0xff0000; // Default rood
+
     // Pas kleur aan op basis van shape
     switch (shape) {
       case 'vierkant':
-        indicatorColor = 0x00FF00; // Groen voor vierkant
+        indicatorColor = 0x00ff00; // Groen voor vierkant
         break;
       case 'zandloper':
-        indicatorColor = 0xFF8800; // Oranje voor zandloper
+        indicatorColor = 0xff8800; // Oranje voor zandloper
         break;
       case 'ruit':
-        indicatorColor = 0x0088FF; // Blauw voor ruit
+        indicatorColor = 0x0088ff; // Blauw voor ruit
         break;
       case 'piramide':
       default:
-        indicatorColor = 0xFF0000; // Rood voor piramide
+        indicatorColor = 0xff0000; // Rood voor piramide
         break;
     }
-    
+
     const portalIndicator = new THREE.Mesh(
       new THREE.SphereGeometry(200, 16, 16),
       new THREE.MeshBasicMaterial({
         color: indicatorColor,
         transparent: true,
         opacity: 0.9,
-        side: THREE.DoubleSide
-      })
+        side: THREE.DoubleSide,
+      }),
     );
     portalIndicator.position.copy(outerRing.position);
     portalIndicator.position.y += 300; // Boven de portal
     portalIndicator.name = 'PortalIndicator';
     window.scene.add(portalIndicator);
-    
+
     // Maak de indicator pulseren
     const pulseIndicator = () => {
       if (portalIndicator && portalIndicator.parent) {
@@ -1595,60 +1624,64 @@ class CollisionManager {
       }
     };
     pulseIndicator();
-    
+
     // GEEN ANIMATIES - portal blijft statisch
     // this.animatePortal(outerRing, null);
-    
+
     // Zet portal als globale variabele
     window.portal = outerRing;
     window.portalActive = true;
-    
-    console.log(`🌀 Mystieke portal created met ${shape} vorm, positioned at vaste locatie (-400, 200, -200)`);
+
+    console.log(
+      `🌀 Mystieke portal created met ${shape} vorm, positioned at vaste locatie (-400, 200, -200)`,
+    );
     console.log(`🔮 Portal toegevoegd aan scene: ${window.scene.children.length} objecten`);
-    console.log(`🎯 Portal positie: ${outerRing.position.x}, ${outerRing.position.y}, ${outerRing.position.z}`);
+    console.log(
+      `🎯 Portal positie: ${outerRing.position.x}, ${outerRing.position.y}, ${outerRing.position.z}`,
+    );
   }
-  
+
   createSimpleTestPortal(shape) {
     console.log(`🔮 Creating SIMPLE TEST portal for: ${shape}`);
-    
+
     if (!window.scene) {
       console.log('❌ No scene available for simple test portal');
       return;
     }
-    
+
     // Maak een eenvoudige, grote, felgekleurde portal die onmogelijk te missen is
     const simplePortal = new THREE.Mesh(
       new THREE.RingGeometry(500, 800, 32),
       new THREE.MeshBasicMaterial({
-        color: 0xFF00FF, // Fel magenta
+        color: 0xff00ff, // Fel magenta
         transparent: true,
         opacity: 1.0,
-        side: THREE.DoubleSide
-      })
+        side: THREE.DoubleSide,
+      }),
     );
-    
+
     // Positie in het midden van het scherm
     simplePortal.position.set(0, 0, 0);
     simplePortal.rotation.x = -Math.PI / 2;
     simplePortal.name = 'SimpleTestPortal';
-    
+
     // Voeg toe aan scene
     window.scene.add(simplePortal);
-    
+
     // Maak een grote indicator bol
     const indicator = new THREE.Mesh(
       new THREE.SphereGeometry(300, 16, 16),
       new THREE.MeshBasicMaterial({
-        color: 0x00FFFF, // Fel cyaan
+        color: 0x00ffff, // Fel cyaan
         transparent: true,
         opacity: 0.8,
-        side: THREE.DoubleSide
-      })
+        side: THREE.DoubleSide,
+      }),
     );
     indicator.position.set(0, 400, 0);
     indicator.name = 'SimpleTestIndicator';
     window.scene.add(indicator);
-    
+
     // Maak de indicator pulseren
     const pulseSimple = () => {
       if (indicator && indicator.parent) {
@@ -1658,27 +1691,27 @@ class CollisionManager {
       }
     };
     pulseSimple();
-    
+
     // Maak een drop zone
     const dropZone = new THREE.Mesh(
       new THREE.CircleGeometry(1000, 32),
       new THREE.MeshBasicMaterial({
-        color: 0xFFFF00, // Fel geel
+        color: 0xffff00, // Fel geel
         transparent: true,
         opacity: 0.5,
-        side: THREE.DoubleSide
-      })
+        side: THREE.DoubleSide,
+      }),
     );
     dropZone.position.copy(simplePortal.position);
     dropZone.rotation.x = -Math.PI / 2;
     dropZone.name = 'SimpleTestDropZone';
     window.scene.add(dropZone);
-    
+
     // Simpele drop detection
     const checkSimpleDrop = () => {
       if (window.solly1 && window.solly1.position && dropZone.parent) {
         const distance = window.solly1.position.distanceTo(dropZone.position);
-        
+
         if (distance < 1000) {
           console.log('🎯 Solly1 gedropt op SIMPLE TEST portal!');
           this.handlePortalDrop(simplePortal, null);
@@ -1691,21 +1724,21 @@ class CollisionManager {
       }
     };
     checkSimpleDrop();
-    
+
     console.log(`🔮 Simple test portal created at center (0, 0, 0)`);
   }
-  
+
   createDraggableShapeChoice(shape) {
     console.log(`🎨 Creating draggable shape choice for: ${shape}`);
-    
+
     if (!window.scene) {
       console.log('❌ No scene available for draggable shape choice');
       return;
     }
-    
+
     // Maak een 3D object van de gekozen shape
     let geometry;
-    switch(shape) {
+    switch (shape) {
       case 'vierkant':
         geometry = new THREE.BoxGeometry(100, 100, 100);
         break;
@@ -1720,155 +1753,156 @@ class CollisionManager {
         geometry = new THREE.ConeGeometry(60, 120, 4);
         break;
     }
-    
+
     // Material met glow effect
-    const material = new THREE.MeshBasicMaterial({ 
-      color: 0x00FF88,
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x00ff88,
       transparent: true,
-      opacity: 0.9
+      opacity: 0.9,
     });
-    
+
     const shapeChoice = new THREE.Mesh(geometry, material);
-    
+
     // Positie rechts van het scherm
     shapeChoice.position.set(800, 200, 0);
     shapeChoice.name = 'DraggableShapeChoice';
-    
+
     // User data voor identificatie
     shapeChoice.userData = {
       shapeType: shape,
       isDraggableShapeChoice: true,
-      originalPosition: new THREE.Vector3(800, 200, 0)
+      originalPosition: new THREE.Vector3(800, 200, 0),
     };
-    
+
     // Voeg toe aan scene
     window.scene.add(shapeChoice);
-    
+
     // Maak het object draggable
     this.makeShapeChoiceDraggable(shapeChoice);
-    
+
     console.log(`🎨 Draggable shape choice created: ${shape} at position (800, 200, 0)`);
   }
-  
+
   makeShapeChoiceDraggable(shapeChoice) {
     let isDragging = false;
     let dragStartPos = new THREE.Vector3();
     let originalPos = new THREE.Vector3();
-    
+
     // Mouse down event
     const onMouseDown = (event) => {
       if (!window.camera || !window.renderer) return;
-      
+
       const rect = window.renderer.domElement.getBoundingClientRect();
       const mouse = new THREE.Vector2(
         ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        -((event.clientY - rect.top) / rect.height) * 2 + 1
+        -((event.clientY - rect.top) / rect.height) * 2 + 1,
       );
-      
+
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(mouse, window.camera);
-      
+
       const intersects = raycaster.intersectObject(shapeChoice, true);
-      
+
       if (intersects.length > 0) {
         isDragging = true;
         dragStartPos.copy(intersects[0].point);
         originalPos.copy(shapeChoice.position);
-        
+
         // Disable camera controls during drag
         if (window.controls) {
           window.controls.enabled = false;
         }
-        
+
         event.preventDefault();
       }
     };
-    
+
     // Mouse move event
     const onMouseMove = (event) => {
       if (!isDragging || !window.camera || !window.renderer) return;
-      
+
       const rect = window.renderer.domElement.getBoundingClientRect();
       const mouse = new THREE.Vector2(
         ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        -((event.clientY - rect.top) / rect.height) * 2 + 1
+        -((event.clientY - rect.top) / rect.height) * 2 + 1,
       );
-      
+
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(mouse, window.camera);
-      
+
       // Project op een vlak voor smooth movement
       const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
       const intersection = new THREE.Vector3();
-      
+
       if (raycaster.ray.intersectPlane(plane, intersection)) {
         shapeChoice.position.copy(intersection);
       }
     };
-    
+
     // Mouse up event
     const onMouseUp = (event) => {
       if (!isDragging) return;
-      
+
       isDragging = false;
-      
+
       // Re-enable camera controls
       if (window.controls) {
         window.controls.enabled = true;
       }
-      
+
       // Check of het object op de portal is gedropt
       this.checkShapeChoiceDropOnPortal(shapeChoice);
     };
-    
+
     // Add event listeners
     window.renderer.domElement.addEventListener('mousedown', onMouseDown);
     window.renderer.domElement.addEventListener('mousemove', onMouseMove);
     window.renderer.domElement.addEventListener('mouseup', onMouseUp);
-    
+
     console.log(`🎨 Shape choice made draggable`);
   }
-  
+
   checkShapeChoiceDropOnPortal(shapeChoice) {
     // Check alle portal objecten in de scene
-    const portalObjects = window.scene.children.filter(child => 
-      child.name && (child.name.includes('Portal') || child.name.includes('portal'))
+    const portalObjects = window.scene.children.filter(
+      (child) => child.name && (child.name.includes('Portal') || child.name.includes('portal')),
     );
-    
+
     for (const portal of portalObjects) {
       const distance = shapeChoice.position.distanceTo(portal.position);
-      
-      if (distance < 300) { // Drop threshold
+
+      if (distance < 300) {
+        // Drop threshold
         console.log(`🎯 Shape choice dropped on portal: ${portal.name}`);
         this.handleShapeChoicePortalDrop(shapeChoice, portal);
         return;
       }
     }
-    
+
     // Als niet op portal gedropt, terug naar originele positie
     shapeChoice.position.copy(shapeChoice.userData.originalPosition);
     console.log(`🎨 Shape choice returned to original position`);
   }
-  
+
   handleShapeChoicePortalDrop(shapeChoice, portal) {
     console.log(`🎯 Shape choice dropped on portal - starting portal animation!`);
-    
+
     // Verberg het shape choice object
     shapeChoice.visible = false;
-    
+
     // Start portal animatie
     this.startPortalAnimation(portal);
   }
-  
+
   startPortalAnimation(portal) {
     console.log(`🌀 Starting portal animation!`);
-    
+
     // Maak portal pulseren
     const pulsePortal = () => {
       if (portal && portal.parent) {
         const scale = 1 + Math.sin(Date.now() * 0.01) * 0.3;
         portal.scale.set(scale, scale, scale);
-        
+
         // Stop na 3 seconden
         if (Date.now() - this.portalAnimationStart < 3000) {
           requestAnimationFrame(pulsePortal);
@@ -1877,14 +1911,14 @@ class CollisionManager {
         }
       }
     };
-    
+
     this.portalAnimationStart = Date.now();
     pulsePortal();
   }
-  
+
   completePortalAnimation() {
     console.log(`✅ Portal animation completed - starting Level 2!`);
-    
+
     // Start Level 2
     if (window.level2Manager) {
       window.level2Manager.startLevel();
@@ -1892,17 +1926,17 @@ class CollisionManager {
       console.log(`❌ Level2Manager not available`);
     }
   }
-  
+
   makePortalDropable(portalRing, shapeMesh) {
     // Voeg drop zone toe (groot voor simpele drag-and-drop)
     const dropZone = new THREE.Mesh(
       new THREE.CircleGeometry(1200, 32), // Grotere drop zone voor makkelijker drop
       new THREE.MeshBasicMaterial({
-        color: 0x00FF00,
+        color: 0x00ff00,
         transparent: true,
         opacity: 0.8, // Veel zichtbaarder voor debug
-        side: THREE.DoubleSide
-      })
+        side: THREE.DoubleSide,
+      }),
     );
     dropZone.name = 'PortalDropZone';
     dropZone.position.copy(portalRing.position);
@@ -1910,21 +1944,21 @@ class CollisionManager {
     dropZone.userData.isDropZone = true;
     dropZone.userData.portalRing = portalRing;
     dropZone.userData.shapeMesh = shapeMesh;
-    
+
     window.scene.add(dropZone);
-    
+
     console.log('🎯 Portal drop zone aangemaakt voor simpele drag-and-drop');
-    
+
     // Simpele drop detection - check elke frame
     const checkDrop = () => {
       if (window.solly1 && window.solly1.position && dropZone.parent) {
         const distance = window.solly1.position.distanceTo(dropZone.position);
-        
+
         // Debug logging
         if (distance < 1500) {
           console.log('🌍 Afstand tot portal:', Math.round(distance), 'threshold: 1200');
         }
-        
+
         // Simpele drop detection: dichtbij (ook tijdens drag)
         if (distance < 1200) {
           console.log('🎯 Solly1 gedropt op portal!');
@@ -1941,7 +1975,7 @@ class CollisionManager {
     };
     checkDrop();
   }
-  
+
   handlePortalDrop(portalRing, shapeMesh) {
     console.log('🎯 Solly1 dropped on mystieke portal!');
 
@@ -1967,7 +2001,7 @@ class CollisionManager {
         box-shadow: 0 8px 24px rgba(138, 43, 226, 0.4);
         animation: portalActivatedPulse 3s ease-out;
       `;
-      
+
       // Voeg animatie CSS toe
       if (!document.getElementById('portal-animations')) {
         const style = document.createElement('style');
@@ -1982,7 +2016,7 @@ class CollisionManager {
         `;
         document.head.appendChild(style);
       }
-      
+
       document.body.appendChild(messageEl);
       setTimeout(() => messageEl.remove(), 3000);
     }, 1000);
@@ -1998,15 +2032,15 @@ class CollisionManager {
       window.solly1.visible = false;
     }
   }
-  
+
   createPortalDropEffect(position) {
     // Maak explosie effect op portal positie
-    this.createExplosionLayer(position, 0x8A2BE2, 0, 800, 800);
-    this.createExplosionLayer(position, 0xFFD700, 100, 1000, 600);
-    
+    this.createExplosionLayer(position, 0x8a2be2, 0, 800, 800);
+    this.createExplosionLayer(position, 0xffd700, 100, 1000, 600);
+
     // Screen shake
     this.createScreenShake();
-    
+
     // Toon success message
     const messageEl = document.createElement('div');
     messageEl.textContent = '🎯 Mystieke portal geactiveerd!';
@@ -2025,7 +2059,7 @@ class CollisionManager {
       box-shadow: 0 8px 24px rgba(138, 43, 226, 0.4);
       animation: portalActivatedPulse 2s ease-out;
     `;
-    
+
     // Voeg animatie CSS toe
     if (!document.getElementById('portal-animations')) {
       const style = document.createElement('style');
@@ -2039,67 +2073,67 @@ class CollisionManager {
       `;
       document.head.appendChild(style);
     }
-    
+
     document.body.appendChild(messageEl);
     setTimeout(() => messageEl.remove(), 2000);
   }
-  
+
   animatePortal(portalRing, shapeMesh) {
     const startTime = performance.now();
-    
+
     function animate() {
       const elapsed = performance.now() - startTime;
       const rotationSpeed = 0.001;
-      
+
       // Draai portal ring
       portalRing.rotation.z += rotationSpeed;
-      
+
       // Draai ook de innerRing
       const innerRing = window.scene.getObjectByName('PortalInnerRing');
       if (innerRing) {
         innerRing.rotation.z -= rotationSpeed * 0.5; // Tegenovergestelde richting
-        
+
         // Veilige material check voor innerRing
         if (innerRing.material && innerRing.material.opacity !== undefined) {
           innerRing.material.opacity = Math.sin(elapsed * 0.003) * 0.2 + 0.8;
         } else if (innerRing.children && innerRing.children.length > 0) {
           // Voor zandloper group: animeer alle children
-          innerRing.children.forEach(child => {
+          innerRing.children.forEach((child) => {
             if (child.material && child.material.opacity !== undefined) {
               child.material.opacity = Math.sin(elapsed * 0.003) * 0.2 + 0.8;
             }
           });
         }
       }
-      
+
       // Veilige material check voor portalRing
       if (portalRing.material && portalRing.material.opacity !== undefined) {
         const pulse = Math.sin(elapsed * 0.002) * 0.3 + 0.7;
         portalRing.material.opacity = pulse;
       }
-      
+
       // Als er een shapeMesh is, animeer die ook
       if (shapeMesh) {
         shapeMesh.rotation.y += rotationSpeed * 2;
         shapeMesh.rotation.x += rotationSpeed * 1.5;
-        
+
         // Pulseer opacity van de vorm
         const shapePulse = Math.sin(elapsed * 0.003) * 0.2 + 0.8;
         if (shapeMesh.material && shapeMesh.material.opacity !== undefined) {
           shapeMesh.material.opacity = shapePulse;
         } else if (shapeMesh.children && shapeMesh.children.length > 0) {
           // Voor zandloper group
-          shapeMesh.children.forEach(child => {
+          shapeMesh.children.forEach((child) => {
             if (child.material && child.material.opacity !== undefined) {
               child.material.opacity = shapePulse;
             }
           });
         }
       }
-      
+
       requestAnimationFrame(animate);
     }
-    
+
     animate();
   }
 
@@ -2114,10 +2148,11 @@ class CollisionManager {
     this.createSpectacularVortex(targetPos);
 
     // ===== 2. Spawn nieuwe sterren (300% van huidige count) =====
-    const currentStarCount = (window.whiteStars && window.whiteStars.length) ? window.whiteStars.length : 1000;
+    const currentStarCount =
+      window.whiteStars && window.whiteStars.length ? window.whiteStars.length : 1000;
     const extraStarCount = Math.round(currentStarCount * 3); // +300 %
     const newStars = [];
-    const starMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+    const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
     for (let i = 0; i < extraStarCount; i++) {
       const geo = new THREE.SphereGeometry(4, 6, 6);
       const star = new THREE.Mesh(geo, starMaterial.clone());
@@ -2128,7 +2163,7 @@ class CollisionManager {
       star.position.set(
         radius * Math.sin(phi) * Math.cos(theta),
         radius * Math.sin(phi) * Math.sin(theta),
-        radius * Math.cos(phi)
+        radius * Math.cos(phi),
       );
       star.scale.setScalar(0.5 + Math.random());
       scene.add(star);
@@ -2137,7 +2172,7 @@ class CollisionManager {
 
     // Verzamel alle objecten die we willen weg-twirlen
     const objectsToTwirl = [...newStars];
-    scene.traverse(obj => {
+    scene.traverse((obj) => {
       if (obj === shapeMesh) return; // shape blijft staan
       if (obj.userData && obj.userData.isPortal) {
         // Neem de portal ook mee in de twirl --> wordt weggehaald
@@ -2157,7 +2192,7 @@ class CollisionManager {
     const startTime = performance.now();
 
     // Sla begininformatie op per object
-    objectsToTwirl.forEach(o => {
+    objectsToTwirl.forEach((o) => {
       o.userData.__twirlStartPos = o.position.clone();
       o.userData.__twirlStartScale = o.scale.clone();
       // Willekeurige beginhoek voor swirl
@@ -2168,7 +2203,7 @@ class CollisionManager {
       const elapsed = performance.now() - startTime;
       const t = Math.min(elapsed / duration, 1);
 
-      objectsToTwirl.forEach(o => {
+      objectsToTwirl.forEach((o) => {
         const startPos = o.userData.__twirlStartPos;
         // Straal neemt af kwadratisch zodat pad naar binnen kromt
         const radius = startPos.clone().sub(targetPos).length() * (1 - t);
@@ -2197,7 +2232,7 @@ class CollisionManager {
         requestAnimationFrame(animateTwirl);
       } else {
         // Verwijder alle objecten uit de scene
-        objectsToTwirl.forEach(o => {
+        objectsToTwirl.forEach((o) => {
           if (o.parent) o.parent.remove(o);
         });
 
@@ -2258,7 +2293,9 @@ class CollisionManager {
   proceedToNextChapter() {
     console.log('➡️ Automatisch doorgaan naar hoofdstuk 2');
     if (window.chapterManager && typeof window.chapterManager.completeLevel === 'function') {
-      const currentLevel = window.chapterManager.getCurrentLevel ? window.chapterManager.getCurrentLevel() : 1;
+      const currentLevel = window.chapterManager.getCurrentLevel
+        ? window.chapterManager.getCurrentLevel()
+        : 1;
       window.chapterManager.completeLevel(currentLevel);
     } else {
       // Fallback zonder reload: start Level 2 direct via Level2Manager
@@ -2289,7 +2326,7 @@ class CollisionManager {
       const rect = renderer.domElement.getBoundingClientRect();
       const mouse = new THREE.Vector2(
         ((e.clientX - rect.left) / rect.width) * 2 - 1,
-        -((e.clientY - rect.top) / rect.height) * 2 + 1
+        -((e.clientY - rect.top) / rect.height) * 2 + 1,
       );
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(mouse, camera);
@@ -2299,14 +2336,17 @@ class CollisionManager {
         renderer.domElement.removeEventListener('click', clickHandler);
         // Trigger volgend hoofdstuk via ChapterManager indien aanwezig
         if (window.chapterManager && typeof window.chapterManager.completeLevel === 'function') {
-          const currentLevel = window.chapterManager.getCurrentLevel ? window.chapterManager.getCurrentLevel() : 1;
+          const currentLevel = window.chapterManager.getCurrentLevel
+            ? window.chapterManager.getCurrentLevel()
+            : 1;
           window.chapterManager.completeLevel(currentLevel);
         }
         // Fallback: reload of placeholder boodschap
         else {
           const msg = document.createElement('div');
           msg.textContent = 'Volgend hoofdstuk start (placeholder)';
-          msg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#000;color:#fff;padding:20px 30px;font-size:1.4em;z-index:10002;';
+          msg.style.cssText =
+            'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#000;color:#fff;padding:20px 30px;font-size:1.4em;z-index:10002;';
           document.body.appendChild(msg);
         }
       }
@@ -2320,7 +2360,7 @@ class CollisionManager {
     console.log('🔄 Collision state gereset');
     this.collisionDetected = false;
     window.collisionDetected = false;
-    
+
     // Reset ook de globale flag in main.js
     if (window.sollyCore) {
       window.sollyCore.setCanMove(true);
@@ -2333,7 +2373,7 @@ class CollisionManager {
 
   // Cleanup
   cleanup() {
-    this.explosionParticles.forEach(particle => {
+    this.explosionParticles.forEach((particle) => {
       if (particle && window.scene) {
         window.scene.remove(particle);
       }
@@ -2344,10 +2384,10 @@ class CollisionManager {
   // Start Level 2 after shape choice
   startLevel2AfterShapeChoice(shape) {
     console.log(`🚀 Starting Level 2 after shape choice: ${shape}`);
-    
+
     // Cleanup current game state AFTER vortex animation
     this.cleanupCurrentGameState();
-    
+
     // Start Level 2
     if (window.level2Manager) {
       window.level2Manager.startLevel();
@@ -2388,7 +2428,7 @@ class CollisionManager {
       <span style="font-size: 14px; opacity: 0.9;">Wordt geladen...</span>
     `;
     document.body.appendChild(message);
-    
+
     // Remove message after 3 seconds
     setTimeout(() => {
       if (message.parentNode) {
@@ -2400,72 +2440,77 @@ class CollisionManager {
   // Cleanup current game state before starting Level 2
   cleanupCurrentGameState() {
     console.log('🧹 Cleaning up current game state for Level 2');
-    
+
     // Reset collision detection
     this.resetCollision();
-    
+
     // Hide Solly1 (but don't remove - vortex needs it)
     if (window.solly1) {
       window.solly1.visible = false;
     }
-    
+
     // Hide Solly2 (but don't remove - vortex needs it)
     if (window.solly2) {
       window.solly2.visible = false;
     }
-    
+
     // Hide planets (but don't remove - vortex needs them)
     if (window.planets) {
-      window.planets.forEach(planet => {
+      window.planets.forEach((planet) => {
         if (planet) planet.visible = false;
       });
     }
-    
+
     // Hide stars (but don't remove - vortex needs them)
     if (window.whiteStars) {
-      window.whiteStars.forEach(star => {
+      window.whiteStars.forEach((star) => {
         if (star) star.visible = false;
       });
     }
-    
+
     // Remove portal if exists
     if (window.portal && window.scene) {
       window.scene.remove(window.portal);
       window.portal = null;
       window.portalActive = false;
     }
-    
+
     // Remove any existing portals from scene
-    const portalElements = ['ShapePortal', 'PortalInnerRing', 'PortalClickTarget', 'PortalDropZone'];
-    portalElements.forEach(name => {
+    const portalElements = [
+      'ShapePortal',
+      'PortalInnerRing',
+      'PortalClickTarget',
+      'PortalDropZone',
+    ];
+    portalElements.forEach((name) => {
       const element = window.scene.getObjectByName(name);
       if (element) {
         window.scene.remove(element);
       }
     });
-    
+
     // Reset portal state
     window.portalClicked = false;
-    
+
     console.log('✅ Game state cleaned up for Level 2 (objects hidden, not removed)');
   }
 
   // ===================== SHAPE CHOICE HANDLER =====================
   handleShapeChoice(shape) {
     this.debugLog(`🎯 Shape choice made: ${shape}`);
-    
+
     // Verwijder shape choice modal
     const modal = document.querySelector('.shape-choice-modal');
     if (modal) {
       modal.remove();
     }
-    
+
     // Verwijder ook de "Je bent nu een piramide!" button als die er is
     const shapeButton = document.querySelector('.shape-change-message');
     if (shapeButton) {
       shapeButton.remove();
     }
-    
+
     // Start vortex animatie direct na shape choice
     this.startVortexEffect(shape);
   }
@@ -2473,10 +2518,10 @@ class CollisionManager {
   // ===================== VORTEX EFFECT =====================
   startVortexEffect(shape) {
     this.debugLog(`🌀 Starting vortex effect for shape: ${shape}`);
-    
+
     // Maak vortex/portal
     this.createVortex(shape);
-    
+
     // Start animatie na korte delay
     setTimeout(() => {
       this.startVortexAnimation(shape);
@@ -2494,64 +2539,64 @@ class CollisionManager {
 
     // Vortex grootte: 40% van viewport hoogte
     const vortexSize = window.innerHeight * 0.4;
-    
+
     // Maak vortex groep
     const vortexGroup = new THREE.Group();
     vortexGroup.position.set(0, 0, 0); // Gecentreerd
-    
+
     // Buitenste ring (MEGA GROTE vortex ring) - 2D en statisch
     const outerRingGeometry = new THREE.RingGeometry(vortexSize * 0.1, vortexSize * 0.6, 64);
-    const outerRingMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x8A2BE2, 
-      transparent: true, 
+    const outerRingMaterial = new THREE.MeshBasicMaterial({
+      color: 0x8a2be2,
+      transparent: true,
       opacity: 1.0,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
     const outerRing = new THREE.Mesh(outerRingGeometry, outerRingMaterial);
     outerRing.rotation.x = 0; // 2D - geen rotatie
     vortexGroup.add(outerRing);
-    
+
     // Middelste ring (STERKE vortex ring) - 2D en statisch
     const middleRingGeometry = new THREE.RingGeometry(vortexSize * 0.05, vortexSize * 0.4, 64);
-    const middleRingMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x4B0082, 
-      transparent: true, 
+    const middleRingMaterial = new THREE.MeshBasicMaterial({
+      color: 0x4b0082,
+      transparent: true,
       opacity: 1.0,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
     const middleRing = new THREE.Mesh(middleRingGeometry, middleRingMaterial);
     middleRing.rotation.x = 0; // 2D - geen rotatie
     vortexGroup.add(middleRing);
-    
+
     // Binnenste ring (INTENSE vortex ring) - 2D en statisch
     const innerRingGeometry = new THREE.RingGeometry(vortexSize * 0.02, vortexSize * 0.25, 64);
-    const innerRingMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0xFF00FF, 
-      transparent: true, 
+    const innerRingMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff00ff,
+      transparent: true,
       opacity: 1.0,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
     const innerRing = new THREE.Mesh(innerRingGeometry, innerRingMaterial);
     innerRing.rotation.x = 0; // 2D - geen rotatie
     vortexGroup.add(innerRing);
-    
+
     // Voeg vortex toe aan scene
     scene.add(vortexGroup);
     window.vortex = vortexGroup;
-    
+
     // Sla shape op voor later gebruik
     window.vortexShape = shape;
-    
+
     this.debugLog(`🌀 Vortex created with ${shape} keyhole shape`);
   }
 
   startVortexAnimation(shape) {
     if (this.vortexActive) return;
     this.vortexActive = true;
-    
+
     const scene = window.scene;
     if (!scene || !window.vortex) return;
-    
+
     // Maak achtergrond zwart
     const blackOverlay = document.createElement('div');
     blackOverlay.className = 'black-overlay';
@@ -2564,159 +2609,159 @@ class CollisionManager {
     blackOverlay.style.zIndex = '500';
     blackOverlay.style.pointerEvents = 'none';
     document.body.appendChild(blackOverlay);
-    
+
     // Verzamel alle objecten om in te zuigen
     const objectsToSuck = [];
-    scene.traverse(obj => {
+    scene.traverse((obj) => {
       if (obj === window.vortex) return;
       if (obj.userData && (obj.userData.isClickTarget || obj.userData.isPortalRing)) return;
       if (obj.type === 'Scene' || obj.isCamera || obj.isLight) return;
       if (obj.name && obj.name.startsWith('Zandloper')) return;
       objectsToSuck.push(obj);
     });
-    
+
     this.debugLog(`🌀 Sucking ${objectsToSuck.length} objects into vortex`);
-    
+
     // Animatie parameters
     const duration = 4000; // 4 seconden
     const startTime = performance.now();
     const vortexPos = window.vortex.position;
-    
+
     // Sla beginposities op
-    objectsToSuck.forEach(obj => {
+    objectsToSuck.forEach((obj) => {
       obj.userData.__startPos = obj.position.clone();
       obj.userData.__startScale = obj.scale.clone();
     });
-    
+
     const animateSuck = () => {
       const elapsed = performance.now() - startTime;
       const t = Math.min(elapsed / duration, 1);
-      
-      objectsToSuck.forEach(obj => {
+
+      objectsToSuck.forEach((obj) => {
         if (!obj.userData.__startPos) return;
-        
+
         const startPos = obj.userData.__startPos;
-        
+
         // STERKE verticale zuigkracht naar vortex
         const newY = THREE.MathUtils.lerp(startPos.y, vortexPos.y, t * t); // Kwadratische versnelling
         const newX = THREE.MathUtils.lerp(startPos.x, vortexPos.x, t * t * 0.8); // Sterkere horizontale zuigkracht
         const newZ = THREE.MathUtils.lerp(startPos.z, vortexPos.z, t * t * 0.8); // Sterkere Z-zuigkracht
-        
+
         obj.position.set(newX, newY, newZ);
-        
+
         // STERKE rotatie voor intense vortex effect
         obj.rotation.y += 0.3; // 3x sneller draaien
         obj.rotation.x += 0.2; // 4x sneller draaien
         obj.rotation.z += 0.15; // Z-rotatie toevoegen
-        
+
         // Snellere schaal afname voor intense effect
-        const scale = Math.max(0.001, 1 - (t * t)); // Kwadratische schaal afname
+        const scale = Math.max(0.001, 1 - t * t); // Kwadratische schaal afname
         obj.scale.setScalar(scale);
-        
+
         // Fade uit
         if (obj.material && obj.material.transparent) {
           obj.material.opacity = Math.max(0, 1 - t);
         }
       });
-      
+
       // GEEN vortex rotatie - statische 2D outline
       // if (window.vortex) {
       //   window.vortex.rotation.z += 0.1; // 5x sneller draaien
       //   window.vortex.rotation.x += 0.05; // Ook X-as rotatie
       //   window.vortex.rotation.y += 0.03; // Ook Y-as rotatie
       // }
-      
+
       if (t < 1) {
         requestAnimationFrame(animateSuck);
       } else {
         // Verwijder alle objecten
-        objectsToSuck.forEach(obj => {
+        objectsToSuck.forEach((obj) => {
           if (obj.parent) obj.parent.remove(obj);
         });
-        
+
         // Verwijder zwarte overlay
         if (blackOverlay.parentNode) {
           blackOverlay.parentNode.removeChild(blackOverlay);
         }
-        
+
         // Verwijder ALLE zwarte overlays die mogelijk zijn blijven hangen
         const allOverlays = document.querySelectorAll('.black-overlay');
-        allOverlays.forEach(overlay => {
+        allOverlays.forEach((overlay) => {
           if (overlay.parentNode) {
             overlay.parentNode.removeChild(overlay);
           }
         });
-        
+
         this.vortexActive = false;
         this.debugLog('🌀 Vortex animation complete - all objects sucked in');
-        
+
         // Maak het gat in de vortex zichtbaar
         this.makeVortexHoleVisible(shape);
-        
+
         // Wacht even en toon dan de shape choice UI
         setTimeout(() => {
           this.showShapeChoiceUI(shape);
         }, 1000);
       }
     };
-    
+
     animateSuck();
   }
 
   makeVortexHoleVisible(shape) {
     if (!window.vortex) return;
-    
+
     this.debugLog(`🔑 Making vortex hole visible for shape: ${shape}`);
     console.log(`🔑 SHAPE DEBUG: Creating outline for shape: "${shape}"`);
-    
+
     // Maak het gat MEGA MEGA MEGA groot en duidelijker zichtbaar
     const vortexSize = window.innerHeight * 0.4;
     const holeSize = vortexSize * 2.4; // MEGA MEGA MEGA groot gat - 240% van vortex size (2x groter!)
-    
+
     // Verwijder bestaande hole
     const existingHole = window.vortex.getObjectByName('vortexHole');
     if (existingHole) {
       window.vortex.remove(existingHole);
     }
-    
+
     // Maak een GROOT, duidelijk zwart gat
     const holeGeometry = new THREE.RingGeometry(0, holeSize, 64);
-    const holeMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x000000, 
-      transparent: true, 
+    const holeMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      transparent: true,
       opacity: 0.95,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
     const holeMesh = new THREE.Mesh(holeGeometry, holeMaterial);
     holeMesh.name = 'vortexHole';
     holeMesh.rotation.x = Math.PI / 2;
     holeMesh.position.z = 0.2; // Iets naar voren
     window.vortex.add(holeMesh);
-    
+
     // Voeg een MEGA DIKKE gloeiende outline toe rond het gat - 2D OUTLINE
-    const outlineMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x8A2BE2, 
+    const outlineMaterial = new THREE.MeshBasicMaterial({
+      color: 0x8a2be2,
       wireframe: true, // WEL wireframe - alleen de outline
-      transparent: true, 
+      transparent: true,
       opacity: 1.0,
-      side: THREE.DoubleSide // Zichtbaar van beide kanten
+      side: THREE.DoubleSide, // Zichtbaar van beide kanten
     });
-    
+
     let outlineGeometry;
     console.log(`🔑 SHAPE DEBUG: Switch statement for shape: "${shape}"`);
-    switch(shape) {
+    switch (shape) {
       case 'piramide':
         console.log(`🔑 SHAPE DEBUG: Creating triangle outline`);
         // MEGA MEGA MEGA GROTE driehoekige outline - SIMPELE WIREFRAME
         const triangleShape = new THREE.Shape();
         const size = holeSize * 0.98; // 98% van hole size - bijna het hele gat
-        
+
         // Simpele driehoek outline
         triangleShape.moveTo(0, size);
         triangleShape.lineTo(-size, -size);
         triangleShape.lineTo(size, -size);
         triangleShape.lineTo(0, size);
-        
+
         outlineGeometry = new THREE.ShapeGeometry(triangleShape);
         break;
       case 'kubus':
@@ -2753,30 +2798,30 @@ class CollisionManager {
         // Default: MEGA MEGA MEGA GROOT rond
         outlineGeometry = new THREE.CircleGeometry(holeSize * 0.95, 32);
     }
-    
+
     const outlineMesh = new THREE.Mesh(outlineGeometry, outlineMaterial);
     outlineMesh.name = 'vortexOutline';
     outlineMesh.rotation.x = 0; // 2D - geen rotatie
     outlineMesh.position.z = 0.25; // Iets naar voren
     window.vortex.add(outlineMesh);
-    
+
     // GEEN pulserende effect - gewoon statische 2D outline
     // this.addHolePulseEffect();
-    
+
     this.debugLog(`🔑 Vortex hole made visible with ${shape} shape - size: ${holeSize}`);
   }
 
   showShapeChoiceUI(shape) {
     this.debugLog(`🎯 Showing shape choice UI for: ${shape}`);
-    
+
     // Verwijder ALLE zwarte overlays die mogelijk zijn blijven hangen
     const allOverlays = document.querySelectorAll('.black-overlay');
-    allOverlays.forEach(overlay => {
+    allOverlays.forEach((overlay) => {
       if (overlay.parentNode) {
         overlay.parentNode.removeChild(overlay);
       }
     });
-    
+
     // Maak ALLEEN tekst - geen blokje
     const shapeUI = document.createElement('div');
     shapeUI.className = 'shape-choice-ui';
@@ -2785,7 +2830,7 @@ class CollisionManager {
       <div class="shape-name" style="font-size: 28px; font-weight: bold; margin-bottom: 10px;">${this.getShapeName(shape)}</div>
       <div style="font-size: 18px; opacity: 0.9;">Sleep naar het gat!</div>
     `;
-    
+
     // Positioneer BOVEN de vortex - ALLEEN TEKST
     shapeUI.style.position = 'fixed';
     shapeUI.style.top = '15%'; // Hoger geplaatst
@@ -2802,37 +2847,47 @@ class CollisionManager {
     shapeUI.style.userSelect = 'none';
     shapeUI.style.fontSize = '28px'; // Grote tekst
     shapeUI.style.textShadow = '3px 3px 6px rgba(0, 0, 0, 0.9)'; // Sterke tekst shadow voor leesbaarheid
-    
+
     document.body.appendChild(shapeUI);
-    
+
     // Maak draggable
     this.makeDraggable(shapeUI, shape);
-    
+
     // Kleine animatie
     this.addFloatingAnimation(shapeUI);
-    
+
     this.debugLog(`🎯 Shape choice UI created and added to DOM`);
   }
 
   getShapeIcon(shape) {
-    switch(shape) {
-      case 'piramide': return '🔺';
+    switch (shape) {
+      case 'piramide':
+        return '🔺';
       case 'kubus':
-      case 'vierkant': return '⬜';
-      case 'zandloper': return '⏳';
-      case 'bol': return '🔵';
-      default: return '🔺';
+      case 'vierkant':
+        return '⬜';
+      case 'zandloper':
+        return '⏳';
+      case 'bol':
+        return '🔵';
+      default:
+        return '🔺';
     }
   }
 
   getShapeName(shape) {
-    switch(shape) {
-      case 'piramide': return 'Piramide';
+    switch (shape) {
+      case 'piramide':
+        return 'Piramide';
       case 'kubus':
-      case 'vierkant': return 'Kubus';
-      case 'zandloper': return 'Zandloper';
-      case 'bol': return 'Bol';
-      default: return 'Piramide';
+      case 'vierkant':
+        return 'Kubus';
+      case 'zandloper':
+        return 'Zandloper';
+      case 'bol':
+        return 'Bol';
+      default:
+        return 'Piramide';
     }
   }
 
@@ -2840,7 +2895,7 @@ class CollisionManager {
     let isDragging = false;
     let startY = 0;
     let startTop = 0;
-    
+
     element.addEventListener('mousedown', (e) => {
       isDragging = true;
       startY = e.clientY;
@@ -2849,18 +2904,18 @@ class CollisionManager {
       element.style.animation = 'none'; // Stop floating animatie
       e.preventDefault();
     });
-    
+
     document.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
-      
+
       const deltaY = e.clientY - startY;
       const newTop = startTop + deltaY;
       element.style.top = newTop + 'px';
-      
+
       // Check collision met vortex
       this.checkVortexCollision(element, shape);
     });
-    
+
     document.addEventListener('mouseup', () => {
       if (isDragging) {
         isDragging = false;
@@ -2874,29 +2929,29 @@ class CollisionManager {
     const rect = element.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
+
     // Vortex is in het midden van het scherm
     const vortexX = window.innerWidth / 2;
     const vortexY = window.innerHeight / 2;
     const vortexSize = window.innerHeight * 0.4;
-    
+
     // Check of de shape overeenkomt met het vortex gat
     const currentVortexShape = window.vortexShape;
     if (currentVortexShape !== shape) {
       return; // Verkeerde shape voor dit gat
     }
-    
+
     // Check afstand tot het midden (sleutelgat)
-    const distance = Math.sqrt(
-      Math.pow(centerX - vortexX, 2) + Math.pow(centerY - vortexY, 2)
-    );
-    
+    const distance = Math.sqrt(Math.pow(centerX - vortexX, 2) + Math.pow(centerY - vortexY, 2));
+
     // Het gat is nu 240% van vortex size (MEGA MEGA MEGA groot!)
     const holeRadius = vortexSize * 2.4;
-    
+
     // Debug info
-    this.debugLog(`🎯 Checking collision: distance=${distance.toFixed(1)}, holeRadius=${holeRadius.toFixed(1)}`);
-    
+    this.debugLog(
+      `🎯 Checking collision: distance=${distance.toFixed(1)}, holeRadius=${holeRadius.toFixed(1)}`,
+    );
+
     if (distance < holeRadius) {
       // Shape past door het sleutelgat!
       this.debugLog(`🎉 Shape ${shape} past door ${currentVortexShape} gat!`);
@@ -2906,65 +2961,67 @@ class CollisionManager {
 
   handleShapeChoiceSuccess(shape) {
     this.debugLog(`🎉 Shape ${shape} past door het sleutelgat!`);
-    
+
     // Verwijder UI
     const shapeUI = document.querySelector('.shape-choice-ui');
     if (shapeUI) {
       shapeUI.remove();
     }
-    
+
     // Start collapse animatie
     this.startVortexCollapse();
   }
 
   startVortexCollapse() {
     if (!window.vortex) return;
-    
+
     // Animeer vortex naar binnen
     const startScale = window.vortex.scale.x;
     const startTime = performance.now();
     const duration = 2000; // 2 seconden collapse
-    
+
     const animateCollapse = () => {
       const elapsed = performance.now() - startTime;
       const t = Math.min(elapsed / duration, 1);
-      
+
       // Scale naar 0
       const newScale = startScale * (1 - t);
       window.vortex.scale.set(newScale, newScale, newScale);
-      
+
       // Rotatie versnellen
       window.vortex.rotation.z += 0.1;
-      
+
       if (t < 1) {
         requestAnimationFrame(animateCollapse);
       } else {
         // Verwijder vortex
         window.scene.remove(window.vortex);
         window.vortex = null;
-        
+
         // Ga direct naar hoofdstuk 2 (geen success message)
         this.goToChapter2();
       }
     };
-    
+
     animateCollapse();
   }
 
   goToChapter2() {
     console.log('➡️ Automatisch doorgaan naar hoofdstuk 2');
-    
+
     // Save progress before transition
     if (window.gameManager && typeof window.gameManager.saveProgress === 'function') {
       window.gameManager.saveProgress();
       console.log('💾 Progress saved before chapter transition');
     }
-    
+
     // 1) Probeer via ChapterManager naar de volgende level te gaan
     if (window.chapterManager && typeof window.chapterManager.completeLevel === 'function') {
-      const currentLevel = window.chapterManager.getCurrentLevel ? window.chapterManager.getCurrentLevel() : 1;
+      const currentLevel = window.chapterManager.getCurrentLevel
+        ? window.chapterManager.getCurrentLevel()
+        : 1;
       window.chapterManager.completeLevel(currentLevel);
-      
+
       // Unlock chapter 2 if not unlocked
       if (!window.chapterManager.isChapterUnlocked(2)) {
         window.chapterManager.unlockChapter(2);
@@ -2980,7 +3037,26 @@ class CollisionManager {
       `;
       msg.textContent = 'Hoofdstuk 2 (Brutalism style) laad...';
       document.body.appendChild(msg);
-      setTimeout(() => { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 2000);
+      setTimeout(() => {
+        if (msg.parentNode) msg.parentNode.removeChild(msg);
+      }, 2000);
+
+      // Start Level2Manager na korte delay (laat loading message zien)
+      setTimeout(() => {
+        if (window.level2Manager && typeof window.level2Manager.startLevel === 'function') {
+          console.log('🚀 Starting Level2Manager (Brutalism)');
+          if (!window.level2Manager.isActive) {
+            window.level2Manager.startLevel();
+          } else {
+            console.log('⚠️ Level2Manager al actief');
+          }
+        } else if (window.initChapter2) {
+          console.log('🚀 Starting Chapter 2 via initChapter2 (fallback)');
+          window.initChapter2();
+        } else {
+          console.error('❌ Geen Level2Manager of initChapter2 gevonden');
+        }
+      }, 500);
       return;
     }
 
@@ -2996,7 +3072,7 @@ class CollisionManager {
     `;
     msg.innerHTML = '🌀 HOOFDSTUK 2 LAADT... 🌀<br><br>De Cubus wacht op je!';
     document.body.appendChild(msg);
-    
+
     setTimeout(() => {
       if (msg.parentNode) msg.parentNode.removeChild(msg);
       if (window.initChapter2) {
@@ -3027,22 +3103,22 @@ class CollisionManager {
 
     // 1. Centrale vortex ring met glow effect
     const ringGeometry = new THREE.TorusGeometry(200, 50, 16, 100);
-    const ringMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x8A2BE2, 
-      transparent: true, 
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: 0x8a2be2,
+      transparent: true,
       opacity: 0.8,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
     const vortexRing = new THREE.Mesh(ringGeometry, ringMaterial);
     vortexGroup.add(vortexRing);
 
     // 2. Binnenste draaiende ring
     const innerRingGeometry = new THREE.TorusGeometry(100, 30, 12, 50);
-    const innerRingMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0xFFD700, 
-      transparent: true, 
+    const innerRingMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffd700,
+      transparent: true,
       opacity: 0.9,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
     const innerRing = new THREE.Mesh(innerRingGeometry, innerRingMaterial);
     vortexGroup.add(innerRing);
@@ -3052,34 +3128,34 @@ class CollisionManager {
     const particles = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
-    
+
     for (let i = 0; i < particleCount; i++) {
       const i3 = i * 3;
       const radius = 50 + Math.random() * 200;
       const angle = Math.random() * Math.PI * 2;
       const height = (Math.random() - 0.5) * 100;
-      
+
       positions[i3] = Math.cos(angle) * radius;
       positions[i3 + 1] = height;
       positions[i3 + 2] = Math.sin(angle) * radius;
-      
+
       // Kleur van paars naar goud
       const colorMix = Math.random();
       colors[i3] = 0.5 + colorMix * 0.5; // R: 0.5-1.0
       colors[i3 + 1] = 0.2 + colorMix * 0.3; // G: 0.2-0.5
       colors[i3 + 2] = 0.8 + colorMix * 0.2; // B: 0.8-1.0
     }
-    
+
     particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    
+
     const particleMaterial = new THREE.PointsMaterial({
       size: 3,
       vertexColors: true,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.8,
     });
-    
+
     const particleSystem = new THREE.Points(particles, particleMaterial);
     vortexGroup.add(particleSystem);
 
@@ -3088,25 +3164,25 @@ class CollisionManager {
     for (let i = 0; i < lineCount; i++) {
       const lineGeometry = new THREE.BufferGeometry();
       const linePositions = new Float32Array(6);
-      
+
       const angle = (i / lineCount) * Math.PI * 2;
       const radius = 300;
-      
+
       linePositions[0] = Math.cos(angle) * radius;
       linePositions[1] = 0;
       linePositions[2] = Math.sin(angle) * radius;
       linePositions[3] = 0;
       linePositions[4] = 0;
       linePositions[5] = 0;
-      
+
       lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
-      
+
       const lineMaterial = new THREE.LineBasicMaterial({
-        color: 0x00FFFF,
+        color: 0x00ffff,
         transparent: true,
-        opacity: 0.6
+        opacity: 0.6,
       });
-      
+
       const line = new THREE.Line(lineGeometry, lineMaterial);
       vortexGroup.add(line);
     }
@@ -3114,18 +3190,18 @@ class CollisionManager {
     // 5. Animeer de vortex
     const animateVortex = () => {
       if (!vortexGroup.parent) return; // Stop als vortex is weggehaald
-      
+
       const time = performance.now() * 0.001;
-      
+
       // Rotatie van de ringen
       vortexRing.rotation.x = time * 2;
       vortexRing.rotation.z = time * 1.5;
       innerRing.rotation.x = -time * 3;
       innerRing.rotation.z = -time * 2;
-      
+
       // Partikel rotatie
       particleSystem.rotation.y = time * 4;
-      
+
       // Energie lijnen pulseren
       vortexGroup.children.forEach((child, index) => {
         if (child instanceof THREE.Line) {
@@ -3133,23 +3209,23 @@ class CollisionManager {
           child.material.opacity = opacity;
         }
       });
-      
+
       // Kleur cycling
       const hue = (time * 0.1) % 1;
       vortexRing.material.color.setHSL(hue, 1, 0.5);
       innerRing.material.color.setHSL((hue + 0.5) % 1, 1, 0.7);
-      
+
       requestAnimationFrame(animateVortex);
     };
-    
+
     animateVortex();
-    
+
     console.log('🌀 Spectaculaire vortex gecreëerd!');
   }
 
   addFloatingAnimation(element) {
     element.style.animation = 'floating 2s ease-in-out infinite';
-    
+
     // Voeg CSS animatie toe als die nog niet bestaat
     if (!document.querySelector('#floating-animation')) {
       const style = document.createElement('style');
@@ -3172,4 +3248,4 @@ class CollisionManager {
 }
 
 // Maak globaal beschikbaar
-window.CollisionManager = CollisionManager; 
+window.CollisionManager = CollisionManager;

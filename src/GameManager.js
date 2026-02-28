@@ -160,7 +160,7 @@ class GameManager {
     if (kaboomCounter && kaboomNumber) {
       const totalCollisions = this.getKaboomCount();
       kaboomNumber.textContent = totalCollisions;
-      kaboomCounter.style.display = 'block'; // Altijd zichtbaar
+      kaboomCounter.style.display = totalCollisions > 0 ? 'block' : 'none';
       console.log('🎯 KABOOM counter geïnitialiseerd:', totalCollisions);
 
       // Forceer kaboom counter op 0 voor nieuwe starts
@@ -372,7 +372,7 @@ class GameManager {
     if (kaboomCounter && kaboomNumber) {
       const totalCollisions = this.getKaboomCount();
       kaboomNumber.textContent = totalCollisions;
-      kaboomCounter.style.display = 'block'; // Altijd zichtbaar
+      kaboomCounter.style.display = totalCollisions > 0 ? 'block' : 'none';
       console.log('🎯 KABOOM counter geïnitialiseerd:', totalCollisions);
     } else {
       console.error('❌ KABOOM counter elementen niet gevonden!');
@@ -386,7 +386,7 @@ class GameManager {
     if (kaboomCounter && kaboomNumber) {
       const totalCollisions = this.getKaboomCount();
       kaboomNumber.textContent = totalCollisions;
-      kaboomCounter.style.display = 'block'; // Altijd zichtbaar
+      kaboomCounter.style.display = totalCollisions > 0 ? 'block' : 'none';
       console.log('💥 KABOOM counter bijgewerkt naar:', totalCollisions);
     } else {
       console.error('❌ KABOOM counter elementen niet gevonden in updateKaboomUI!');

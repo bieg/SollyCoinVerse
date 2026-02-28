@@ -274,13 +274,6 @@ function displayChosenCoinJSON() {
 async function initSollyverse() {
   if (sollyverseInitialized) return;
 
-  // TOON KABOOM COUNTER NA STAR WARS ANIMATIE
-  const kaboomCounter = document.getElementById('kaboom-counter');
-  if (kaboomCounter) {
-    kaboomCounter.style.display = 'block';
-    console.log('🎯 KABOOM counter zichtbaar gemaakt na Star Wars animatie');
-  }
-
   // Initialize GameManager en UserInterface
   gameManager = new GameManager();
   userInterface = new UserInterface(gameManager);
@@ -440,6 +433,8 @@ async function initSollyverse() {
   setTimeout(() => {
     console.log('🎯 Voeg Solly1 en Solly2 toe na Star Wars animatie');
     addSolly1AndSolly2(scene);
+    // Wallet knop zichtbaar maken na game start
+    document.dispatchEvent(new Event('sollyverseStarted'));
   }, 3000);
 
   // Plan collision na 7 seconden (4 seconden na laatste objecten)
