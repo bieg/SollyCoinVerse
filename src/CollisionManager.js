@@ -228,7 +228,7 @@ class CollisionManager {
     // Skip als er al een collision is gedetecteerd (globaal of lokaal)
     if (window.collisionDetected || this.collisionDetected) return;
 
-    // Stop bij 4 collisions
+    // Stop bij 5 collisions
     if (window.gameManager && window.gameManager.getKaboomCount() >= 5) {
       return;
     }
@@ -352,6 +352,11 @@ class CollisionManager {
   }
 
   handleMiniSollyCollision(miniSolly, index) {
+    // Defensieve guard - stop hard bij 5 kaboom
+    if (window.gameManager && window.gameManager.getKaboomCount() >= 5) {
+      return;
+    }
+
     console.log(`💥 Mini Solly collision detected at index ${index}`);
 
     // Verberg de mini Solly
@@ -564,8 +569,8 @@ class CollisionManager {
         }, 200);
 
         // Stop bij 5 collisions
-        if (totalCollisions >= 4) {
-          console.log('🎯 4 collisions bereikt - collision detection gestopt');
+        if (totalCollisions >= 5) {
+          console.log('🎯 5 collisions bereikt - collision detection gestopt');
           window.collisionDetected = true; // Stop verdere collisions
 
           // Toon automatisch de ShapeChoice modal
