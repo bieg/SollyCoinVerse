@@ -216,12 +216,12 @@ class Level2Manager {
     this.camera.position.set(200, 0, 2000);
     this.camera.lookAt(0, 0, 0);
 
-    // Enable camera controls for interactive puzzle
+    // Camera vast - geen rotatie, zoom of pan
     if (this.controls) {
-      this.controls.enabled = true;
-      this.controls.enableZoom = true;
-      this.controls.enablePan = true;
-      this.controls.enableRotate = true;
+      this.controls.enabled = false;
+      this.controls.enableZoom = false;
+      this.controls.enablePan = false;
+      this.controls.enableRotate = false;
     }
   }
 
