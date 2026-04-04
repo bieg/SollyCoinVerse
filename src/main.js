@@ -103,7 +103,9 @@ function startGameWithStarWars() {
   if (startscreen) startscreen.style.display = 'none';
 
   // Toon nieuwe Sollyverse intro
+  console.log('🎬 sollyIntro element:', sollyIntro);
   if (sollyIntro) {
+    console.log('✅ Showing solly intro screen');
     sollyIntro.style.display = 'flex';
     introActive = true;
     startIntroStars();
