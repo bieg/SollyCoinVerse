@@ -72,14 +72,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Listen for GameIntro completion
+// Listen for GameIntro completion - guard tegen dubbele aanroep
+let introCompleteCalled = false;
 document.addEventListener('gameIntroComplete', (event) => {
+  if (introCompleteCalled) return;
+  introCompleteCalled = true;
   console.log('🎉 GameIntro completed!', event.detail);
   startGameWithStarWars();
 });
 
 // Also expose as global function
 window.onGameIntroComplete = function () {
+  if (introCompleteCalled) return;
+  introCompleteCalled = true;
   startGameWithStarWars();
 };
 
