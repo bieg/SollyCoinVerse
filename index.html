@@ -709,12 +709,46 @@
     <div id="startscreen" style="display: none;">
         <!-- Legacy fallback - not used anymore -->
     </div>
-    <div id="starwars-intro" class="starwars-modal" style="display:none;">
-        <div class="starwars-crawl-container" id="starwars-crawl">
-            <h2>Lang lang geleden, in een Sollystelsel online...</h2>
-            <p>De Sollyverse is een mysterieuze 3D ruimte waar je doorheen kunt vliegen. Als Solly ben je een bijzondere piramide die door de ruimte zweeft. Ontdek alle geheimen en mogelijkheden in deze magische wereld! Interacteren met andere Sollies, los raadsels op of geniet van het zweven.<br>Ontdek, kies en beleef jouw avontuur.</p>
-            <p>May the Solly move with you.</p>
+    <div id="solly-intro" class="solly-intro-modal" style="display:none;">
+        <canvas id="intro-stars-canvas"></canvas>
+        <div class="intro-nebula intro-nebula-1"></div>
+        <div class="intro-nebula intro-nebula-2"></div>
+        <div class="intro-nebula intro-nebula-3"></div>
+        <div class="intro-planet intro-planet-1"></div>
+        <div class="intro-planet intro-planet-2"></div>
+        <div class="intro-planet intro-planet-3"></div>
+        <div class="intro-content">
+            <div class="intro-solly-triangle"></div>
+            <h1 class="intro-title">Sollyverse</h1>
+            <p class="intro-subtitle">Vier werelden &nbsp;·&nbsp; Eén missie</p>
+            <div class="intro-levels">
+                <div class="intro-level-row">
+                    <span class="intro-level-num">H1</span>
+                    <span class="intro-level-name">Ruimte</span>
+                    <span class="intro-level-desc">Beweeg door de kosmos. Botss met 5 Sollies en kies je vorm.</span>
+                </div>
+                <div class="intro-divider"></div>
+                <div class="intro-level-row">
+                    <span class="intro-level-num">H2</span>
+                    <span class="intro-level-name">De Cubus</span>
+                    <span class="intro-level-desc">Sleep alle shapes naar de juiste hoekpunten van de kubus.</span>
+                </div>
+                <div class="intro-divider"></div>
+                <div class="intro-level-row">
+                    <span class="intro-level-num">H3</span>
+                    <span class="intro-level-name">Cyber Hangman</span>
+                    <span class="intro-level-desc">Raad het verborgen woord letter voor letter. Mis niet te veel.</span>
+                </div>
+                <div class="intro-divider"></div>
+                <div class="intro-level-row">
+                    <span class="intro-level-num">H4</span>
+                    <span class="intro-level-name">Labyrint</span>
+                    <span class="intro-level-desc">Gids de knikker door het doolhof. Kantel voorzichtig.</span>
+                </div>
+            </div>
+            <button class="intro-begin-btn" id="intro-begin-btn">Begin</button>
         </div>
+        <p class="intro-hint">Speak friend and enter &nbsp;·&nbsp; type "mellon"</p>
     </div>
     <div id="solly-level-indicator" style="display:none; position:fixed; left:0; top:0; padding:32px 48px 16px 32px; color:#fff; font-size:1.5em; z-index:100; pointer-events:none; text-shadow:0 2px 8px #000, 0 0 2px #FFD700;"></div>
     <div id="kaboom-counter" style="position:fixed; left:32px; top:32px; color:#FFFFFF; font-size:3em; z-index:10000; pointer-events:none; text-shadow:0 2px 8px #000; font-weight:bold; display:none;">

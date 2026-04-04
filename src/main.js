@@ -8,9 +8,8 @@
 
 // --- Startscherm en Star Wars intro ---
 const startscreen = document.getElementById('startscreen');
-const starwarsIntro = document.getElementById('starwars-intro');
-const starwarsCrawl = document.getElementById('starwars-crawl');
-let starWarsIntroActive = false;
+const sollyIntro = document.getElementById('solly-intro');
+let introActive = false;
 let sollyConfig = null;
 let gameManager = null;
 let userInterface = null;
@@ -98,32 +97,25 @@ function startGameWithStarWars() {
   // Hide old startscreen (if visible)
   if (startscreen) startscreen.style.display = 'none';
 
-  // Show Star Wars intro
-  starwarsIntro.style.display = 'flex';
+  // Toon nieuwe Sollyverse intro
+  if (sollyIntro) {
+    sollyIntro.style.display = 'flex';
+    introActive = true;
+    startIntroStars();
 
-  // VOEG STERREN TOE TIJDENS STAR WARS ANIMATIE
-  setTimeout(() => {
-    console.log('⭐ Voeg sterren toe tijdens Star Wars animatie');
-    createStarWarsStars();
-  }, 200);
-
-  setTimeout(() => {
-    starwarsCrawl.classList.add('starwars-crawl-animate');
-  }, 100);
-
-  setTimeout(() => {
-    starwarsIntro.style.display = 'none';
-    starWarsIntroActive = false;
-
-    // Cleanup CSS sterren
-    if (window.cleanupStarWarsStars) {
-      window.cleanupStarWarsStars();
+    // Begin knop → start game
+    const beginBtn = document.getElementById('intro-begin-btn');
+    if (beginBtn) {
+      beginBtn.onclick = () => {
+        sollyIntro.style.display = 'none';
+        introActive = false;
+        initSollyverse();
+      };
     }
-
+  } else {
+    // Fallback: direct starten
     initSollyverse();
-  }, 9000);
-
-  starWarsIntroActive = true;
+  }
 }
 
 // Legacy: Keep old start button handler as fallback (hidden)
@@ -131,54 +123,44 @@ if (document.getElementById('start-btn')) {
   document.getElementById('start-btn').onclick = startGameWithStarWars;
 }
 
-// Functie om sterren toe te voegen tijdens Star Wars animatie - IN STAR WARS MODAL
-function createStarWarsStars() {
-  console.log('🌟 Creating stars INSIDE Star Wars modal');
-  const starwarsModal = document.getElementById('starwars-intro');
-  if (!starwarsModal) {
-    console.error('❌ Star Wars modal not found');
-    return;
-  }
+// Sterren canvas voor het intro scherm
+function startIntroStars() {
+  const canvas = document.getElementById('intro-stars-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
-  const baseStyles = {
-    position: 'absolute',
-    top: '0',
-    left: '0',
-    width: '100%',
-    height: '100%',
-    pointerEvents: 'none',
-    overflow: 'hidden',
-  };
-
-  const starsContainer = getOrCreateStarsContainer('starwars-stars', starwarsModal, baseStyles);
-  if (starsContainer.childElementCount === 0) {
-    const starCount = 1700;
-    for (let i = 0; i < starCount; i++) {
-      const star = document.createElement('div');
-      const size = 1 + Math.random() * 2;
-      const x = Math.random() * 100;
-      const y = Math.random() * 100;
-      const opacity = 0.4 + Math.random() * 0.4;
-      star.style.cssText = `position:absolute;width:${size}px;height:${size}px;background:white;border-radius:50%;left:${x}%;top:${y}%;opacity:${opacity};box-shadow:0 0 ${size * 1.5}px rgba(255,255,255,.6);`;
-      starsContainer.appendChild(star);
-    }
-    console.log(`⭐ Created ${starCount} stars for Star Wars animation`);
-  }
-
-  window.cleanupStarWarsStars = function () {
-    if (!starsContainer) return;
-    // hernoem id zodat imports het herkennen i.p.v. dupliceren
-    starsContainer.id = 'background-stars';
-    // pas styling aan voor vaste positie in main scene
-    Object.assign(starsContainer.style, {
-      position: 'fixed',
-      width: '100vw',
-      height: '100vh',
-      zIndex: '1',
+  const stars = [];
+  for (let i = 0; i < 200; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.5,
+      alpha: Math.random() * 0.8 + 0.2,
+      twinkleSpeed: Math.random() * 0.02 + 0.005,
     });
-    document.body.appendChild(starsContainer);
-    console.log('✅ Starfield promoted to background-stars');
-  };
+  }
+
+  let t = 0;
+  let animId;
+  function draw() {
+    if (!introActive) {
+      cancelAnimationFrame(animId);
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    t += 0.01;
+    stars.forEach((s) => {
+      const a = s.alpha * (0.6 + 0.4 * Math.sin(t * s.twinkleSpeed * 100));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${a})`;
+      ctx.fill();
+    });
+    animId = requestAnimationFrame(draw);
+  }
+  draw();
 }
 
 // Functie om achtergrond sterren te maken voor geïmporteerde coins
@@ -414,7 +396,7 @@ async function initSollyverse() {
   addWhiteStars(scene); // Voeg 3D sterren toe gebaseerd op SollyCoin data
 
   // Voor geïmporteerde coins: maak sterrenhemel als er geen Star Wars was
-  if (sollyConfig && !starWarsIntroActive) {
+  if (sollyConfig && !introActive) {
     console.log('🌟 Creating background stars for imported coin');
     createBackgroundStars();
   }
