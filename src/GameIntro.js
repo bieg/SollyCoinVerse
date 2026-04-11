@@ -15,7 +15,7 @@ class GameIntro {
     this.starWarsAudio = null;
 
     // Valid trigger words - LOTR "Speak friend and enter" / "Pedo mellon a minno"
-    this.triggerWords = ['mellon', 'friend'];
+    this.triggerWords = ['mellon', 'melon', 'friend'];
 
     // Bind methods
     this.handleKeydown = this.handleKeydown.bind(this);
