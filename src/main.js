@@ -103,7 +103,6 @@ function startGameWithStarWars() {
   if (startscreen) startscreen.style.display = 'none';
 
   // Toon nieuwe Sollyverse intro
-  console.log('🎬 sollyIntro element:', sollyIntro);
   if (sollyIntro) {
     console.log('✅ Showing solly intro screen');
     sollyIntro.style.display = 'flex';
@@ -1109,148 +1108,102 @@ function hideAllChapters() {
     window.RedTakeover.cleanup();
   }
 
+  // Hide intro screen als die nog zichtbaar is
+  const introScreen = document.getElementById('solly-intro');
+  if (introScreen) introScreen.style.display = 'none';
+  introActive = false;
+
   console.log('✅ All chapter UIs cleaned up');
 }
 
 // Maak beschikbaar voor andere modules
 window.hideAllChapters = hideAllChapters;
 
-// Keyboard shortcuts om hoofdstukken direct te laden
+// Helper: zorg dat het spel geïnitialiseerd is voor een shortcut
+async function ensureInitializedForShortcut() {
+  if (!sollyverseInitialized) {
+    console.log('⌨️ Game nog niet gestart, initialiseer eerst...');
+    await initSollyverse();
+  }
+  hideAllChapters();
+}
+
+// Keyboard shortcuts om hoofdstukken direct te laden (voor sneltesten)
+// Ctrl+1..5 werkt ook voor de intro geklikt is
 document.addEventListener('keydown', (e) => {
-  // Ctrl+1 (Windows/Linux) of Cmd+1 (Mac) - Chapter 1 (Space Scene)
-  if ((e.ctrlKey || e.metaKey) && e.key === '1') {
+  if (!e.ctrlKey) return;
+
+  // Ctrl+1 - Chapter 1 (Space Scene)
+  if (e.key === '1') {
     e.preventDefault();
-    console.log('⌨️ Keyboard shortcut: Terug naar Hoofdstuk 1 (Space Scene)');
-
-    try {
-      hideAllChapters(); // Clean up other chapters
-      console.log('🚀 Returning to Chapter 1: Space Scene...');
-
-      // Reset scene background to space
-      if (window.scene) {
-        window.scene.background = new window.THREE.Color(0x000011);
-      }
-
-      // Trigger chapter manager update
-      if (window.chapterManager) {
-        window.chapterManager.setCurrentChapter(1);
-      }
-
-      console.log('✅ Chapter 1 active');
-    } catch (error) {
-      console.error('❌ Error returning to Chapter 1:', error);
-    }
+    ensureInitializedForShortcut().then(() => {
+      if (window.scene) window.scene.background = new window.THREE.Color(0x000011);
+      if (window.chapterManager) window.chapterManager.setCurrentChapter(1);
+      console.log('✅ Chapter 1 actief');
+    });
   }
 
-  // Ctrl+2 (Windows/Linux) of Cmd+2 (Mac) - Chapter 2
-  if ((e.ctrlKey || e.metaKey) && e.key === '2') {
+  // Ctrl+2 - Chapter 2 (2D flat, geen camera)
+  if (e.key === '2') {
     e.preventDefault();
-    console.log('⌨️ Keyboard shortcut: Direct naar Hoofdstuk 2');
-
-    if (window.initChapter2) {
-      if (window.level2Active) {
-        console.log('⚠️ Hoofdstuk 2 is al actief');
-        return;
-      }
-
-      try {
-        hideAllChapters(); // Clean up other chapters first
-        console.log('🚀 Loading Hoofdstuk 2 via keyboard shortcut...');
+    ensureInitializedForShortcut().then(() => {
+      if (window.initChapter2) {
         window.initChapter2();
-      } catch (error) {
-        console.error('❌ Error loading Hoofdstuk 2:', error);
+      } else {
+        console.warn('⚠️ initChapter2 niet beschikbaar');
       }
-    } else {
-      console.warn('⚠️ initChapter2 niet beschikbaar');
-    }
+    });
   }
 
-  // Ctrl+3 (Windows/Linux) of Cmd+3 (Mac) - Chapter 3
-  if ((e.ctrlKey || e.metaKey) && e.key === '3') {
+  // Ctrl+3 - Chapter 3 (Cyber Hangman)
+  if (e.key === '3') {
     e.preventDefault();
-    console.log('⌨️ Keyboard shortcut: Direct naar Hoofdstuk 3 (Neon Cyberpunk)');
-
-    if (window.initChapter3) {
-      if (window.level3Active) {
-        console.log('⚠️ Hoofdstuk 3 is al actief');
-        return;
-      }
-
-      try {
-        hideAllChapters(); // Clean up other chapters first
-        console.log('🚀 Loading Hoofdstuk 3: Neon Cyberpunk via keyboard shortcut...');
+    ensureInitializedForShortcut().then(() => {
+      if (window.initChapter3) {
         window.initChapter3();
-      } catch (error) {
-        console.error('❌ Error loading Hoofdstuk 3:', error);
+      } else {
+        console.warn('⚠️ initChapter3 niet beschikbaar');
       }
-    } else {
-      console.warn('⚠️ initChapter3 niet beschikbaar');
-    }
+    });
   }
 
-  // Ctrl+4 (Windows/Linux) of Cmd+4 (Mac) - Chapter 4
-  if ((e.ctrlKey || e.metaKey) && e.key === '4') {
+  // Ctrl+4 - Chapter 4 (Marble Labyrinth)
+  if (e.key === '4') {
     e.preventDefault();
-    console.log('⌨️ Keyboard shortcut: Direct naar Hoofdstuk 4 (De Meester)');
-
-    if (window.initChapter4) {
-      if (window.level4Active) {
-        console.log('⚠️ Hoofdstuk 4 is al actief');
-        return;
-      }
-
-      try {
-        hideAllChapters(); // Clean up other chapters first
-        console.log('🚀 Loading Hoofdstuk 4: De Meester via keyboard shortcut...');
+    ensureInitializedForShortcut().then(() => {
+      if (window.initChapter4) {
         window.initChapter4();
-      } catch (error) {
-        console.error('❌ Error loading Hoofdstuk 4:', error);
+      } else {
+        console.warn('⚠️ initChapter4 niet beschikbaar');
       }
-    } else {
-      console.warn('⚠️ initChapter4 niet beschikbaar');
-    }
+    });
   }
 
-  // SECRET LEVEL: Red Takeover - now triggered by Konami Code (↑↑↓↓←→←→BA)
-  // See RedTakeover.js for implementation
-
-  // Ctrl+5 (Windows/Linux) of Cmd+5 (Mac) - Chapter 5: The Void Walk
-  if ((e.ctrlKey || e.metaKey) && e.key === '5') {
+  // Ctrl+5 - Chapter 5 (The Void Walk)
+  if (e.key === '5') {
     e.preventDefault();
-    console.log('⌨️ Keyboard shortcut: Chapter 5 - The Void Walk! 🌑');
-
-    if (window.initChapter5) {
-      try {
-        hideAllChapters(); // Clean up other chapters first
-        console.log('🌑 Loading Chapter 5: The Void Walk...');
+    ensureInitializedForShortcut().then(() => {
+      if (window.initChapter5) {
         window.initChapter5();
-      } catch (error) {
-        console.error('❌ Error loading Chapter 5:', error);
+      } else {
+        console.warn('⚠️ initChapter5 niet beschikbaar');
       }
-    } else {
-      console.warn('⚠️ initChapter5 niet beschikbaar - is chapter5.js geladen?');
-    }
+    });
   }
 
-  // Ctrl+0 (Windows/Linux) of Cmd+0 (Mac) - CINEMATIC ENDING
-  if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+  // Ctrl+0 - Cinematic Ending
+  if (e.key === '0') {
     e.preventDefault();
-    console.log('⌨️ Keyboard shortcut: CINEMATIC ENDING 📺');
-
-    if (window.triggerCinematicEnding) {
-      try {
-        hideAllChapters(); // Clean up other chapters first
-        console.log('📺 Loading Cinematic Ending...');
+    ensureInitializedForShortcut().then(() => {
+      if (window.triggerCinematicEnding) {
         window.triggerCinematicEnding();
-      } catch (error) {
-        console.error('❌ Error loading Cinematic Ending:', error);
+      } else {
+        console.warn('⚠️ triggerCinematicEnding niet beschikbaar');
       }
-    } else {
-      console.warn(
-        '⚠️ triggerCinematicEnding niet beschikbaar - is GameEndingCinematic.js geladen?',
-      );
-    }
+    });
   }
+
+  // SECRET LEVEL: Red Takeover via Konami Code (↑↑↓↓←→←→BA) - zie RedTakeover.js
 });
 
 // Send collision to server
