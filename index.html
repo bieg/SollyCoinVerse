@@ -2,8 +2,21 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Sollyverse - Fase 1</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SollyCoinVerse</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000011">
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SollyCoin">
+    <link rel="apple-touch-icon" href="/icons/icon-180.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/Tween.min.js"></script>
@@ -794,5 +807,10 @@
     <script src="src/WebSocketClientManager.js"></script>
     <script src="src/AudioManager.js?v=1"></script>
     <script src="src/main.js?v=16"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      }
+    </script>
 </body>
 </html>
