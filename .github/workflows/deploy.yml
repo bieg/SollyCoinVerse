@@ -1,0 +1,42 @@
+name: Deploy naar soli.bieg.nl
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.claude/**
+            **/node_modules/**
+            **/backups/**
+            **/artifacts/**
+            **/cache/**
+            **/contracts/**
+            **/deployments/**
+            **/scripts/**
+            **/test/**
+            **/server/**
+            server.js
+            server-config.js
+            hardhat.config.js
+            tsconfig.json
+            SollyCoin.sol
+            *.md
+            env.example
+            package*.json
