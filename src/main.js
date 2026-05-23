@@ -423,6 +423,7 @@ async function initSollyverse() {
     addSolly1AndSolly2(scene);
     // Wallet knop zichtbaar maken na game start
     document.dispatchEvent(new Event('sollyverseStarted'));
+    if (window.audioManager) window.audioManager.startAmbient('space');
   }, 3000);
 
   // Plan collision na 7 seconden (4 seconden na laatste objecten)
@@ -698,6 +699,7 @@ function addPointerListener() {
 
     if (intersects.length > 0) {
       portalClicked = true;
+      if (window.audioManager) window.audioManager.play('portal');
       console.log('🚪 Portal clicked!');
     }
   }
@@ -1045,6 +1047,7 @@ function sendPlayerMovement(position, rotation) {
  * Roep dit aan voordat je een nieuw chapter start
  */
 function hideAllChapters() {
+  if (window.audioManager) window.audioManager.stopAmbient();
   console.log('🧹 Cleaning up all chapter UIs...');
 
   // Reset alle chapter active flags
@@ -1139,6 +1142,7 @@ document.addEventListener('keydown', (e) => {
     ensureInitializedForShortcut().then(() => {
       if (window.scene) window.scene.background = new window.THREE.Color(0x000011);
       if (window.chapterManager) window.chapterManager.setCurrentChapter(1);
+      if (window.audioManager) window.audioManager.startAmbient('space');
       console.log('✅ Chapter 1 actief');
     });
   }
@@ -1149,6 +1153,7 @@ document.addEventListener('keydown', (e) => {
     ensureInitializedForShortcut().then(() => {
       if (window.initChapter2) {
         window.initChapter2();
+        if (window.audioManager) window.audioManager.startAmbient('cube');
       } else {
         console.warn('⚠️ initChapter2 niet beschikbaar');
       }
@@ -1161,6 +1166,7 @@ document.addEventListener('keydown', (e) => {
     ensureInitializedForShortcut().then(() => {
       if (window.initChapter3) {
         window.initChapter3();
+        if (window.audioManager) window.audioManager.startAmbient('hangman');
       } else {
         console.warn('⚠️ initChapter3 niet beschikbaar');
       }
@@ -1173,6 +1179,7 @@ document.addEventListener('keydown', (e) => {
     ensureInitializedForShortcut().then(() => {
       if (window.initChapter4) {
         window.initChapter4();
+        if (window.audioManager) window.audioManager.startAmbient('marble');
       } else {
         console.warn('⚠️ initChapter4 niet beschikbaar');
       }
@@ -1185,6 +1192,7 @@ document.addEventListener('keydown', (e) => {
     ensureInitializedForShortcut().then(() => {
       if (window.initChapter5) {
         window.initChapter5();
+        if (window.audioManager) window.audioManager.startAmbient('void');
       } else {
         console.warn('⚠️ initChapter5 niet beschikbaar');
       }

@@ -729,6 +729,7 @@
         const dot = marbleVX * nx + marbleVY * ny;
         marbleVX = (marbleVX - 2 * dot * nx) * CONFIG.bounceEnergy;
         marbleVY = (marbleVY - 2 * dot * ny) * CONFIG.bounceEnergy;
+        if (window.audioManager) window.audioManager.play('marbleBounce');
       }
     });
 
@@ -779,6 +780,7 @@
     if (won) {
       gameWon = true;
       console.log(`✅ Level ${currentLevel} voltooid!`);
+      if (window.audioManager) window.audioManager.play('chapterComplete');
 
       // Show success message
       showMessage('🎉 Level Complete!', '#00ff88');
@@ -794,6 +796,7 @@
     } else {
       gameLost = true;
       console.log('💀 In een black hole gevallen!');
+      if (window.audioManager) window.audioManager.play('marbleFall');
 
       // Show fail message
       showMessage('💀 Black Hole!', '#ff0066');

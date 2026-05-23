@@ -652,11 +652,13 @@
       // Correct guess
       btn.classList.add('correct');
       playGlitchEffect('correct');
+      if (window.audioManager) window.audioManager.play('correct');
     } else {
       // Wrong guess
       btn.classList.add('wrong');
       wrongGuesses++;
       playGlitchEffect('wrong');
+      if (window.audioManager) window.audioManager.play('wrong');
     }
 
     btn.disabled = true;
@@ -699,9 +701,11 @@
     if (wordGuessed) {
       gameWon = true;
       gameOver = true;
+      if (window.audioManager) window.audioManager.play('chapterComplete');
       showGameMessage('win');
     } else if (wrongGuesses >= maxWrongGuesses) {
       gameOver = true;
+      if (window.audioManager) window.audioManager.play('wrong');
       showGameMessage('lose');
     }
   }
